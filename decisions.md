@@ -423,6 +423,24 @@ Lighthouse workflow neuters its lhci commands with `|| true`/`|| :`/`continue-on
 closed (exit 2) if the workflow is missing or no longer references `lhci`. Pinned + discriminated by
 `src/test/smoke/check-lighthouse-gate-armed.smoke.test.ts`.
 
+**Every waiver expires — a permanent bypass is forbidden.** An `arch-gate.waivers.json` entry with an
+empty/missing `expires` never expires, so the architectural backlog has no burn-down pressure (it sat at
+305 waivers, 0 dated — enterprise-readiness audit 2026-10). A waiver is an *expiring* exception, not a
+standing exemption. Because the gate runs `--changed`, an expired waiver only blocks a PR that TOUCHES
+that file — so a dated backlog is a burn-down trigger, never an all-PRs cliff.
+
+```
+❌ never — a permanent waiver (no burn-down pressure)
+{ "rule": "...", "path": "src/x.tsx", "approvedBy": "baseline", "expires": "" }
+✅ always — a dated, expiring exception
+{ "rule": "...", "path": "src/x.tsx", "approvedBy": "baseline", "expires": "2027-04-30" }
+```
+
+Enforced by `arch-gate.mjs` itself: it fails **closed** (exit 2) if any waiver has no valid, parseable
+`expires` date, and `--baseline` emits a dated default (never `""`). Pinned + discriminated by AG-011/AG-012
+in `src/test/smoke/arch-gate.smoke.test.ts` (undated / unparseable → exit 2). The backlog of 305 baseline
+waivers is dated `2027-04-30`; shrink it (the file is the architectural backlog), and raise no new permanent ones.
+
 ---
 
 ## 7 · Schema changes are expand/contract

@@ -65,6 +65,35 @@ function readJson(p, fallback) {
 
 const config = readJson(CONFIG_PATH);
 const waivers = readJson(WAIVERS_PATH, []);
+
+// Every waiver MUST carry a real, parseable `expires` date. An empty/missing `expires` is a
+// PERMANENT bypass with no burn-down pressure — the backlog never shrinks (enterprise-readiness
+// audit 2026-10, waiver hygiene: 305 waivers, 0 with an expiry). Fail CLOSED on any undated waiver
+// so a permanent exception is structurally impossible to add. --baseline (below) emits a dated
+// default, never "". See decisions.md §6.
+if (!BASELINE) {
+  const undated = waivers.filter(
+    (w) =>
+      !w ||
+      typeof w.expires !== "string" ||
+      w.expires.trim() === "" ||
+      Number.isNaN(new Date(w.expires).getTime())
+  );
+  if (undated.length) {
+    console.error(
+      `arch-gate: ${undated.length} waiver(s) have no valid \`expires\` date — a permanent waiver is ` +
+        `forbidden; every exception must expire (YYYY-MM-DD) so the backlog shrinks:`
+    );
+    for (const w of undated.slice(0, 20))
+      console.error(
+        `  - rule="${w?.rule}" path="${w?.path ?? "(all)"}" expires=${JSON.stringify(w?.expires)}`
+      );
+    if (undated.length > 20) console.error(`  … and ${undated.length - 20} more`);
+    console.error(`Set a dated \`expires\` on each (see decisions.md §6). Failing closed.`);
+    process.exit(2);
+  }
+}
+
 const ignoreDirs = new Set([...DEFAULT_IGNORE, ...(config.ignore || [])]);
 
 /** Minimal glob → RegExp: supports **, *, ?, and {a,b} alternation, matched against a POSIX path. */
@@ -256,6 +285,9 @@ const waived = violations.filter((v) => v.waived);
 if (BASELINE) {
   const seen = new Set();
   const out = [];
+  // Dated default (~180 days out) — never "" (a permanent waiver is forbidden by the undated-waiver
+  // check above). The team adjusts the burn-down horizon as needed.
+  const DEFAULT_WAIVER_EXPIRY = new Date(Date.now() + 180 * 86_400_000).toISOString().slice(0, 10);
   for (const v of active) {
     const key = v.rule + " " + v.file;
     if (seen.has(key)) continue;
@@ -265,7 +297,7 @@ if (BASELINE) {
       path: v.file,
       reason: "baseline — pre-existing at gate adoption; scheduled for cleanup",
       approvedBy: "baseline",
-      expires: "",
+      expires: DEFAULT_WAIVER_EXPIRY,
     });
   }
   console.error(
