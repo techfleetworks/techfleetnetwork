@@ -70,7 +70,9 @@ function fixture(opts: {
   return root;
 }
 
-const waiverFor = (path: string, expires = "") => ({
+// Default to a valid FUTURE date: an undated waiver is now rejected fail-closed (AG-011), so a
+// suppressing waiver must carry a real expiry.
+const waiverFor = (path: string, expires = "2099-01-01") => ({
   rule: RULE,
   path,
   reason: "fixture",
@@ -113,6 +115,23 @@ describe("arch-gate mechanical gate (smoke)", () => {
   // ---- Fail closed --------------------------------------------------------
   it("AG-006: fails CLOSED (exit 2) when the config is missing", () => {
     const r = fixture({ files: { "src/x.ts": "const x = 1;\n" }, withConfig: false });
+    expect(runGate(r)).toBe(2);
+  });
+
+  // ---- Waiver hygiene: no permanent (undated) waivers (audit 2026-10) ------
+  it("AG-011: fails CLOSED (exit 2) on a waiver with an empty `expires` (permanent bypass forbidden)", () => {
+    const r = fixture({
+      files: { "src/bad.ts": `const x = "${TOKEN}";\n` },
+      waivers: [waiverFor("src/bad.ts", "")],
+    });
+    expect(runGate(r)).toBe(2);
+  });
+
+  it("AG-012: fails CLOSED (exit 2) on a waiver whose `expires` is not a parseable date", () => {
+    const r = fixture({
+      files: { "src/bad.ts": `const x = "${TOKEN}";\n` },
+      waivers: [waiverFor("src/bad.ts", "someday")],
+    });
     expect(runGate(r)).toBe(2);
   });
 
