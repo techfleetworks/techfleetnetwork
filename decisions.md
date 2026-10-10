@@ -381,6 +381,26 @@ if the coverage summary is missing/garbage (so "coverage never ran" is red, neve
 discriminated by `src/test/smoke/check-coverage-floor.smoke.test.ts`. The floor is bootstrapped at 0 and
 ratcheted up to the first measured value — it rises, never falls.
 
+**Coverage proves lines ran; mutation proves the tests would CATCH a bug.** A test can execute a line
+and assert nothing — coverage stays green while the test is worthless (the exact failure the guard
+fleet's `verify-guard-test-discrimination` already prevents for *guards*, but nothing did for *product
+code* — enterprise-readiness audit 2026-10). So the highest-risk product code is mutation-tested: Stryker
+mutates it and the test suite must KILL the mutants, or the score falls below the break threshold and CI
+is red.
+
+```
+❌ never — assume green tests are meaningful (a test can cover a line yet assert nothing)
+it("sanitizes", () => { sanitizeHtml(input); /* no expect() */ });   // 100% coverage, catches nothing
+✅ always — mutation-test the security-critical code; surviving mutants = tests that don't assert
+npm run test:mutation   # stryker over stryker.conf.json's `mutate` target; break threshold fails CI
+```
+
+Enforced by `stryker.conf.json` + `.github/workflows/mutation.yml` (runs on `src/lib/**` / config changes,
+weekly, and on demand; `coverageAnalysis: perTest` keeps it bounded). First target: `src/lib/security.ts`
+(sanitization / redirect / crypto). `thresholds.break` is bootstrapped at 0 and ratcheted to the first
+measured score; expand `mutate` to more of `src/lib` and `src/services` over time. Make it a required
+check in branch protection to block merges on a score drop.
+
 **The type-check gate checks every project, never a bare `tsc`.** The root `tsconfig.json` is a
 references-only _solution_ file (`"files": []` + `references`). A bare `tsc --noEmit` does not follow
 project references, so against that root it type-checks **zero files** and always exits 0 — a green

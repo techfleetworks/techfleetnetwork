@@ -27,6 +27,10 @@ test-results/
 coverage/
 sbom.json
 
+# Mutation testing (StrykerJS) — scratch + reports
+.stryker-tmp/
+reports/mutation/
+
 # VitePress design-system docs build output + cache
 docs/design/design-system/.vitepress/dist
 docs/design/design-system/.vitepress/cache
