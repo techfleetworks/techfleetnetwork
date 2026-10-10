@@ -59,6 +59,31 @@ describe("check-adr-number-collision guard (smoke)", () => {
     expect(runGuard(r)).toBe(1);
   });
 
+  it("ADR-006: passes a date-based <YYYYMMDD> ADR alongside legacy numbered ADRs", () => {
+    const r = guardFixture({
+      "docs/adr/0001-legacy.md": "# ADR 1\n",
+      "docs/adr/20261009-first-date-based.md": "# date ADR\n",
+      "docs/adr/README.md": "index, not an ADR\n",
+    });
+    expect(runGuard(r)).toBe(0);
+  });
+
+  it("ADR-007: ALLOWS two date-based ADRs that share a date but differ by slug (collision-proof)", () => {
+    // This is the whole point: parallel branches authored the same day do NOT collide.
+    const r = guardFixture({
+      "docs/adr/20261009-clawback.md": "# a\n",
+      "docs/adr/20261009-class-registration.md": "# b\n",
+    });
+    expect(runGuard(r)).toBe(0);
+  });
+
+  it("ADR-008: FLAGS an 8-digit prefix that is not a real date (dodge via a fake date)", () => {
+    const r = guardFixture({
+      "docs/adr/00000001-not-a-date.md": "# nope\n",
+    });
+    expect(runGuard(r)).toBe(1);
+  });
+
   it("ADR-005: the real repo passes the guard", () => {
     expect(runGuard(REPO)).toBe(0);
   });

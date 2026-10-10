@@ -4,6 +4,7 @@ import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
+import { useProjectsForMyApplications } from "@/hooks/use-project";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -125,29 +126,7 @@ export default function MyProjectApplicationsPage() {
 
   const projectIds = useMemo(() => [...new Set((apps ?? []).map((a) => a.project_id))], [apps]);
 
-  const { data: projects } = useQuery({
-    queryKey: ["my-projects-for-apps", projectIds],
-    queryFn: async () => {
-      if (projectIds.length === 0) return [];
-      // Explicit non-sensitive columns only — public.projects is column-scoped for `authenticated`,
-      // so select('*') fails 42501/403 (ADR-0056/0065). List exactly what this page renders.
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, project_type, phase, project_status, client_id, team_hats, friendly_name")
-        .in("id", projectIds);
-      if (error) throw error;
-      return (data ?? []) as {
-        id: string;
-        project_type: string;
-        phase: string;
-        project_status: string;
-        client_id: string;
-        team_hats: string[];
-        friendly_name?: string | null;
-      }[];
-    },
-    enabled: projectIds.length > 0,
-  });
+  const { data: projects } = useProjectsForMyApplications(projectIds);
 
   const clientIds = useMemo(
     () => [...new Set((projects ?? []).map((p) => p.client_id))],

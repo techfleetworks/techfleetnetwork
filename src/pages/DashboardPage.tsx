@@ -26,6 +26,7 @@ import { IdleMount } from "@/components/IdleMount";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getProjectsForDashboard } from "@/services/project.service";
 import { useCompletedCount } from "@/hooks/use-journey-progress";
 import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
 import { TOTAL_CONNECT_DISCORD, CONNECT_DISCORD_TASK_IDS } from "@/pages/ConnectDiscordPage";
@@ -70,9 +71,8 @@ interface CoreCourse {
 }
 
 const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCourse }) {
-  const progress = course.totalTasks > 0
-    ? Math.round((course.completedTasks / course.totalTasks) * 100)
-    : 0;
+  const progress =
+    course.totalTasks > 0 ? Math.round((course.completedTasks / course.totalTasks) * 100) : 0;
   const isComplete = course.totalTasks > 0 && course.completedTasks >= course.totalTasks;
   const isStarted = course.completedTasks > 0;
   const Icon = course.icon;
@@ -88,7 +88,10 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
             <h3 className="font-semibold text-sm text-muted-foreground truncate">{course.title}</h3>
             <p className="text-xs text-muted-foreground/70 truncate">{course.description}</p>
           </div>
-          <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs flex-shrink-0">
+          <Badge
+            variant="outline"
+            className="bg-muted text-muted-foreground border-muted-foreground/20 text-xs flex-shrink-0"
+          >
             Locked
           </Badge>
         </div>
@@ -108,15 +111,23 @@ const CoreCourseCard = memo(function CoreCourseCard({ course }: { course: CoreCo
               {course.title}
             </h3>
             {isComplete ? (
-              <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0">
+              <Badge
+                variant="outline"
+                className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0"
+              >
                 Complete
               </Badge>
             ) : isStarted ? (
-              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0">
+              <Badge
+                variant="outline"
+                className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0"
+              >
                 In Progress
               </Badge>
             ) : (
-              <Badge variant="secondary" className="text-xs flex-shrink-0">Not Started</Badge>
+              <Badge variant="secondary" className="text-xs flex-shrink-0">
+                Not Started
+              </Badge>
             )}
           </div>
           {course.totalTasks > 0 && (
@@ -161,9 +172,21 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
 
-  const { visibleWidgets, widgetOrder, isVisible, toggleWidget, reorderWidgets, isNewUser, isLoading: prefsLoading } = useDashboardPreferences();
+  const {
+    visibleWidgets,
+    widgetOrder,
+    isVisible,
+    toggleWidget,
+    reorderWidgets,
+    isNewUser,
+    isLoading: prefsLoading,
+  } = useDashboardPreferences();
 
-  const [agreementCtx, setAgreementCtx] = useState<{ id: string; name: string; clientName: string } | null>(null);
+  const [agreementCtx, setAgreementCtx] = useState<{
+    id: string;
+    name: string;
+    clientName: string;
+  } | null>(null);
 
   const totalFirstSteps = TOTAL_FIRST_STEPS;
 
@@ -188,11 +211,12 @@ export default function DashboardPage() {
   // With the persister, returning users hit `true` on first paint (snapshot
   // restored from localStorage). New users hit `false` until the RPC lands,
   // and we render the skeleton instead of "0 of 5 complete".
-  const overviewReady = !!userId
-    && overview !== undefined
-    && connectDiscordQuery.data !== undefined
-    && firstStepsQuery.data !== undefined
-    && observerQuery.data !== undefined;
+  const overviewReady =
+    !!userId &&
+    overview !== undefined &&
+    connectDiscordQuery.data !== undefined &&
+    firstStepsQuery.data !== undefined &&
+    observerQuery.data !== undefined;
 
   // Phase-total counts (sourced from overview RPC)
   const secondStepsCompleted = phaseCounts.second_steps ?? 0;
@@ -219,17 +243,24 @@ export default function DashboardPage() {
   // Project apps come from RPC; still need projects + clients lookup for display.
   const projectApps = overview?.project_applications ?? [];
   const { data: projectLookup } = useQuery({
-    queryKey: ["dashboard-project-lookup", projectApps.map((a) => a.project_id).sort().join(",")],
+    queryKey: [
+      "dashboard-project-lookup",
+      projectApps
+        .map((a) => a.project_id)
+        .sort()
+        .join(","),
+    ],
     queryFn: async () => {
       if (projectApps.length === 0) return { projects: [], clients: [] };
       const projectIds = [...new Set(projectApps.map((a) => a.project_id))];
-      const { data: projects } = await supabase
-        .from("projects").select("id, client_id, project_type, phase, project_status, friendly_name").in("id", projectIds);
-      const clientIds = [...new Set((projects ?? []).map((p) => p.client_id))];
-      const { data: clients } = clientIds.length > 0
-        ? await supabase.from("clients").select("id, name, kind").in("id", clientIds)
-        : { data: [] };
-      return { projects: projects ?? [], clients: clients ?? [] };
+      // Projects read owned by projectService (ADR-0071); the clients read stays inline for now (PR3).
+      const projects = await getProjectsForDashboard(projectIds);
+      const clientIds = [...new Set(projects.map((p) => p.client_id))];
+      const { data: clients } =
+        clientIds.length > 0
+          ? await supabase.from("clients").select("id, name, kind").in("id", clientIds)
+          : { data: [] };
+      return { projects, clients: clients ?? [] };
     },
     enabled: projectApps.length > 0,
     staleTime: 5 * 60 * 1000,
@@ -247,8 +278,14 @@ export default function DashboardPage() {
   }, [userId, queryClient, dashboardPollInterval]);
 
   const myProjectApps = projectApps;
-  const dashProjectMap = useMemo(() => new Map((projectLookup?.projects ?? []).map((p) => [p.id, p])), [projectLookup?.projects]);
-  const dashClientMap = useMemo(() => new Map((projectLookup?.clients ?? []).map((c) => [c.id, c])), [projectLookup?.clients]);
+  const dashProjectMap = useMemo(
+    () => new Map((projectLookup?.projects ?? []).map((p) => [p.id, p])),
+    [projectLookup?.projects]
+  );
+  const dashClientMap = useMemo(
+    () => new Map((projectLookup?.clients ?? []).map((c) => [c.id, c])),
+    [projectLookup?.clients]
+  );
 
   const communityBadgeCount = stats?.badges_earned ?? null;
 
@@ -256,74 +293,95 @@ export default function DashboardPage() {
   // Discord account, even when the journey_progress row is missing (older users who
   // linked Discord via ProfileSetupDialog never marked the connect-discord task).
   const hasLinkedDiscord = !!(profile?.discord_user_id && profile.discord_user_id.length > 0);
-  const allConnectDiscordDone = connectDiscordCompleted >= TOTAL_CONNECT_DISCORD || hasLinkedDiscord;
+  const allConnectDiscordDone =
+    connectDiscordCompleted >= TOTAL_CONNECT_DISCORD || hasLinkedDiscord;
   const allFirstStepsDone = totalFirstSteps > 0 && firstStepsCompleted >= totalFirstSteps;
   const allSecondStepsDone = secondStepsCompleted >= TOTAL_AGILE_LESSONS;
   const allDiscordDone = discordLearningCompleted >= TOTAL_DISCORD_LESSONS;
   const allThirdStepsDone = teamworkCompleted >= TOTAL_TEAMWORK_LESSONS;
   const allProjectTrainingDone = projectTrainingCompleted >= TOTAL_PROJECT_TRAINING_LESSONS;
   const allVolunteerDone = volunteerCompleted >= TOTAL_VOLUNTEER_LESSONS;
-  const allOnboardingDone = allConnectDiscordDone && allFirstStepsDone && allSecondStepsDone && allProjectTrainingDone && allVolunteerDone;
+  const allOnboardingDone =
+    allConnectDiscordDone &&
+    allFirstStepsDone &&
+    allSecondStepsDone &&
+    allProjectTrainingDone &&
+    allVolunteerDone;
   const observerNotStarted = allOnboardingDone && observerCompleted === 0;
-  const observerInProgress = allOnboardingDone && observerCompleted > 0 && observerCompleted < TOTAL_OBSERVER_LESSONS;
+  const observerInProgress =
+    allOnboardingDone && observerCompleted > 0 && observerCompleted < TOTAL_OBSERVER_LESSONS;
   const observerDone = allOnboardingDone && observerCompleted >= TOTAL_OBSERVER_LESSONS;
 
-  const coreCourses: CoreCourse[] = useMemo(() => [
-    {
-      id: "connect-discord",
-      title: "Connect to Discord",
-      description: "Link your Discord account to the Tech Fleet Network platform.",
-      icon: MessageSquare,
-      href: "/courses/connect-discord",
-      totalTasks: TOTAL_CONNECT_DISCORD,
-      completedTasks: connectDiscordCompleted,
-      locked: false,
-    },
-    {
-      id: "onboarding",
-      title: "Onboarding Steps",
-      description: "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
-      icon: ClipboardCheck,
-      href: "/courses/onboarding",
-      totalTasks: totalFirstSteps,
-      completedTasks: firstStepsCompleted,
-      locked: !allConnectDiscordDone,
-      prerequisiteLabel: "Connect to Discord",
-    },
-    {
-      id: "agile-mindset",
-      title: "Build an Agile Mindset",
-      description: `${TOTAL_AGILE_LESSONS} lessons covering agile philosophies, teamwork, and scrum methods.`,
-      icon: BookOpen,
-      href: "/courses/agile-mindset",
-      totalTasks: TOTAL_AGILE_LESSONS,
-      completedTasks: secondStepsCompleted,
-      locked: !allFirstStepsDone,
-      prerequisiteLabel: "Onboarding Steps",
-    },
-    {
-      id: "project-training",
-      title: "Join Project Training Teams",
-      description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on apprenticeship training and nonprofit clients.`,
-      icon: Briefcase,
-      href: "/courses/project-training",
-      totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
-      completedTasks: projectTrainingCompleted,
-      locked: !allSecondStepsDone,
-      prerequisiteLabel: "Build an Agile Mindset",
-    },
-    {
-      id: "volunteer-teams",
-      title: "Join Volunteer Teams",
-      description: `${TOTAL_VOLUNTEER_LESSONS} lessons on volunteering at Tech Fleet.`,
-      icon: Heart,
-      href: "/courses/volunteer-teams",
-      totalTasks: TOTAL_VOLUNTEER_LESSONS,
-      completedTasks: volunteerCompleted,
-      locked: !allSecondStepsDone,
-      prerequisiteLabel: "Build an Agile Mindset",
-    },
-  ], [connectDiscordCompleted, firstStepsCompleted, secondStepsCompleted, projectTrainingCompleted, volunteerCompleted, allConnectDiscordDone, allFirstStepsDone, allSecondStepsDone, totalFirstSteps]);
+  const coreCourses: CoreCourse[] = useMemo(
+    () => [
+      {
+        id: "connect-discord",
+        title: "Connect to Discord",
+        description: "Link your Discord account to the Tech Fleet Network platform.",
+        icon: MessageSquare,
+        href: "/courses/connect-discord",
+        totalTasks: TOTAL_CONNECT_DISCORD,
+        completedTasks: connectDiscordCompleted,
+        locked: false,
+      },
+      {
+        id: "onboarding",
+        title: "Onboarding Steps",
+        description:
+          "Set up your profile, complete onboarding class, sign up for service leadership, and review the user guide.",
+        icon: ClipboardCheck,
+        href: "/courses/onboarding",
+        totalTasks: totalFirstSteps,
+        completedTasks: firstStepsCompleted,
+        locked: !allConnectDiscordDone,
+        prerequisiteLabel: "Connect to Discord",
+      },
+      {
+        id: "agile-mindset",
+        title: "Build an Agile Mindset",
+        description: `${TOTAL_AGILE_LESSONS} lessons covering agile philosophies, teamwork, and scrum methods.`,
+        icon: BookOpen,
+        href: "/courses/agile-mindset",
+        totalTasks: TOTAL_AGILE_LESSONS,
+        completedTasks: secondStepsCompleted,
+        locked: !allFirstStepsDone,
+        prerequisiteLabel: "Onboarding Steps",
+      },
+      {
+        id: "project-training",
+        title: "Join Project Training Teams",
+        description: `${TOTAL_PROJECT_TRAINING_LESSONS} lessons on apprenticeship training and nonprofit clients.`,
+        icon: Briefcase,
+        href: "/courses/project-training",
+        totalTasks: TOTAL_PROJECT_TRAINING_LESSONS,
+        completedTasks: projectTrainingCompleted,
+        locked: !allSecondStepsDone,
+        prerequisiteLabel: "Build an Agile Mindset",
+      },
+      {
+        id: "volunteer-teams",
+        title: "Join Volunteer Teams",
+        description: `${TOTAL_VOLUNTEER_LESSONS} lessons on volunteering at Tech Fleet.`,
+        icon: Heart,
+        href: "/courses/volunteer-teams",
+        totalTasks: TOTAL_VOLUNTEER_LESSONS,
+        completedTasks: volunteerCompleted,
+        locked: !allSecondStepsDone,
+        prerequisiteLabel: "Build an Agile Mindset",
+      },
+    ],
+    [
+      connectDiscordCompleted,
+      firstStepsCompleted,
+      secondStepsCompleted,
+      projectTrainingCompleted,
+      volunteerCompleted,
+      allConnectDiscordDone,
+      allFirstStepsDone,
+      allSecondStepsDone,
+      totalFirstSteps,
+    ]
+  );
 
   // Gumroad-style flat checklist derived from the same course progress.
   const onboardingChecklist: ChecklistItem[] = useMemo(
@@ -341,7 +399,8 @@ export default function DashboardPage() {
     [coreCourses]
   );
 
-  const displayName = profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
+  const displayName =
+    profile?.first_name || profile?.display_name || user?.user_metadata?.full_name || "there";
 
   // Hook guarantees arrays — no runtime guards needed
   const togglableSectionsVisible = visibleWidgets.filter((w) => w !== "core_courses").length;
@@ -356,7 +415,9 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="min-w-0">
           <PageTitle className="truncate">Welcome back, {displayName} 👋</PageTitle>
-          <Body className="text-muted-foreground mt-1">Continue your journey through the Tech Fleet training platform.</Body>
+          <Body className="text-muted-foreground mt-1">
+            Continue your journey through the Tech Fleet training platform.
+          </Body>
         </div>
         <div className="flex-shrink-0">
           <DashboardCustomizer
@@ -412,24 +473,31 @@ export default function DashboardPage() {
                     const observerHeading = observerNotStarted
                       ? "You're ready to observe a Tech Fleet project"
                       : observerInProgress
-                      ? "Keep preparing to observe"
-                      : "You finished the onboarding and core courses!";
+                        ? "Keep preparing to observe"
+                        : "You finished the onboarding and core courses!";
                     const observerBody = observerNotStarted
                       ? "Great work finishing your onboarding. The Observer Course is your next step. It teaches you how to shadow a real project team and get ready to apply as an Observer."
                       : observerInProgress
-                      ? `You've finished ${observerCompleted} of ${TOTAL_OBSERVER_LESSONS} sections in the Observer Course. Keep going to get ready to shadow a real Tech Fleet project team.`
-                      : "Congratulations, you are ready to keep going into deeper training in our community! Check out the basic and advanced courses to go further.";
+                        ? `You've finished ${observerCompleted} of ${TOTAL_OBSERVER_LESSONS} sections in the Observer Course. Keep going to get ready to shadow a real Tech Fleet project team.`
+                        : "Congratulations, you are ready to keep going into deeper training in our community! Check out the basic and advanced courses to go further.";
                     const observerCtaLabel = observerNotStarted
                       ? "Start observer course"
                       : observerInProgress
-                      ? "Continue observer course"
-                      : "Continue courses";
+                        ? "Continue observer course"
+                        : "Continue courses";
                     const observerCtaHref = observerDone ? "/courses" : "/courses/observer";
-                    const observerPct = Math.round((observerCompleted / TOTAL_OBSERVER_LESSONS) * 100);
+                    const observerPct = Math.round(
+                      (observerCompleted / TOTAL_OBSERVER_LESSONS) * 100
+                    );
                     return (
-                      <div className="tf-card overflow-hidden" aria-labelledby="core-courses-heading">
+                      <div
+                        className="tf-card overflow-hidden"
+                        aria-labelledby="core-courses-heading"
+                      >
                         <h2 id="core-courses-heading" className="sr-only">
-                          {observerNotStarted || observerInProgress ? "Observer Course next step" : "Onboard to Tech Fleet"}
+                          {observerNotStarted || observerInProgress
+                            ? "Observer Course next step"
+                            : "Onboard to Tech Fleet"}
                         </h2>
                         <div className="flex flex-col sm:flex-row items-stretch">
                           <div className="sm:w-48 md:w-56 flex-shrink-0 bg-primary/5">
@@ -485,13 +553,8 @@ export default function DashboardPage() {
             return isVisible("my_project_apps") ? (
               <section key="my_project_apps" aria-labelledby="my-apps-heading" className="py-8">
                 <div className="flex items-center justify-between mb-4">
-                  <SectionTitle id="my-apps-heading">
-                    My Applications
-                  </SectionTitle>
-                  <Link
-                    to="/applications"
-                    className="text-sm text-primary hover:underline"
-                  >
+                  <SectionTitle id="my-apps-heading">My Applications</SectionTitle>
+                  <Link to="/applications" className="text-sm text-primary hover:underline">
                     View all
                   </Link>
                 </div>
@@ -509,11 +572,17 @@ export default function DashboardPage() {
                             General Application
                           </h3>
                           {generalApp.status === "completed" ? (
-                            <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0">
+                            <Badge
+                              variant="outline"
+                              className="bg-success/10 text-success border-success/20 text-xs flex-shrink-0"
+                            >
                               Completed
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0">
+                            <Badge
+                              variant="outline"
+                              className="bg-warning/10 text-warning border-warning/20 text-xs flex-shrink-0"
+                            >
                               Draft
                             </Badge>
                           )}
@@ -533,10 +602,16 @@ export default function DashboardPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm text-foreground truncate">General Application</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">Required before applying to projects</p>
+                        <h3 className="font-semibold text-sm text-foreground truncate">
+                          General Application
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Required before applying to projects
+                        </p>
                       </div>
-                      <Badge variant="secondary" className="text-xs flex-shrink-0">Not Started</Badge>
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
+                        Not Started
+                      </Badge>
                     </div>
                   </Link>
                 )}
@@ -558,9 +633,17 @@ export default function DashboardPage() {
                           key={app.id}
                           app={app}
                           clientName={clientName}
-                          isVolunteerOpening={(client as { kind?: string } | null)?.kind === "internal"}
+                          isVolunteerOpening={
+                            (client as { kind?: string } | null)?.kind === "internal"
+                          }
                           friendly={friendly}
-                          onOpenAgreement={() => setAgreementCtx({ id: app.id, name: friendly || clientName, clientName })}
+                          onOpenAgreement={() =>
+                            setAgreementCtx({
+                              id: app.id,
+                              name: friendly || clientName,
+                              clientName,
+                            })
+                          }
                         />
                       );
                     })}
@@ -571,15 +654,14 @@ export default function DashboardPage() {
 
           case "latest_updates":
             return isVisible("latest_updates") ? (
-              <section key="latest_updates" aria-labelledby="announcements-heading" className="py-8">
+              <section
+                key="latest_updates"
+                aria-labelledby="announcements-heading"
+                className="py-8"
+              >
                 <div className="flex items-center justify-between mb-4">
-                  <SectionTitle id="announcements-heading">
-                    Latest Updates
-                  </SectionTitle>
-                  <Link
-                    to="/updates"
-                    className="text-sm text-primary hover:underline"
-                  >
+                  <SectionTitle id="announcements-heading">Latest Updates</SectionTitle>
+                  <Link to="/updates" className="text-sm text-primary hover:underline">
                     View all
                   </Link>
                 </div>
@@ -598,8 +680,12 @@ export default function DashboardPage() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold text-sm text-foreground truncate">{a.title}</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{stripHtml(a.body_html).slice(0, 120)}</p>
+                            <h3 className="font-semibold text-sm text-foreground truncate">
+                              {a.title}
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                              {stripHtml(a.body_html).slice(0, 120)}
+                            </p>
                           </div>
                           <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
                             {format(new Date(a.created_at), "MMM d")}
@@ -614,7 +700,10 @@ export default function DashboardPage() {
 
           case "network_activity":
           case "world_map": {
-            const lastNetworkIdx = widgetOrder.reduce((acc, w, i) => (w === "network_activity" || w === "world_map") ? i : acc, -1);
+            const lastNetworkIdx = widgetOrder.reduce(
+              (acc, w, i) => (w === "network_activity" || w === "world_map" ? i : acc),
+              -1
+            );
             if (widgetOrder[lastNetworkIdx] !== widgetId) return null;
             const showAny = isVisible("network_activity") || isVisible("world_map");
             // CWV pass 2 (LCP): NetworkActivity ships a heavy map + recent-activity
@@ -652,14 +741,14 @@ export default function DashboardPage() {
         }
       })}
 
-      {showEmptyState && (
-        <DashboardEmptyState onCustomize={handleOpenCustomizer} />
-      )}
+      {showEmptyState && <DashboardEmptyState onCustomize={handleOpenCustomizer} />}
 
       {agreementCtx && (
         <CommunityAgreementSheet
           open={!!agreementCtx}
-          onOpenChange={(o) => { if (!o) setAgreementCtx(null); }}
+          onOpenChange={(o) => {
+            if (!o) setAgreementCtx(null);
+          }}
           applicationId={agreementCtx.id}
           projectName={agreementCtx.name}
           clientName={agreementCtx.clientName}
@@ -713,15 +802,22 @@ function DashboardProjectAppCard({
               <h3 className="font-semibold text-sm text-foreground truncate">{clientName}</h3>
               <ApplicationStatusBadge status={app.status} applicantStatus={applicantStatus} />
               {isVolunteerOpening && (
-                <Badge className="bg-info/10 text-info border-info/30 text-xs">Volunteer Opening</Badge>
+                <Badge className="bg-info/10 text-info border-info/30 text-xs">
+                  Volunteer Opening
+                </Badge>
               )}
               {showAgreementPending && (
-                <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs">
+                <Badge
+                  variant="outline"
+                  className="border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs"
+                >
                   Sign Community Agreement
                 </Badge>
               )}
             </div>
-            {friendly && <p className="text-xs text-muted-foreground mt-0.5 truncate">{friendly}</p>}
+            {friendly && (
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{friendly}</p>
+            )}
             <p className="text-xs text-muted-foreground mt-0.5">
               {isCompleted && app.completed_at
                 ? `Submitted ${format(new Date(app.completed_at), "MMM d, yyyy")}`
@@ -737,7 +833,11 @@ function DashboardProjectAppCard({
         <div className="mt-3 flex">
           <Button
             size="sm"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenAgreement(); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onOpenAgreement();
+            }}
             className="gap-1.5"
           >
             <FileCheck2 className="h-3.5 w-3.5" />
