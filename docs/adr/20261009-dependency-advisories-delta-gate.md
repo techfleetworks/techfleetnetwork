@@ -1,7 +1,7 @@
-# ADR 0068 — Delta-mode dependency-advisory gate: PRs block only on advisories they introduce
+# ADR 20261009 — Delta-mode dependency-advisory gate: PRs block only on advisories they introduce
 
 - Status: Proposed
-- Date: 2026-10-08
+- Date: 2026-10-09
 - Deciders: Morgan Denner (chose delta gating over scope/severity narrowing)
 - Epic: Security / Supply-chain / CI gates
 - Related:
@@ -9,7 +9,9 @@
   - `src/test/smoke/check-dependency-advisories.smoke.test.ts` — the guard-the-guard smoke test (extended).
   - `.github/workflows/security.yml` — runs the gate on `push:[main]`, `pull_request`, weekly `schedule`, and `workflow_dispatch` (no change needed; the script auto-detects mode).
   - ADR-0041 — the original blocking dependency-advisory gate + expiring-waiver model.
-  - ADR-0067 is unrelated (Class Admin IA); this is the next free number.
+  - Uses a date-prefixed identifier per ADR-NUMBER-001 (#414): the 4-digit space is frozen, so new
+    ADRs are `<YYYYMMDD>-<slug>.md`. Drafted as 0068, renumbered to a date prefix to avoid colliding
+    with #416's ADR-0068.
   - Supersedes nothing; refines ADR-0041's enforcement.
 
 ## Context

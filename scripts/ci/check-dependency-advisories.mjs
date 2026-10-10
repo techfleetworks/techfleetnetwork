@@ -8,7 +8,7 @@
  * "no known-vulnerable dependency ships" rule; the waiver file is the ONLY
  * blanket bypass (auditable, dated, expiring — same model as arch-gate.waivers.json).
  *
- * TWO MODES (ADR-0068) — so a steadily-growing npm-audit database cannot block
+ * TWO MODES (ADR 20261009-dependency-advisories-delta-gate) — so a steadily-growing npm-audit database cannot block
  * every unrelated PR as new advisories are published against UNCHANGED deps:
  *
  *  - FULL  (push to main/master, schedule, local, or `--full`): fail on ANY

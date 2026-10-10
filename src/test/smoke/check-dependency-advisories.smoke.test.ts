@@ -1,5 +1,5 @@
 // Smoke coverage for scripts/ci/check-dependency-advisories.mjs (decisions.md §6) —
-// the BLOCKING dependency-advisory gate (ADR-0041, delta mode ADR-0068). We run
+// the BLOCKING dependency-advisory gate (ADR-0041, delta mode ADR 20261009). We run
 // the REAL guard (not a copy) against throwaway fixtures via its test-only env
 // overrides (DEP_ADVISORIES_AUDIT_JSON = a fixture npm-audit report;
 // DEP_ADVISORIES_WAIVERS = a fixture waivers file; DEP_ADVISORIES_BASE_AUDIT_JSON
@@ -145,7 +145,7 @@ const auditFor = (pkg: string, ghsa: string, severity = "high") => ({
   },
 });
 
-describe("check-dependency-advisories guard — delta mode (pull requests, ADR-0068)", () => {
+describe("check-dependency-advisories guard — delta mode (pull requests, ADR 20261009)", () => {
   it("exits 0 when the unwaived advisory already exists on the base branch (pre-existing, not introduced)", () => {
     expect(
       runGuard({ audit: auditWith(GHSA), waivers: { waivers: [] }, baseAudit: auditWith(GHSA) })
