@@ -9,6 +9,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { errorResponse } from "../_shared/http.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -94,9 +95,7 @@ Deno.serve(withAuditWrapper("process-notification-fanout", async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    console.error("process-notification-fanout:", err);
+    return errorResponse(err, "Notification fan-out failed", 500);
   }
 }));

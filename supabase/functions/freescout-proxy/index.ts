@@ -533,8 +533,9 @@ Deno.serve(
             body: e.body,
           })
         );
-        return jsonResponse(
-          { error: e.message, upstream: e.body ?? undefined },
+        return errorResponse(
+          e,
+          "Upstream request failed",
           e.status >= 400 && e.status < 600 ? e.status : 500
         );
       }

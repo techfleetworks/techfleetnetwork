@@ -6,6 +6,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { fetchWithTimeout } from "../_shared/fetch-timeout.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { errorResponse } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,10 +50,7 @@ Deno.serve(
 
     if (ratesErr) {
       console.error("compute_email_domain_health failed", ratesErr);
-      return new Response(JSON.stringify({ error: ratesErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return errorResponse(ratesErr, "Failed to refresh email health", 500);
     }
 
     const row = Array.isArray(rates) && rates.length > 0 ? rates[0] : null;

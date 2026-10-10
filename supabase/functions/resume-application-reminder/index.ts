@@ -2,6 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { wasDelivered } from "../_shared/nudge-delivery.ts";
+import { errorResponse } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,10 +50,7 @@ Deno.serve(
 
       if (error) {
         console.error("draft fetch failed:", error);
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse(error, "Reminder failed", 500);
       }
 
       const rows = drafts ?? [];

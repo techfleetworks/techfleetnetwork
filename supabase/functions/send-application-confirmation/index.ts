@@ -20,6 +20,7 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { queueTransactionalEmail } from "../_shared/transactional-email.ts";
 import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { errorResponse } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -169,10 +170,8 @@ Deno.serve(
         .limit(50);
 
       if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error("send-application-confirmation:", error);
+        return errorResponse(error, "Failed to send confirmation", 500);
       }
 
       let sent = 0;
@@ -245,10 +244,8 @@ Deno.serve(
       .maybeSingle();
 
     if (rowErr) {
-      return new Response(JSON.stringify({ error: rowErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("send-application-confirmation:", rowErr);
+      return errorResponse(rowErr, "Failed to send confirmation", 500);
     }
     if (!row) {
       // The outbox row is created by a DB trigger; if it's missing the app

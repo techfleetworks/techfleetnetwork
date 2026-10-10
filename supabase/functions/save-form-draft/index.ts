@@ -13,6 +13,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { errorResponse } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -141,10 +142,8 @@ Deno.serve(
       );
 
       if (upsertErr) {
-        return new Response(JSON.stringify({ error: upsertErr.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error("save-form-draft:", upsertErr);
+        return errorResponse(upsertErr, "Failed to save draft", 400);
       }
 
       return new Response(JSON.stringify({ ok: true }), {
@@ -152,10 +151,8 @@ Deno.serve(
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch (err) {
-      return new Response(JSON.stringify({ error: (err as Error).message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("save-form-draft:", err);
+      return errorResponse(err, "Failed to save draft", 500);
     }
   })
 );

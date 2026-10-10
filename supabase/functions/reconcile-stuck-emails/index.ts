@@ -2,7 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-import { corsHeaders } from "../_shared/http.ts";
+import { corsHeaders, errorResponse } from "../_shared/http.ts";
 import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 
@@ -37,10 +37,8 @@ Deno.serve(
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { data, error } = await supabase.rpc("reconcile_stuck_emails");
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("reconcile-stuck-emails:", error);
+      return errorResponse(error, "Reconcile failed", 500);
     }
 
     return new Response(JSON.stringify({ ok: true, result: data }), {
