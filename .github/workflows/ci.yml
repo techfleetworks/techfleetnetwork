@@ -558,8 +558,21 @@ jobs:
           tar -xzf /tmp/supabase.tgz -C /tmp supabase
           sudo install -m 0755 /tmp/supabase /usr/local/bin/supabase
           supabase --version
+      - name: Cache Supabase CLI Docker images (avoid ECR Public rate limit)
+        uses: ./.github/actions/cache-supabase-images
+        with:
+          cli-version: "2.30.4"
       - name: Start local Supabase (Postgres + pgvector)
         run: supabase start
+      - name: Save Supabase images to cache (first run / CLI bump only)
+        if: ${{ env.SUPABASE_IMAGES_CACHE_MISS == '1' }}
+        run: |
+          mkdir -p ~/.cache/supabase-images
+          docker images --filter=reference='public.ecr.aws/supabase/*' --format '{{.Repository}}:{{.Tag}}' \
+            | while read -r img; do
+                out=~/.cache/supabase-images/"$(echo "$img" | tr '/:' '__').tar"
+                [ -f "$out" ] || docker save "$img" -o "$out"
+              done
       - name: Apply all migrations in sequence
         run: supabase db reset --no-seed
       - name: Stop local Supabase
@@ -637,8 +650,21 @@ jobs:
           tar -xzf /tmp/supabase.tgz -C /tmp supabase
           sudo install -m 0755 /tmp/supabase /usr/local/bin/supabase
           supabase --version
+      - name: Cache Supabase CLI Docker images (avoid ECR Public rate limit)
+        uses: ./.github/actions/cache-supabase-images
+        with:
+          cli-version: "2.30.4"
       - name: Start local Supabase (Postgres + pgTAP)
         run: supabase start
+      - name: Save Supabase images to cache (first run / CLI bump only)
+        if: ${{ env.SUPABASE_IMAGES_CACHE_MISS == '1' }}
+        run: |
+          mkdir -p ~/.cache/supabase-images
+          docker images --filter=reference='public.ecr.aws/supabase/*' --format '{{.Repository}}:{{.Tag}}' \
+            | while read -r img; do
+                out=~/.cache/supabase-images/"$(echo "$img" | tr '/:' '__').tar"
+                [ -f "$out" ] || docker save "$img" -o "$out"
+              done
       - name: Apply migrations
         run: supabase db reset --no-seed
       - name: Run pgTAP suites
@@ -694,10 +720,23 @@ jobs:
           tar -xzf /tmp/supabase.tgz -C /tmp supabase
           sudo install -m 0755 /tmp/supabase /usr/local/bin/supabase
           supabase --version
+      - name: Cache Supabase CLI Docker images (avoid ECR Public rate limit)
+        uses: ./.github/actions/cache-supabase-images
+        with:
+          cli-version: "2.30.4"
       - name: Start local Supabase (Docker) + apply migrations
         run: |
           supabase start
           supabase db reset --no-seed
+      - name: Save Supabase images to cache (first run / CLI bump only)
+        if: ${{ env.SUPABASE_IMAGES_CACHE_MISS == '1' }}
+        run: |
+          mkdir -p ~/.cache/supabase-images
+          docker images --filter=reference='public.ecr.aws/supabase/*' --format '{{.Repository}}:{{.Tag}}' \
+            | while read -r img; do
+                out=~/.cache/supabase-images/"$(echo "$img" | tr '/:' '__').tar"
+                [ -f "$out" ] || docker save "$img" -o "$out"
+              done
       - name: Export local Supabase env for the app build
         run: |
           eval "$(supabase status -o env | sed 's/^/export /')"
