@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Search, GraduationCap, ClipboardList, Handshake, Megaphone,
-  Building2, FolderKanban, Users,
+  Search,
+  GraduationCap,
+  ClipboardList,
+  Handshake,
+  Megaphone,
+  Building2,
+  FolderKanban,
+  Users,
 } from "lucide-react";
 import fleetyIcon from "@/assets/fleety-icon.png";
 import {
@@ -18,6 +24,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
 import { supabase } from "@/integrations/supabase/client";
+import { listProjectsForSearch, type SearchProject } from "@/services/project.service";
+import { reportError } from "@/services/error-reporter.service";
 import { PROJECT_TYPES, PROJECT_PHASES } from "@/data/project-constants";
 
 /* ── Searchable item types ────────────────────────────────── */
@@ -55,8 +63,7 @@ const SEARCH_ITEMS: SearchItem[] = [
   {
     id: "course-agile",
     label: "Build an Agile Mindset",
-    description:
-      "Lessons covering agile philosophies, teamwork, and scrum methods.",
+    description: "Lessons covering agile philosophies, teamwork, and scrum methods.",
     href: "/courses/agile-mindset",
     group: "Courses",
   },
@@ -89,24 +96,21 @@ const SEARCH_ITEMS: SearchItem[] = [
   {
     id: "app-general",
     label: "General Application",
-    description:
-      "Submit your general application to join Tech Fleet and become a member.",
+    description: "Submit your general application to join Tech Fleet and become a member.",
     href: "/applications",
     group: "Applications",
   },
   {
     id: "app-project",
     label: "Project Applications",
-    description:
-      "Apply for available project training teams and apprenticeship cohorts.",
+    description: "Apply for available project training teams and apprenticeship cohorts.",
     href: "/applications",
     group: "Applications",
   },
   {
     id: "app-volunteer",
     label: "Volunteer Applications",
-    description:
-      "Apply to join volunteer teams and contribute to Tech Fleet operations.",
+    description: "Apply to join volunteer teams and contribute to Tech Fleet operations.",
     href: "/applications",
     group: "Applications",
   },
@@ -115,8 +119,7 @@ const SEARCH_ITEMS: SearchItem[] = [
   {
     id: "pt-landing",
     label: "Project Training Overview",
-    description:
-      "Hands-on training through real nonprofit projects and apprenticeship teams.",
+    description: "Hands-on training through real nonprofit projects and apprenticeship teams.",
     href: "/project-training",
     group: "Project Training",
   },
@@ -125,8 +128,7 @@ const SEARCH_ITEMS: SearchItem[] = [
   {
     id: "updates",
     label: "Updates & Announcements",
-    description:
-      "View the latest announcements and updates from the Tech Fleet team.",
+    description: "View the latest announcements and updates from the Tech Fleet team.",
     href: "/updates",
     group: "Community Updates",
   },
@@ -247,25 +249,35 @@ export function UniversalSearch() {
             items.push({
               id: `class-${c.id}`,
               label: c.title,
-              description: c.summary || (c.track === "advanced_training" ? "Advanced Training" : "Basic Training"),
+              description:
+                c.summary ||
+                (c.track === "advanced_training" ? "Advanced Training" : "Basic Training"),
               href: `/classes/${c.slug}`,
               group: "Classes",
             });
           }
         }
 
-        // Search projects (RLS will handle visibility)
-        const { data: projects } = await supabase
-          .from("projects")
-          .select("id, project_type, phase, project_status, client_id")
-          .limit(10);
+        // Search projects (RLS will handle visibility) — best-effort via projectService (ADR-0071).
+        // Like the other sources in this search, a read failure here must not drop the other groups,
+        // so the service read (which throws) is wrapped locally.
+        let projects: SearchProject[] = [];
+        try {
+          projects = await listProjectsForSearch(10);
+        } catch (e) {
+          // Best-effort: skip the Projects group on a read failure so the other search groups
+          // still render, but report it so a persistently-broken read isn't silently invisible
+          // to operators (decisions.md §4).
+          reportError(e, "UniversalSearch.projects");
+        }
 
-        if (!controller.signal.aborted && projects) {
+        if (!controller.signal.aborted && projects.length > 0) {
           // Need client names for project labels
           const clientIds = [...new Set(projects.map((p) => p.client_id))];
-          const { data: projClients } = clientIds.length > 0
-            ? await supabase.from("clients").select("id, name").in("id", clientIds)
-            : { data: [] };
+          const { data: projClients } =
+            clientIds.length > 0
+              ? await supabase.from("clients").select("id, name").in("id", clientIds)
+              : { data: [] };
 
           const clientNameMap = new Map((projClients ?? []).map((c) => [c.id, c.name]));
 
@@ -274,14 +286,21 @@ export function UniversalSearch() {
             const label = `${clientName} — ${typeLabel(p.project_type)}`;
             const desc = `${phaseLabel(p.phase)} · ${p.project_status.replace(/_/g, " ")}`;
 
-            if (matchesQuery(label, trimmed) || matchesQuery(desc, trimmed) || matchesQuery(clientName, trimmed)) {
+            if (
+              matchesQuery(label, trimmed) ||
+              matchesQuery(desc, trimmed) ||
+              matchesQuery(clientName, trimmed)
+            ) {
               items.push({
                 id: `project-${p.id}`,
                 label,
                 description: desc,
-                href: p.project_status === "apply_now"
-                  ? `/project-openings/${p.id}`
-                  : isAdmin ? `/admin/clients/projects/${p.id}/edit` : "/project-openings",
+                href:
+                  p.project_status === "apply_now"
+                    ? `/project-openings/${p.id}`
+                    : isAdmin
+                      ? `/admin/clients/projects/${p.id}/edit`
+                      : "/project-openings",
                 group: "Projects",
               });
             }
@@ -293,15 +312,18 @@ export function UniversalSearch() {
           const { data: profiles } = await supabase
             .from("profiles")
             .select("user_id, display_name, first_name, last_name, email, country")
-            .or(`display_name.ilike.${searchPattern},first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern}`)
+            .or(
+              `display_name.ilike.${searchPattern},first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},email.ilike.${searchPattern}`
+            )
             .limit(8);
 
           if (!controller.signal.aborted && profiles) {
             for (const p of profiles) {
-              const name = p.display_name
-                || [p.first_name, p.last_name].filter(Boolean).join(" ")
-                || p.email
-                || "Unknown";
+              const name =
+                p.display_name ||
+                [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+                p.email ||
+                "Unknown";
               items.push({
                 id: `member-${p.user_id}`,
                 label: name,
@@ -341,7 +363,10 @@ export function UniversalSearch() {
   }, [query]);
 
   /* ── Merge static + dynamic ───────────────────────────── */
-  const allItems = useMemo(() => [...filteredStatic, ...dynamicItems], [filteredStatic, dynamicItems]);
+  const allItems = useMemo(
+    () => [...filteredStatic, ...dynamicItems],
+    [filteredStatic, dynamicItems]
+  );
 
   const grouped = useMemo(() => {
     const groups: Record<string, SearchItem[]> = {};
@@ -392,9 +417,7 @@ export function UniversalSearch() {
           onValueChange={setQuery}
         />
         <CommandList>
-          <CommandEmpty>
-            {searching ? "Searching…" : "No results found."}
-          </CommandEmpty>
+          <CommandEmpty>{searching ? "Searching…" : "No results found."}</CommandEmpty>
           {/* Ask Fleety option — always visible */}
           <CommandGroup heading="Fleety">
             <CommandItem
@@ -450,9 +473,7 @@ export function UniversalSearch() {
                       aria-hidden="true"
                     />
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-medium text-foreground">
-                        {item.label}
-                      </span>
+                      <span className="text-sm font-medium text-foreground">{item.label}</span>
                       <span className="text-xs text-muted-foreground line-clamp-1">
                         {item.description}
                       </span>
