@@ -111,7 +111,7 @@ export function AvatarUpload({
       <div className="relative group">
         <Avatar className="h-20 w-20 border-2 border-border">
           <AvatarImage src={previewUrl || undefined} alt="Profile picture" />
-          <AvatarFallback className="text-lg font-medium">{initials}</AvatarFallback>
+          <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <button
           type="button"

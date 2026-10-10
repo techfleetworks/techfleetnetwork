@@ -64,7 +64,7 @@ export default function UnsubscribePage() {
     <div className="min-h-dvh flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Email Preferences</CardTitle>
+          <CardTitle>Email Preferences</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
           {state === "loading" && (

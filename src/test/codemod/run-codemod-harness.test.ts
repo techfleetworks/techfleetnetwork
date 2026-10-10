@@ -9,8 +9,6 @@
  * neutralizes the glob would fail this test, not ship green).
  */
 import { describe, it, expect } from "vitest";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error — plain .mjs harness, no type declarations
 import {
   HARD_EXCLUDES,
   makeIsExcluded,

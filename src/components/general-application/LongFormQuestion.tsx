@@ -30,7 +30,7 @@ export function LongFormQuestion({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="min-h-[120px] resize-y"
-        maxLength={5000}
+        inputProps={{ maxLength: 5000 }}
         aria-invalid={!!error}
         aria-describedby={`${id}-count`}
       />

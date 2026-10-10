@@ -118,7 +118,7 @@ export default function WelcomeWizard() {
     const patch = { [field]: values[field]?.trim() || null };
     const { error } = await supabase
       .from("profiles")
-      .update(patch)
+      .update(patch as never)
       .eq("user_id", user.id);
     if (error) {
       setSaveState("error");

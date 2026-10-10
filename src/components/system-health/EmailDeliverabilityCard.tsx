@@ -124,7 +124,7 @@ export function EmailDeliverabilityCard() {
     <div className="space-y-4">
       <Card className={paused ? "border-destructive/40" : "border-success/40"}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle>
             {paused ? (
               <ShieldAlert className="h-5 w-5 text-destructive" />
             ) : (
@@ -152,7 +152,7 @@ export function EmailDeliverabilityCard() {
 
       <Card className={anyCooldown ? "border-warning/40" : undefined}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle>
             <AlertTriangle
               className={anyCooldown ? "h-5 w-5 text-warning" : "h-5 w-5 text-muted-foreground"}
             />
@@ -184,7 +184,7 @@ export function EmailDeliverabilityCard() {
 
       <Card className={cappedTotal > 0 ? "border-warning/40" : undefined}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle>
             <AlertTriangle
               className={cappedTotal > 0 ? "h-5 w-5 text-warning" : "h-5 w-5 text-muted-foreground"}
             />

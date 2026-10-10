@@ -57,7 +57,7 @@ export function SectionBasicInfo({ form, errors, updateField }: Props) {
           value={form.portfolio_url}
           onChange={(e) => updateField("portfolio_url", e.target.value)}
           placeholder="https://yourportfolio.com"
-          maxLength={500}
+          inputProps={{ maxLength: 500 }}
         />
       </div>
 
@@ -71,7 +71,7 @@ export function SectionBasicInfo({ form, errors, updateField }: Props) {
           value={form.linkedin_url}
           onChange={(e) => updateField("linkedin_url", e.target.value)}
           placeholder="https://linkedin.com/in/yourprofile"
-          maxLength={500}
+          inputProps={{ maxLength: 500 }}
         />
       </div>
     </div>

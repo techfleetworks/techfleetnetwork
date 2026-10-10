@@ -62,7 +62,7 @@ export function MemberVideoActivityCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Recent video activity</CardTitle>
+        <CardTitle>Recent video activity</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {error && <p className="text-sm text-destructive">Couldn't load activity: {error}</p>}

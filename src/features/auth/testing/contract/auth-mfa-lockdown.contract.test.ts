@@ -66,7 +66,10 @@ describe("AUTH-LOCKDOWN-08 — MFA verifyTotp", () => {
     const result = await verifyTotp(input);
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("mfa_invalid_code");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe(
+        "mfa_invalid_code"
+      );
   });
 
   it("never lets a thrown provider error cross the boundary (maps to unexpected)", async () => {
@@ -75,7 +78,8 @@ describe("AUTH-LOCKDOWN-08 — MFA verifyTotp", () => {
     const result = await verifyTotp(input);
 
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("unexpected");
+    if (!result.ok)
+      expect((result as { ok: false; error: { code: string } }).error.code).toBe("unexpected");
   });
 
   it("marks the quiet window only after a successful verify", async () => {
@@ -91,12 +95,18 @@ describe("AUTH-LOCKDOWN-08 — AAL state", () => {
     ["aal2", "aal2"],
     ["aal1", "aal1"],
   ])("reports %s currentLevel as %s", async (level, expected) => {
-    mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({ data: { currentLevel: level }, error: null });
+    mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({
+      data: { currentLevel: level },
+      error: null,
+    });
     await expect(getAal()).resolves.toBe(expected);
   });
 
   it("reports unknown (never throws) when the provider errors", async () => {
-    mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({ data: null, error: { message: "boom" } });
+    mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({
+      data: null,
+      error: { message: "boom" },
+    });
     await expect(getAal()).resolves.toBe("unknown");
   });
 

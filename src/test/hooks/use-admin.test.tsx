@@ -16,18 +16,26 @@ vi.mock("@/contexts/AuthContext", () => ({
 const mockSelect = vi.fn();
 const mockEq1 = vi.fn();
 const mockEq2 = vi.fn();
+// The innermost `.eq()` returns whatever a test parks here (a resolved query response). Kept as a
+// plain slot rather than overloading vitest's `mockReturnValue` method (which is typed as a setter
+// function, not a value).
+let mockEq2Result: unknown;
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: vi.fn(() => ({
       select: (...args: unknown[]) => {
         mockSelect(...args);
-        return { eq: (...a: unknown[]) => {
-          mockEq1(...a);
-          return { eq: (...b: unknown[]) => {
-            mockEq2(...b);
-            return mockEq2.mockReturnValue;
-          }};
-        }};
+        return {
+          eq: (...a: unknown[]) => {
+            mockEq1(...a);
+            return {
+              eq: (...b: unknown[]) => {
+                mockEq2(...b);
+                return mockEq2Result;
+              },
+            };
+          },
+        };
       },
     })),
   },
@@ -57,7 +65,7 @@ describe("useAdmin", () => {
 
   it("returns true only when user_roles has a row with role=admin", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "user-1" } });
-    mockEq2.mockReturnValue = Promise.resolve({ count: 1, error: null });
+    mockEq2Result = Promise.resolve({ count: 1, error: null });
 
     const { result } = renderHook(() => useAdmin(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -69,7 +77,7 @@ describe("useAdmin", () => {
 
   it("returns false when no admin row matches", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "user-2" } });
-    mockEq2.mockReturnValue = Promise.resolve({ count: 0, error: null });
+    mockEq2Result = Promise.resolve({ count: 0, error: null });
 
     const { result } = renderHook(() => useAdmin(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -78,7 +86,7 @@ describe("useAdmin", () => {
 
   it("treats DB errors as non-admin (fail-closed)", async () => {
     mockUseAuth.mockReturnValue({ user: { id: "user-3" } });
-    mockEq2.mockReturnValue = Promise.resolve({
+    mockEq2Result = Promise.resolve({
       count: null,
       error: { message: "boom" },
     });

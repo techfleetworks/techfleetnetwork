@@ -39,7 +39,7 @@ export default function ClassAdminPage({ tab }: { tab: "classes" | "cohorts" }) 
         </p>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => navigate(`/class-admin/${v}`)} className="space-y-6">
+      <Tabs value={tab} onValueChange={(v) => navigate(`/class-admin/${v}`)}>
         <TabsList aria-label="Class Admin sections">
           <TabsTrigger value="classes">Classes</TabsTrigger>
           <TabsTrigger value="cohorts">Cohorts</TabsTrigger>

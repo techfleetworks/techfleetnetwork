@@ -140,7 +140,7 @@ export function HelpDeskTab() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Pending provisioning (24h)</CardDescription>
-            <CardTitle className="text-3xl">
+            <CardTitle>
               <Badge variant={pending24 === 0 ? "default" : "secondary"}>{pending24}</Badge>
             </CardTitle>
           </CardHeader>
@@ -148,7 +148,7 @@ export function HelpDeskTab() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Failed provisioning (24h)</CardDescription>
-            <CardTitle className="text-3xl">
+            <CardTitle>
               <Badge variant={failed24 === 0 ? "default" : "destructive"}>{failed24}</Badge>
             </CardTitle>
           </CardHeader>

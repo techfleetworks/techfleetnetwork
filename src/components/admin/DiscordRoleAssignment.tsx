@@ -87,7 +87,7 @@ export function DiscordRoleAssignment({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">Discord Role Management</CardTitle>
+        <CardTitle>Discord Role Management</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Applicant Discord info */}
