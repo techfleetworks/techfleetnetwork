@@ -5,13 +5,19 @@
 // public opening page's application count and applied-state refresh.
 import { useQuery } from "@/lib/react-query";
 import {
+  getMemberProjectDetails,
   getProjectDetailPublic,
+  getProjectForAnalysis,
   getProjectForApplication,
   getProjectForApplicationStatus,
   getProjectForRoster,
   getProjectForSubmissionDetail,
   getProjectInternalLinks,
   getProjectsForMyApplications,
+  getProjectsForSubmittedApps,
+  listAllProjectsForAnalysis,
+  listApplyNowProjects,
+  listClientProjects,
   listHandoffProjects,
   listRecruitingProjects,
 } from "@/services/project.service";
@@ -28,6 +34,14 @@ const keys = {
   handoff: () => ["admin-handoff-projects"] as const,
   forRoster: (projectId: string | undefined) => ["roster-proj-detail", projectId] as const,
   rosterLinks: (projectId: string | undefined) => ["roster-proj-links", projectId] as const,
+  clientProjects: () => ["projects"] as const,
+  memberProjectDetails: (projectIds: string[]) => ["my-project-details", projectIds] as const,
+  internalLinks: (projectId: string | undefined) => ["project-internal-links", projectId] as const,
+  submittedAppsProjects: (projectIds: string[]) =>
+    ["admin-projects-for-apps", projectIds] as const,
+  applyNowProjects: () => ["admin-all-apply-now-projects"] as const,
+  analysisProject: (projectId: string | undefined) => ["analysis-project", projectId] as const,
+  analysisCrossProject: () => ["analysis-cross-project-lookup"] as const,
 };
 
 /**
@@ -129,5 +143,79 @@ export function useRosterProjectLinks(
     queryKey: keys.rosterLinks(projectId),
     queryFn: () => getProjectInternalLinks(projectId!),
     enabled: (options?.enabled ?? true) && !!projectId,
+  });
+}
+
+/** Admin Clients → Projects tab: every project (broad admin columns), newest first. */
+export function useClientProjects(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: keys.clientProjects(),
+    queryFn: () => listClientProjects(),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/** A member's joined projects (with embedded client details) for "My Projects". */
+export function useMemberProjectDetails(projectIds: string[]) {
+  return useQuery({
+    queryKey: keys.memberProjectDetails(projectIds),
+    queryFn: () => getMemberProjectDetails(projectIds),
+    enabled: projectIds.length > 0,
+  });
+}
+
+/**
+ * Operational links (intake/notion/discord) via the get_project_internal_links RPC, keyed per the
+ * "My Projects" card's inline query. retry off + a 5-min staleTime match the original.
+ */
+export function useProjectInternalLinks(
+  projectId: string | undefined,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: keys.internalLinks(projectId),
+    queryFn: () => getProjectInternalLinks(projectId!),
+    enabled: (options?.enabled ?? true) && !!projectId,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Admin "Submitted Applications": the projects those applications target. */
+export function useProjectsForSubmittedApps(projectIds: string[]) {
+  return useQuery({
+    queryKey: keys.submittedAppsProjects(projectIds),
+    queryFn: () => getProjectsForSubmittedApps(projectIds),
+    enabled: projectIds.length > 0,
+  });
+}
+
+/** The currently-open ("apply_now") projects — ids only, for counts/membership. */
+export function useApplyNowProjects(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: keys.applyNowProjects(),
+    queryFn: () => listApplyNowProjects(),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/** Admin project-analysis panel: one project (+ client name); null for an unknown id. */
+export function useProjectForAnalysis(
+  projectId: string | undefined,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: keys.analysisProject(projectId),
+    queryFn: () => getProjectForAnalysis(projectId!),
+    enabled: (options?.enabled ?? true) && !!projectId,
+  });
+}
+
+/** Admin cross-project name lookup for the "also applied to" chips. */
+export function useAllProjectsForAnalysis(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: keys.analysisCrossProject(),
+    queryFn: () => listAllProjectsForAnalysis(),
+    enabled: options?.enabled ?? true,
   });
 }
