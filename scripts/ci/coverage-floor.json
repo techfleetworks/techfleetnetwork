@@ -1,7 +1,7 @@
 {
-  "_note": "COVERAGE-FLOOR-001 shrink-only floor (percent). BOOTSTRAP values of 0 — the first CI coverage run (vitest --merge-reports --coverage) MEASURES actual coverage; raise these to (measured − small margin) in a follow-up commit so the gate becomes real. The floor is meant to RISE over time, never fall. Enforced by scripts/ci/check-coverage-floor.mjs.",
-  "lines": 0,
-  "statements": 0,
-  "functions": 0,
-  "branches": 0
+  "_note": "COVERAGE-FLOOR-001 shrink-only floor (percent). Set from the first merged CI coverage run on 2026-10-10 (lines 26.83 / statements 25.37 / functions 21.07 / branches 18.97), minus a small margin so normal variance can't flake the gate. The floor is meant to RISE over time, never fall — raise it as coverage improves. Enforced by scripts/ci/check-coverage-floor.mjs.",
+  "lines": 25,
+  "statements": 24,
+  "functions": 20,
+  "branches": 17
 }
