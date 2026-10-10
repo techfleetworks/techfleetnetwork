@@ -7,7 +7,7 @@ import { isAirtableAttachmentUrl } from "../_shared/url-host.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 // CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
-import { corsHeaders } from "../_shared/http.ts";
+import { corsHeaders, errorResponse } from "../_shared/http.ts";
 const log = createEdgeLogger("ingest-csv-knowledge");
 
 const BodySchema = z
@@ -238,13 +238,7 @@ serve(
       );
     } catch (err) {
       log.error("handler", `Unhandled exception [${requestId}]`, { requestId }, err);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: err instanceof Error ? err.message : "Unknown error",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse(err, "Import failed", 500);
     }
   })
 );

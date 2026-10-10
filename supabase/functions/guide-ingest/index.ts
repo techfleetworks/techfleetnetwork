@@ -10,6 +10,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
+import { errorResponse } from "../_shared/http.ts";
 import {
   assertGuideUrlAllowed,
   chunkMarkdown,
@@ -178,10 +179,7 @@ serve(
       );
     } catch (e) {
       console.error("guide-ingest error", e);
-      return new Response(
-        JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return errorResponse(e, "Ingest failed", 500);
     }
   })
 );

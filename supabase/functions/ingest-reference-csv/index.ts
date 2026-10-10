@@ -22,7 +22,7 @@ import { z } from "npm:zod@3.23.8";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { isAirtableAttachmentUrl } from "../_shared/url-host.ts";
 // CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it).
-import { corsHeaders } from "../_shared/http.ts";
+import { corsHeaders, errorResponse } from "../_shared/http.ts";
 
 const BodySchema = z
   .object({
@@ -506,10 +506,8 @@ serve(
         const chunk = upserts.slice(i, i + 200);
         const { error } = await admin.from(cfg.table).upsert(chunk, { onConflict: "slug" });
         if (error) {
-          return new Response(
-            JSON.stringify({ error: error.message, table: cfg.table, batch_start: i }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          console.error("ingest-reference-csv:", error);
+          return errorResponse(error, "Import failed", 500);
         }
         upserted += chunk.length;
       }
@@ -672,10 +670,8 @@ serve(
         }
       );
     } catch (err) {
-      return new Response(
-        JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("ingest-reference-csv:", err);
+      return errorResponse(err, "Import failed", 500);
     }
   })
 );

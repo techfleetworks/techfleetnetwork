@@ -500,6 +500,14 @@ catch (e) { return jsonResponse({ error: e instanceof Error ? e.message : String
 catch (e) { log.error("provision failed", e); return errorResponse(e, "Support provisioning failed", 502); }
 ```
 
+CodeQL was named as the enforcement, but there is no CodeQL config in the repo and ~21 functions shipped
+the leak anyway (enterprise-readiness audit 2026-10). Now enforced mechanically by
+`scripts/ci/check-no-error-in-edge-response.mjs` (blocking, `critical` lane): it flags a caught error's
+`.message`/`.stack` (or `String(err)`) inside any `jsonResponse(...)` / `new Response(...)` body under
+`supabase/functions/**`, while leaving the safe `errorResponse` owner and `console`/`log` calls alone;
+fails closed on a missing functions dir / zero files. Pinned + discriminated by
+`src/test/smoke/check-no-error-in-edge-response.smoke.test.ts`.
+
 **A user id is not stored in the clear in web storage** (CodeQL `js/clear-text-storage-of-sensitive-data`).
 When a marker only needs "same user vs different", store `fingerprintUserId(id)`, not the id.
 

@@ -16,6 +16,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
+import { errorResponse } from "../_shared/http.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type",
@@ -130,11 +131,10 @@ serve(
       .select("id, user_query, kb_hit_count, framework_hit_count, audience")
       .gte("created_at", since)
       .limit(2000);
-    if (error)
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (error) {
+      console.error("fleety-learning-digest:", error);
+      return errorResponse(error, "Digest generation failed", 500);
+    }
 
     const { data: feedback } = await admin
       .from("fleety_message_feedback")

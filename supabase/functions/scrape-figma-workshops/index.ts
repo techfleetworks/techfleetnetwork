@@ -20,7 +20,7 @@ const BodySchema = z
 // Shared CORS owner — allows the x-trace-id/x-request-id preflight headers the
 // frontend invokeEdge wrapper attaches. Inline CORS omitting them fails preflight
 // (see supabase/functions/CLAUDE.md).
-import { corsHeaders } from "../_shared/http.ts";
+import { corsHeaders, errorResponse } from "../_shared/http.ts";
 
 const FIGMA_HOST_RE = /^https:\/\/www\.figma\.com\/community\/file\/\d+\/[a-z0-9-]+$/i;
 
@@ -369,10 +369,8 @@ Deno.serve(
         }
       );
     } catch (e) {
-      return new Response(JSON.stringify({ error: (e as Error).message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("scrape-figma-workshops:", e);
+      return errorResponse(e, "Figma scrape failed", 500);
     }
   })
 );

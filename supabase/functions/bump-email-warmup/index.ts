@@ -4,6 +4,7 @@
 // Runs daily 00:05 UTC via pg_cron.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import { errorResponse } from "../_shared/http.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,10 +77,8 @@ Deno.serve(
       .eq("id", state.id);
 
     if (updErr) {
-      return new Response(JSON.stringify({ error: updErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("bump-email-warmup:", updErr);
+      return errorResponse(updErr, "Failed to update email warmup", 500);
     }
 
     return new Response(JSON.stringify({ ok: true, cap: targetCap, ageDays }), {
