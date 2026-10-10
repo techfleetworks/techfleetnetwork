@@ -116,10 +116,33 @@ export interface TraceBuffer {
 /** FLEETY_BRAINTRUST_ENABLED is ON unless explicitly turned off, AND the key must exist.
  *  Flipping the secret to "0"/"false"/"off" disables emission on the next isolate — the
  *  deploy-free kill switch (a _shared change otherwise forces a full-fleet redeploy). */
+let complianceGateWarned = false;
+
 export function braintrustEnabled(): boolean {
   const flag = (Deno.env.get("FLEETY_BRAINTRUST_ENABLED") ?? "").trim().toLowerCase();
   if (flag === "0" || flag === "false" || flag === "off" || flag === "no") return false;
-  return !!Deno.env.get("BRAINTRUST_API_KEY");
+  if (!Deno.env.get("BRAINTRUST_API_KEY")) return false;
+  // Compliance gate (ADR-0073; enterprise-readiness audit 2026-10 C2/H7). Braintrust receives
+  // verbatim member Q&A + the DB user_id, so emission must NOT turn on merely because a key exists.
+  // It stays a fail-safe no-op until BRAINTRUST_COMPLIANCE_READY affirms the prerequisites are LIVE:
+  // a signed processor DPA, retention ≤ 30 days configured in Braintrust, and the deletion-cascade
+  // job deployed (so an erased member's turns are purged). See docs/runbooks/braintrust-prod-enable.md.
+  const ready = (Deno.env.get("BRAINTRUST_COMPLIANCE_READY") ?? "").trim().toLowerCase();
+  const compliant =
+    ready !== "" && ready !== "0" && ready !== "false" && ready !== "off" && ready !== "no";
+  if (!compliant) {
+    if (!complianceGateWarned) {
+      complianceGateWarned = true;
+      log.warn(
+        "compliance_gate",
+        "BRAINTRUST_API_KEY present but BRAINTRUST_COMPLIANCE_READY not affirmed — member-PII " +
+          "telemetry stays DISABLED until the DPA + ≤30d retention + deletion-cascade are live " +
+          "(docs/runbooks/braintrust-prod-enable.md)."
+      );
+    }
+    return false;
+  }
+  return true;
 }
 
 // ── Lazy, isolate-wide Braintrust handle ────────────────────────────────────
