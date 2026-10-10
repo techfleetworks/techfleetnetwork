@@ -328,3 +328,160 @@ export async function getProjectInternalLinks(
   const row = Array.isArray(data) ? data[0] : data;
   return (row ?? null) as ProjectInternalLinks | null;
 }
+
+/* ── Read-component projections (ADR-0071, PR3) ─────────────────────────────────────
+ * One method per component read surface. Same rules as PR2: explicit columns (never '*'),
+ * retryPostgrest, list reads return arrays. getProjectForAnalysis returns null on a missing row
+ * (maybeOne — the analysis panel renders nothing for an unknown id, preserving the old maybeSingle
+ * behavior) instead of throwing NotFoundError. */
+
+/** Admin Clients → Projects tab: every project (broad admin columns), newest first. */
+export const CLIENT_PROJECTS_COLUMNS =
+  "id, client_id, project_type, phase, team_hats, project_status, current_phase_milestones, friendly_name, description, created_by, created_at, updated_at";
+export interface ClientProject {
+  id: string;
+  client_id: string;
+  project_type: string;
+  phase: string;
+  team_hats: string[];
+  project_status: string;
+  current_phase_milestones: string[];
+  friendly_name?: string;
+  description?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+export async function listClientProjects(): Promise<ClientProject[]> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase
+      .from("projects")
+      .select(CLIENT_PROJECTS_COLUMNS)
+      .order("created_at", { ascending: false })
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as ClientProject[];
+}
+
+/** A member's joined projects (with embedded client details) for "My Projects". */
+export const MEMBER_PROJECT_DETAIL_COLUMNS =
+  "id, project_type, phase, project_status, team_hats, current_phase_milestones, timezone_range, anticipated_start_date, anticipated_end_date, created_at, friendly_name, description, clients!projects_client_id_fkey ( name, website, mission, project_summary, primary_contact, kind )";
+export interface MemberProjectDetail {
+  id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  team_hats: string[];
+  current_phase_milestones: string[];
+  timezone_range?: string;
+  anticipated_start_date?: string | null;
+  anticipated_end_date?: string | null;
+  created_at: string;
+  friendly_name?: string;
+  description?: string;
+  clients: {
+    name: string;
+    website: string;
+    mission: string;
+    project_summary: string;
+    primary_contact: string;
+    kind?: "external" | "internal";
+  } | null;
+}
+export async function getMemberProjectDetails(
+  projectIds: string[]
+): Promise<MemberProjectDetail[]> {
+  if (projectIds.length === 0) return [];
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(MEMBER_PROJECT_DETAIL_COLUMNS).in("id", projectIds)
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as MemberProjectDetail[];
+}
+
+/** Admin "Submitted Applications": the projects those applications target. */
+export const SUBMITTED_APPS_PROJECT_COLUMNS =
+  "id, project_type, phase, project_status, client_id, friendly_name";
+export interface SubmittedAppProject {
+  id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  client_id: string;
+  friendly_name?: string | null;
+}
+export async function getProjectsForSubmittedApps(
+  projectIds: string[]
+): Promise<SubmittedAppProject[]> {
+  if (projectIds.length === 0) return [];
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(SUBMITTED_APPS_PROJECT_COLUMNS).in("id", projectIds)
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as SubmittedAppProject[];
+}
+
+/** The currently-open ("apply_now") projects — ids only, for counts/membership. */
+export async function listApplyNowProjects(): Promise<{ id: string }[]> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select("id").eq("project_status", "apply_now")
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as { id: string }[];
+}
+
+/** Admin project-analysis panel: one project (+ client name). Returns null for an unknown id. */
+export const ANALYSIS_PROJECT_COLUMNS =
+  "id, client_id, project_type, phase, project_status, team_hats, clients(name)";
+export interface AnalysisProject {
+  id: string;
+  client_id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  team_hats: string[];
+  clients: { name: string } | null;
+}
+export async function getProjectForAnalysis(projectId: string): Promise<AnalysisProject | null> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(ANALYSIS_PROJECT_COLUMNS).eq("id", projectId).maybeSingle()
+  );
+  if (error) throw error;
+  return (data ?? null) as unknown as AnalysisProject | null;
+}
+
+/** Admin cross-project name lookup for the "also applied to" chips — every project, any status. */
+export const ANALYSIS_CROSS_PROJECT_COLUMNS =
+  "id, project_type, phase, project_status, client_id, clients(name)";
+export interface AnalysisCrossProject {
+  id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  client_id: string;
+  clients: { name: string } | null;
+}
+export async function listAllProjectsForAnalysis(): Promise<AnalysisCrossProject[]> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(ANALYSIS_CROSS_PROJECT_COLUMNS)
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as AnalysisCrossProject[];
+}
+
+/** Global command-palette search surface: a capped slice of projects. */
+export const SEARCH_PROJECT_COLUMNS = "id, project_type, phase, project_status, client_id";
+export interface SearchProject {
+  id: string;
+  project_type: string;
+  phase: string;
+  project_status: string;
+  client_id: string;
+}
+export async function listProjectsForSearch(limit = 10): Promise<SearchProject[]> {
+  const { data, error } = await retryPostgrest(() =>
+    supabase.from("projects").select(SEARCH_PROJECT_COLUMNS).limit(limit)
+  );
+  if (error) throw error;
+  return (data ?? []) as unknown as SearchProject[];
+}

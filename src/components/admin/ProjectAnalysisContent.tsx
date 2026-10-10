@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react
 import { Link } from "react-router-dom";
 import { useQuery } from "@/lib/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAllProjectsForAnalysis, useProjectForAnalysis } from "@/hooks/use-project";
 import { useAdmin } from "@/hooks/use-admin";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,15 +48,6 @@ interface ProjectApp {
   client_project_knowledge: string;
 }
 
-interface ProjectInfo {
-  id: string;
-  client_id: string;
-  project_type: string;
-  phase: string;
-  project_status: string;
-  team_hats: string[];
-  clients: { name: string } | null;
-}
 
 interface ProfileRow {
   user_id: string;
@@ -156,18 +148,8 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
   const [multiProjectSheet, setMultiProjectSheet] = useState<{ hat: string } | null>(null);
 
   /* ── data fetching ──────────────────────────────── */
-  const { data: project, isLoading: projLoading } = useQuery({
-    queryKey: ["analysis-project", projectId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, client_id, project_type, phase, project_status, team_hats, clients(name)")
-        .eq("id", projectId)
-        .maybeSingle();
-      if (error) throw error;
-      return data as unknown as ProjectInfo | null;
-    },
-    enabled: !!projectId && !!user && isAdmin,
+  const { data: project, isLoading: projLoading } = useProjectForAnalysis(projectId, {
+    enabled: !!user && isAdmin,
   });
 
   const { data: completedApps } = useQuery({
@@ -200,17 +182,7 @@ export default function ProjectAnalysisContent({ projectId }: ProjectAnalysisCon
   // Cross-project name lookup: must include ALL projects (any status),
   // since an applicant's "Also applied to" chip can reference projects
   // that are no longer in apply_now (recruiting, team_onboarding, etc.).
-  const { data: crossProjectLookup } = useQuery({
-    queryKey: ["analysis-cross-project-lookup"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("id, project_type, phase, project_status, client_id, clients(name)");
-      if (error) throw error;
-      return (data ?? []) as unknown as { id: string; project_type: string; phase: string; project_status: string; client_id: string; clients: { name: string } | null }[];
-    },
-    enabled: !!user && isAdmin,
-  });
+  const { data: crossProjectLookup } = useAllProjectsForAnalysis({ enabled: !!user && isAdmin });
 
   const userIds = useMemo(() => [...new Set((completedApps ?? []).map((a) => a.user_id))], [completedApps]);
 

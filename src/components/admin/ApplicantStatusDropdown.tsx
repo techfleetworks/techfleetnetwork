@@ -10,11 +10,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { getProjectInternalLinks, type ProjectInternalLinks } from "@/services/project.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { ProfileService } from "@/services/profile.service";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { createLogger } from "@/services/logger.service";
+import { reportError } from "@/services/error-reporter.service";
 import { invokeEdge } from "@/lib/edge/invokeEdge";
 
 const log = createLogger("ApplicantStatusDropdown");
@@ -164,11 +166,19 @@ export function ApplicantStatusDropdown({
 
         /* -- Pre-flight: "active_participant" requires Discord role on project & Discord on applicant -- */
         if (newStatus === "active_participant") {
-          // discord_role_id was revoked from authenticated for security; fetch via RPC.
-          const { data: linkRows } = await supabase.rpc("get_project_internal_links", {
-            p_project_id: projectId,
-          });
-          const projectData = linkRows?.[0] ?? null;
+          // discord_role_id is revoked from authenticated for security; fetch via the service RPC
+          // wrapper. Treat an unreadable result as "no role" so the safe-fail below still blocks.
+          let projectData: ProjectInternalLinks | null = null;
+          try {
+            projectData = await getProjectInternalLinks(projectId);
+          } catch (e) {
+            // Safe-fail: can't verify the role → fall through to the "role required" block so we
+            // never promote without a confirmed Discord role. Report it so a persistently-broken
+            // RPC doesn't masquerade as "every applicant lacks a Discord role" (decisions.md §4).
+            reportError(e, "ApplicantStatusDropdown.internalLinks", {
+              extraFields: [`projectId:${projectId}`],
+            });
+          }
 
           if (!projectData?.discord_role_id) {
             toast.error("Discord role required", {
