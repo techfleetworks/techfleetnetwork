@@ -76,9 +76,12 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
         component="main"
         sx={{ flex: 1, display: "flex", flexDirection: "column", px: 2 }}
       >
-        {/* Polite live region announcing step progress (visually hidden). */}
+        {/* Polite live region announcing step progress (visually hidden). The runtime
+            translator must skip volatile regions (TRANSLATOR-VOLATILE-003); the announced
+            text is built from source strings in content.ts. */}
         <Box
           aria-live="polite"
+          data-no-translate
           sx={{
             position: "absolute",
             width: "1px",

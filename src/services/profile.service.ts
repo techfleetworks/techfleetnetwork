@@ -241,7 +241,10 @@ export const ProfileService = {
             if (error) throw error;
           },
           probe: async () => {
-            const { data, error } = await supabase
+            // `(supabase as any)`: the generated types lag the hand-applied migration,
+            // so welcome_flow_completed_at isn't in the profiles column set yet (same
+            // reason the RPCs use the cast; drop both when types are regenerated).
+            const { data, error } = await (supabase as any)
               .from("profiles")
               .select("welcome_flow_completed_at")
               .eq("user_id", userId)
