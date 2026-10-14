@@ -21,12 +21,59 @@ from committed docs/config; `not-assessed` = not yet checked first-hand). The fi
 
 - **KEEP** - a real, failing-capable TFN gate already enforces this skill. No work beyond confirming it.
 - **FIX** - a TFN gate exists but is vacuous, parked, or scoped so it cannot fail. Make it real.
-- **COPY** - no TFN gate; copy the ready-made enterprise-skills checker and wire it in.
-- **BUILD** - no TFN gate and no drop-in checker fits TFN's stack; build native against local Supabase.
+- **COPY** - a ready-made enterprise-skills **script already exists**; move that script into TFN and
+  localize its config. See the critical clarification below - "copy" is honest **only** where a script
+  exists.
+- **WIRE** - no script of its own, but an existing enterprise-skills script (housed in the `judge-arch`
+  folder, the enforcement hub) already enforces this skill. Point TFN at that enforcer; nothing new is
+  authored.
+- **BUILD** - no TFN gate and no drop-in checker fits TFN's stack; build a native gate against local
+  Supabase.
 - **RECEIPT-GATED** - a judgment skill that has no *property* gate (no machine can decide "is this
   usable"), but **does** have a real, failing-capable CI gate: the receipt gate. It fails when the
   change has no grounded `applied` entry for the skill, coupled to the surfaces it touches. It proves
   the discipline ran and recorded what it judged, not that the judgment was right.
+
+## Critical clarification: "copy" does NOT mean "every skill has a script"
+
+This was a real imprecision in an earlier draft, and it matters, so it is spelled out here in full.
+
+**The markdown is not the gate.** A skill's `SKILL.md` is prose that a human reads; it never runs. The
+*gate* is a separate executable program (a `.mjs` script, or in one case a `.sh` script). "Copy" means
+move an **already-written program** into TFN. It never means "translate the markdown into a script."
+
+**And not every skill ships its own program.** Counted directly from enterprise-software-AI-skills
+v1.0.0, the 16 skills fall into four buckets, and the action word in the table reflects which bucket a
+skill is in:
+
+| Bucket | How many | What exists in the skills repo | TFN action word |
+|--------|----------|--------------------------------|-----------------|
+| **Own `.mjs` gate(s)** | 11 skills | a script in the skill's own `scripts/` folder (e.g. `check-untagged-pii.mjs`) | **COPY** - move the script + its test, localize its config |
+| **Own `.sh` gate** | 1 skill (`architectural-decision-records`) | `check_adr.sh` / `new_adr.sh` (bash, not JavaScript) + a judge-arch enforcer | **COPY** (the shell script) + **WIRE** (the judge-arch enforcer) |
+| **No own script; enforced from `judge-arch`** | 3 skills (`enterprise-architecture-standards` → `arch-gate.mjs`; `arch-encode` → `check-arch-rules-discriminate.mjs`; `architectural-decision-records` → `check-change-routing.mjs`) | a script that lives in the `judge-arch` folder and enforces this skill on its behalf | **WIRE** - no new script; point TFN's gate at the existing enforcer |
+| **No mechanical script anywhere** | 1 skill (`usability-ux-universal-design`) | nothing executable; usability is a judgment | **RECEIPT-GATED** - the receipt gate is its real, failing-capable check |
+
+So when a row below says **COPY**, a concrete file genuinely exists today and the work is a move plus a
+config edit. When a row says **WIRE**, there is no script to copy for that skill specifically - its
+enforcement is borrowed from a `judge-arch` script that already exists. When a row says
+**RECEIPT-GATED**, there is deliberately no property-checking program, and that is correct, not a gap.
+The one thing no row ever means is "write a brand-new gate by hand from the markdown" - that only
+happens in the two **BUILD** rows (PR-scoped axe and cross-browser), where TFN's stack genuinely needs a
+native harness that the skills repo does not ship.
+
+**What a COPY physically produces** (the untagged-PII gate as the worked example):
+
+1. The script, moved verbatim: `scripts/ci/check-untagged-pii.mjs` (dependency-free, `node:` built-ins only).
+2. Its discrimination test, moved verbatim: `test/untagged-pii.test.mjs` (feeds the gate a known-bad and
+   a known-good input and asserts the exit codes).
+3. Its config/policy data, **localized** to TFN's schema: the PII column-name patterns and the paths to
+   scan (e.g. `supabase/migrations/**`). This is the only part you edit, not the logic.
+4. One registry line so TFN's existing `gate` aggregator picks the script up. No new workflow file for a
+   plain gate; the aggregator already loops over the gate folder.
+
+A **WIRE** produces only step 4 (plus any config), because the script it points at is already present in
+the `judge-arch` family TFN imports. A **BUILD** is the only action that authors new logic, and it ships
+all of steps 1-4 as new, test-first, against local Supabase.
 
 ## Two kinds of gate (why there are no ungated skills)
 
@@ -51,15 +98,15 @@ fail, not "trust the review." The honest boundary: the receipt gate proves the u
 |---|-------|-------------------------------------|------------------------------|----------------------|--------|------|
 | 1 | enterprise-architecture-standards | `arch-gate.mjs` | arch-gate ratchet runs and blocks new violations (observed) | Keep the arch-gate `ci / gate` step; confirm waiver file shrinks | KEEP | - |
 | 2 | pattern-selector | `check-catalog-completeness.mjs` | no pattern-catalog gate in TFN (observed: absent from `scripts/ci`) | Copy catalog-completeness over a committed TFN pattern catalog | COPY | 2 |
-| 3 | architectural-decision-records | `check-change-routing.mjs` (ADR routing) | ADR guard is collision-only; no routing rule forcing an ADR on routed changes (observed) | Copy change-routing; add the "routed change needs an ADR" rule | COPY | 2 |
-| 4 | owasp-secure-coding-bdd | `check-owasp-lints.mjs`, `check-security-coverage.mjs`, `check-cheatsheet-catalog.mjs`, `check-verbatim.mjs` | SAST real (security/pentest/security-audit); CodeQL referenced but `codeql.yml` absent; no OWASP-lint/coverage gate (observed) | Confirm+commit CodeQL; copy owasp-lints + security-coverage | FIX + COPY | 3 |
+| 3 | architectural-decision-records | `check-change-routing.mjs` (housed in `judge-arch`) + `check_adr.sh` | ADR guard is collision-only; no routing rule forcing an ADR on routed changes (observed) | Wire the judge-arch change-routing enforcer + its "routed change needs an ADR" rule; optionally copy the `.sh` helper | WIRE (+COPY .sh) | 2 |
+| 4 | owasp-secure-coding-bdd | `check-owasp-lints.mjs`, `check-security-coverage.mjs`, `check-cheatsheet-catalog.mjs`, `check-verbatim.mjs` | SAST real (security/pentest/security-audit); **CodeQL active via GitHub default setup**, no `codeql.yml` needed by design (observed 2026-10-14, analyses ran today); no OWASP-lint/coverage gate (observed) | Copy owasp-lints + security-coverage; no CodeQL work needed | COPY | 3 |
 | 5 | bdd-comprehensive-testing | `check-bdd-coverage.mjs`, `check-bdd-executed.mjs`, `check-bdd-tags.mjs`, `check-gherkin-valid.mjs` | `bdd-gate.yml` is a shallow module-name grep, no scenario/assertion (observed) | Copy the gherkin-valid + bdd-coverage/tags engine; replace the grep | COPY | 3 |
 | 6 | comprehensive-test-strategy | `check-test-shape.mjs` | Stryker gate vacuous (`break:0`, one file); coverage floor 17-25% (observed) | Make Stryker real + ratchet floor; copy test-shape | FIX + COPY | 1 |
 | 7 | release-deployment-safety | `check-migration-safety.mjs` | migration-safety gate real (observed) | Keep; align with enterprise-skills checker if gaps found | KEEP | - |
 | 8 | sre-operational-readiness | `check-alert-hygiene.mjs` | `ci-alert.yml` exists; self-skipping workflows go green silently (observed) | Copy alert-hygiene; make skips visible | COPY | 3 |
 | 9 | compliance-data-lifecycle | `check-untagged-pii.mjs`, `check-retention-basis.mjs` | GDPR erasure gate real; no untagged-PII or retention gate (observed) | Copy untagged-pii + retention-basis | COPY | 2 |
 | 10 | judge-arch | `check-arch-review-coverage.mjs`, `check-reference-links.mjs`, `check-skill-receipt.mjs` | `llm-arch-review.yml` advisory; no review-coverage, reference-link, or receipt gate (observed) | Copy arch-review-coverage + reference-links + skill-receipt | COPY | 2 / 4 |
-| 11 | arch-encode | `check-arch-rules-discriminate.mjs` | TFN has the self-proving guard layer but no rules-discriminate gate by that name (observed) | Copy arch-rules-discriminate (or confirm the existing discrimination layer subsumes it) | COPY/KEEP | 2 |
+| 11 | arch-encode | `check-arch-rules-discriminate.mjs` (housed in `judge-arch`) | TFN has the self-proving guard layer but no rules-discriminate gate by that name (observed) | Wire the judge-arch discriminate enforcer, or confirm TFN's existing discrimination layer subsumes it | WIRE/KEEP | 2 |
 | 12 | verifiable-quality-gates | `check-has-test.mjs`, `verify-check-discrimination.mjs` | TFN's `verify-guard-test-discrimination` + `check-guard-has-test` already do exactly this (observed) | Keep; this is the proven foundation the whole program leans on | KEEP | - |
 | 13 | skeptical-audit | `claim-lint.mjs`, `check-skill-evidence-contract.mjs` | no claim-lint or evidence-contract gate in TFN (observed) | Copy claim-lint + evidence-contract | COPY | 3 |
 | 14 | universal-accessibility-wcag | `check-axe-results.mjs`, `check-a11y-checklist.mjs`, `run-axe.mjs` | Lighthouse hits prod; jsx-a11y warn-only; axe parked (observed) | Build PR-scoped axe vs local Supabase; copy axe-results + a11y-checklist | FIX + COPY + BUILD | 1 |
@@ -86,8 +133,8 @@ shipped script and where it lands, so no component is unmapped:
 |-----------------------------|------|-----------------|
 | `arch-gate.mjs` | architecture gate | KEEP (row 1) |
 | `check-arch-review-coverage.mjs` | every change has a review | COPY (row 10) |
-| `check-arch-rules-discriminate.mjs` | encoded rules must discriminate | COPY/KEEP (row 11) |
-| `check-change-routing.mjs` | routed change needs its artifact | COPY (row 3) |
+| `check-arch-rules-discriminate.mjs` | encoded rules must discriminate | WIRE/KEEP (row 11, housed in judge-arch) |
+| `check-change-routing.mjs` | routed change needs its artifact | WIRE (row 3, housed in judge-arch) |
 | `check-reference-links.mjs` | no dangling .md references | COPY (row 10) |
 | `check-skill-receipt.mjs` | per-PR skill receipt complete + grounded | COPY (row 10, Wave 4) |
 | `check-catalog-completeness.mjs` | pattern catalog complete | COPY (row 2) |
@@ -124,8 +171,12 @@ actions; they travel with the gate that uses them. Every actual gate script has 
 - **16 / 16 skills** have a real, failing-capable TFN gate. 15 get a property gate; all 16 (including
   usability) sit under the receipt gate as a universal floor. Zero ungated skills.
 - **KEEP: 4** (already real) - architecture, migration-safety, verifiable-gates, and the review path.
-- **FIX: 3 gates** that exist but cannot fail today - Stryker, a11y, CodeQL/OWASP.
-- **COPY: ~18 components** from the enterprise-skills repo into TFN's `scripts/ci`.
+- **FIX: 2 gates** that exist but cannot fail today - Stryker and a11y. (CodeQL was mis-flagged; it is
+  active via GitHub default setup. See the audit correction.)
+- **COPY: ~16 components** from the enterprise-skills repo into TFN's `scripts/ci` (a script genuinely
+  exists for each).
+- **WIRE: 2 skills** (`arch-encode`, `architectural-decision-records`) whose enforcer lives in the
+  `judge-arch` family - no new script, just point TFN at it.
 - **BUILD: 2** native harnesses (PR-scoped axe + cross-browser) against local Supabase.
 - **1 receipt-gated-only** (usability) - a real CI check, just not a property gate.
 
