@@ -1,0 +1,52 @@
+name: Mutation testing (product code)
+
+# Mutation testing for product code — the audit (2026-10) found the repo mutation-tests its CI
+# GUARDS (verify-guard-test-discrimination) but never its APPLICATION code, so a product test could
+# assert nothing and still pass. This runs StrykerJS over the configured target (stryker.conf.json —
+# currently src/lib/security.ts) and FAILS when the mutation score drops below `thresholds.break`.
+#
+# Scoped + bounded: coverageAnalysis "perTest" runs only the tests that cover each mutant. Runs on PRs
+# that touch the mutated code or the config, plus weekly and on demand — not on every PR (a full
+# campaign is slow). To make it a required status, enable it in branch protection.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/**"
+      - "stryker.conf.json"
+      - ".github/workflows/mutation.yml"
+  schedule:
+    - cron: "0 7 * * MON"
+  workflow_dispatch:
+
+concurrency:
+  group: mutation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  stryker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Stryker mutation testing
+        run: npm run test:mutation
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 14
+          if-no-files-found: ignore
