@@ -103,19 +103,26 @@ test-efficacy, accessibility, cross-browser, and BDD domains are where a green c
 - **Fix (build):** ratchet the coverage floor upward on a schedule (it is designed to rise); decide whether e2e
   and pgTAP should join the blocking set once they have a stable green baseline. Severity MED.
 
-### 6. owasp-secure-coding-bdd — strong SAST, but a stale CodeQL reference and traceability-not-efficacy (LOW-MED)
+### 6. owasp-secure-coding-bdd — strong SAST; CodeQL confirmed running; traceability-not-efficacy in the coverage gate (LOW)
 
 - **Standard:** threat-model every change; secure-coding controls proven, each with a `@security` scenario.
-- **Observed:** `security.yml` and a workflow comment reference CodeQL as a separate required workflow, but **no
-  `codeql.yml` is committed on main** (source: `git ls-tree origin/main .github/workflows` read this session —
-  no codeql file). So either CodeQL runs via GitHub default-setup (not verifiable from the repo) or the reference
-  is stale and a required check is absent. Reported: `check-owasp-coverage.mjs` proves all cheat sheets are
-  mapped and the referenced paths exist, but a sheet can be "covered" by a `doc:`/`n/a:` token with an 8-char
-  justification, so coverage proves traceability, not that each control detects anything (the real enforcement is
-  the blocking `sast.mjs`).
-- **Fix (verify + build):** confirm whether CodeQL is actually running (GitHub default-setup) and either commit
-  `codeql.yml` or correct the stale reference; tighten the coverage gate so a `doc:`-only mapping cannot stand in
-  for a control that can fail. Severity LOW-MED (SAST already blocks; this is the completeness/honesty layer).
+- **Correction (2026-10-14).** An earlier draft of this finding flagged the absent `codeql.yml` as a possible
+  "stale reference / missing required check." That was under-verified, and the follow-up check corrects it:
+  **CodeQL is active and running via GitHub default setup.** Default setup needs no `codeql.yml` in the repo by
+  design, so the file's absence is correct, not a gap. Evidence (re-runnable):
+  `gh api repos/techfleetworks/techfleetnetwork/code-scanning/default-setup` returns `state: configured` for
+  `javascript-typescript, python, actions, typescript`; `gh api .../code-scanning/analyses` shows CodeQL
+  analyses on `refs/heads/main` dated 2026-10-14. `CodeQL` is also a required check in the active
+  `main-security-gates` ruleset (`gh api .../rulesets/23181685`). So there is **nothing to commit or fix** for
+  CodeQL. Limitation: default-setup config lives in GitHub settings, not the repo, so it is not visible from a
+  `git ls-tree` of the workflows folder — which is exactly why the first-draft, repo-only read mis-flagged it.
+- **Observed (the real, smaller finding):** the OWASP **coverage** gate proves traceability, not efficacy. A
+  cheat sheet can be "covered" by a `doc:`/`n/a:` token with an 8-char justification, so `check-owasp-coverage.mjs`
+  proves each sheet is *mapped and its paths exist*, not that each control *detects* anything. The real
+  enforcement is the blocking `sast.mjs` (and now, confirmed, CodeQL).
+- **Fix (build):** tighten the coverage gate so a `doc:`-only mapping cannot stand in for a control that can
+  fail; copy the enterprise-skills owasp-lints + security-coverage gates. Severity **LOW** (SAST and CodeQL both
+  block; this is the completeness/honesty layer only). Down from LOW-MED now that the CodeQL concern is resolved.
 
 ### 7. architectural-decision-records — ADR enforcement is collision-only (LOW-MED)
 
@@ -169,7 +176,8 @@ test-efficacy, accessibility, cross-browser, and BDD domains are where a green c
 3. **MED - fill the ungated domains:** untagged-PII + retention (finding 9); no-UA-sniffing now, cross-browser
    revived later (finding 3); the ADR routing rule (finding 7).
 4. **MED - stop the misleading greens:** relabel or upgrade the BDD grep (finding 4); make self-skipping
-   workflows skip visibly (finding 8); confirm/commit CodeQL (finding 6).
+   workflows skip visibly (finding 8); tighten the OWASP coverage gate's traceability-not-efficacy gap
+   (finding 6 — CodeQL itself is confirmed running, nothing to commit there).
 5. **MED - commit the required-check set** and guard it (finding 11).
 
 Every fix carries an ADR, a discrimination test (TFN already has the harness), a judge-arch review, and a
@@ -182,6 +190,7 @@ skill-application receipt - the refactor dogfoods the skills it installs.
 - Whether secret-gated workflows (pentest, config-preflight, incident-gate, the parked a11y/cross-browser) run in
   the live project is not determinable from the repo.
 - Findings marked `reported` come from the survey subagent with cited paths; I re-read the six headline items
-  first-hand (Stryker break:0, Lighthouse prod URLs, jsx-a11y warn, BDD grep, coverage floor, no codeql.yml). A
+  first-hand (Stryker break:0, Lighthouse prod URLs, jsx-a11y warn, BDD grep, coverage floor, and the CodeQL
+  question — the last since re-verified: CodeQL runs via GitHub default setup, see finding 6's correction). A
   full guard-by-guard re-read of all 54 guards was not done; the strong-foundation verdicts rest on the survey's
   cited reads plus the self-proving meta-gates.

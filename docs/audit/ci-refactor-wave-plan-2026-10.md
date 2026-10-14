@@ -4,6 +4,15 @@ Companion to [ci-actions-skills-audit-2026-10.md](./ci-actions-skills-audit-2026
 graded every CI action against the enterprise skills and ended with a prioritized fix list. This plan
 turns that list into merge-sized PRs, grouped into three waves by priority.
 
+**Read alongside:**
+[skill-to-gate-coverage-matrix-2026-10.md](./skill-to-gate-coverage-matrix-2026-10.md) (full 1:1
+skill-to-gate coverage, and what COPY / WIRE / BUILD each mean concretely),
+[ci-refactor-definition-of-done.md](./ci-refactor-definition-of-done.md) (the honest, provable bar every
+gate must clear before "done"), and
+[ci-gate-authoring-standard.md](./ci-gate-authoring-standard.md) (the plain-English What/How/Why/Fix
+header and failure-message standard every gate must follow). Every PR in every wave is bound by all
+three.
+
 Each wave follows the same build rule the audit calls for, so the refactor dogfoods the skills it
 installs. Every PR carries:
 
