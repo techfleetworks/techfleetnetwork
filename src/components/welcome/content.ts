@@ -31,6 +31,29 @@ export const WELCOME_CONTENT = {
       "Build influence",
     ],
   },
+
+  /**
+   * Step (e) — Stay Updated (newsletter). Approved copy (§4.7). Switch OFF by default.
+   * Double opt-in (P5): never assert "subscribed" — the toggle records intent and the
+   * confirmNote points to EO's confirmation email. The consent line names Email Octopus
+   * as the subprocessor (P10 — the old "no third parties" line was inaccurate).
+   */
+  stayUpdated: {
+    heading: "Stay Updated",
+    toggleLabel:
+      "Sign me up for the Tech Fleet newsletter: news, updates, and occasional promotions.",
+    consent:
+      "You'll get a confirmation email to finish signing up, and you can unsubscribe any time. " +
+      "We deliver the newsletter through our email provider, Email Octopus, and share your email " +
+      "address with them only for that purpose. We never sell your information or share it for " +
+      "anything else.",
+    privacyLinkLabel: "Read our privacy policy",
+    emailLabel: "The email we will use",
+    emailPlaceholder: "[ email from account ]",
+    // Shown only once the toggle is on — double opt-in, so we promise a confirmation
+    // email, never claim the subscription is complete.
+    confirmNote: "Check your inbox to confirm your subscription.",
+  },
 } as const;
 
 /** Shared nav labels (no "Skip" — the flow is un-skippable, §4.2 FR-N2). */

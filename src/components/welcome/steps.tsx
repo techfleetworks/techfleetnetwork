@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { WelcomeStep } from "./steps/WelcomeStep";
 import { WhyItsHelpfulStep } from "./steps/WhyItsHelpfulStep";
+import { StayUpdatedStep } from "./steps/StayUpdatedStep";
 import { WELCOME_NAV } from "./content";
 
 /**
@@ -32,6 +33,12 @@ export const WELCOME_STEPS: readonly WelcomeStepDef[] = [
     id: "c",
     title: "Why it's helpful",
     Component: WhyItsHelpfulStep,
+    nextLabel: WELCOME_NAV.next,
+  },
+  {
+    id: "e",
+    title: "Stay updated",
+    Component: StayUpdatedStep,
     nextLabel: WELCOME_NAV.next,
   },
 ];
