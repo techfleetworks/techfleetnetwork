@@ -23,8 +23,25 @@ from committed docs/config; `not-assessed` = not yet checked first-hand). The fi
 - **FIX** - a TFN gate exists but is vacuous, parked, or scoped so it cannot fail. Make it real.
 - **COPY** - no TFN gate; copy the ready-made enterprise-skills checker and wire it in.
 - **BUILD** - no TFN gate and no drop-in checker fits TFN's stack; build native against local Supabase.
-- **REVIEW-ONLY** - a judgment skill with no mechanical gate upstream either; enforced by the
-  judge-arch / llm-arch review path. Named honestly, not papered over with a fake mechanical check.
+- **RECEIPT-GATED** - a judgment skill that has no *property* gate (no machine can decide "is this
+  usable"), but **does** have a real, failing-capable CI gate: the receipt gate. It fails when the
+  change has no grounded `applied` entry for the skill, coupled to the surfaces it touches. It proves
+  the discipline ran and recorded what it judged, not that the judgment was right.
+
+## Two kinds of gate (why there are no ungated skills)
+
+- **Property gate** - measures the *artifact* and fails on a bad value (axe finds a contrast failure,
+  Stryker finds a surviving mutant). Possible only for mechanically decidable properties.
+- **Receipt gate** (`check-skill-receipt.mjs`) - measures the *evidence that the discipline ran*. It
+  fails when the receipt entry is missing, ungrounded (no verbatim quote from the skill), not bound to
+  the changed files, or silently skipped on a surface it was coupled to. Possible for **any** skill,
+  including a judgment one.
+
+The receipt gate is a **universal floor under all 16 skills**: every PR must carry a grounded entry for
+every skill (applied or not-applicable). Mechanically-decidable skills get a property gate *and* the
+receipt; a judgment skill like usability gets the receipt *only* - but that is still a CI check that can
+fail, not "trust the review." The honest boundary: the receipt gate proves the usability call was
+**made, recorded, and tied to this change**; a human still reads *what* it judged. Grounding, not truth.
 
 ---
 
@@ -47,14 +64,16 @@ from committed docs/config; `not-assessed` = not yet checked first-hand). The fi
 | 13 | skeptical-audit | `claim-lint.mjs`, `check-skill-evidence-contract.mjs` | no claim-lint or evidence-contract gate in TFN (observed) | Copy claim-lint + evidence-contract | COPY | 3 |
 | 14 | universal-accessibility-wcag | `check-axe-results.mjs`, `check-a11y-checklist.mjs`, `run-axe.mjs` | Lighthouse hits prod; jsx-a11y warn-only; axe parked (observed) | Build PR-scoped axe vs local Supabase; copy axe-results + a11y-checklist | FIX + COPY + BUILD | 1 |
 | 15 | universal-browser-device-support | `check-no-ua-sniffing.mjs` | cross-browser/browserstack parked; no UA-sniffing lint (observed) | Copy no-ua-sniffing now; revive cross-browser vs local Supabase | COPY + BUILD | 2 / 3 |
-| 16 | usability-ux-universal-design | (no mechanical gate upstream) | no mechanical gate exists upstream either (observed in enterprise-skills) | Enforce via judge-arch / llm-arch review; named honestly, no fake gate | REVIEW-ONLY | - |
+| 16 | usability-ux-universal-design | `check-skill-receipt.mjs` (receipt gate) + judge-arch review | no *property* gate upstream (none is possible); receipt gate covers it (observed) | Receipt gate: a grounded `applied` usability entry, coupled to UI-touching changes, required on every PR; judge-arch reads what it judged | RECEIPT-GATED | 4 |
 
-**Honest note on row 16.** The enterprise-skills repo itself ships no mechanical gate for
-`usability-ux-universal-design` because usability is a judgment, not a mechanically decidable property.
-TFN cannot have a real one either. Claiming a mechanical gate here would be exactly the vacuous-green
-pattern this whole audit exists to kill. It stays REVIEW-ONLY, carried by the judge-arch review and the
-`llm-arch-review` job, and that limitation is stated, not hidden. This is the one row that is covered by
-process rather than a failing-capable check, by design.
+**Note on row 16.** There is no *property* gate for `usability-ux-universal-design`, because usability
+is a judgment, not a mechanically decidable value - claiming one would be the vacuous-green pattern this
+audit exists to kill. But the row is **not** ungated: the **receipt gate** (`check-skill-receipt.mjs`)
+is a real, failing-capable CI check for it. Every PR must carry a grounded usability receipt entry, and
+the coupling rule makes a UI-touching PR with no `applied` usability entry **fail** - that is what stops
+the silent skip. The gate proves the usability discipline was applied and recorded what it judged
+against this change; judge-arch and a human read *what* it judged. Grounding, not truth. So row 16 is
+the one skill with **no property gate**, not the one skill with no gate.
 
 ---
 
@@ -102,12 +121,13 @@ actions; they travel with the gate that uses them. Every actual gate script has 
 
 ## Coverage scorecard
 
-- **16 / 16 skills** have an assigned TFN gate (15 mechanical, 1 REVIEW-ONLY by design and stated).
+- **16 / 16 skills** have a real, failing-capable TFN gate. 15 get a property gate; all 16 (including
+  usability) sit under the receipt gate as a universal floor. Zero ungated skills.
 - **KEEP: 4** (already real) - architecture, migration-safety, verifiable-gates, and the review path.
 - **FIX: 3 gates** that exist but cannot fail today - Stryker, a11y, CodeQL/OWASP.
 - **COPY: ~18 components** from the enterprise-skills repo into TFN's `scripts/ci`.
 - **BUILD: 2** native harnesses (PR-scoped axe + cross-browser) against local Supabase.
-- **1 REVIEW-ONLY**, honestly labelled.
+- **1 receipt-gated-only** (usability) - a real CI check, just not a property gate.
 
 Every delivered PR ships the four dogfood artifacts (ADR, discrimination test, judge-arch review,
 skill-application receipt), and the receipt's own gate (`check-skill-receipt`, row 10) becomes a TFN CI
@@ -117,9 +137,9 @@ to 100%: a new skill or a drifted gate fails CI.
 
 ## What 100% does and does not claim
 
-- It **does** claim: every skill has a named, committed CI gate or a stated review path, and every
-  enterprise-skills gate component has a TFN destination. That is a structural, checkable fact once the
-  PRs land.
+- It **does** claim: every skill has a real, failing-capable CI gate (a property gate, a receipt gate,
+  or both), and every enterprise-skills gate component has a TFN destination. That is a structural,
+  checkable fact once the PRs land.
 - It **does not** claim: that a green board proves the code is secure, accessible, or correct. The gates
   prove a discipline *ran* and *can fail*; a human still reviews. That boundary is the `verifiable-quality-gates`
   and `skeptical-audit` discipline, and it is stated here so "100% coverage" is not misread as "100% safe."
