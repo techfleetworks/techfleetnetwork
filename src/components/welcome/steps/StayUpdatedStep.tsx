@@ -55,7 +55,7 @@ export function StayUpdatedStep() {
       </Stack>
 
       {on ? (
-        <Alert variant="info" role="status">
+        <Alert variant="info" role="status" data-no-translate>
           {c.confirmNote}
         </Alert>
       ) : null}

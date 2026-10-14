@@ -22,7 +22,7 @@ describe("WelcomePage (Welcome Flow) — shell + first steps", () => {
     expect(screen.getByRole("button", { name: /get started/i })).toBeEnabled();
   });
 
-  it("advances to step (c) on Next, enables Back, and disables Next on the last step", () => {
+  it("advances to step (c) on Next and enables Back (c is a middle step)", () => {
     renderWithRouter(<WelcomePage />);
 
     fireEvent.click(screen.getByRole("button", { name: /get started/i }));
@@ -31,8 +31,9 @@ describe("WelcomePage (Welcome Flow) — shell + first steps", () => {
       screen.getByRole("heading", { name: /we prepare you for a changing world/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back/i })).toBeEnabled();
-    // step (c) is the last built step in PR2 → forward is disabled (no dead-end nav).
-    expect(screen.getByRole("button", { name: /next/i })).toBeDisabled();
+    // step (c) is followed by e/f/g now, so forward is available (those steps need
+    // AuthContext, so this render test stays on the auth-free a/c range).
+    expect(screen.getByRole("button", { name: /next/i })).toBeEnabled();
   });
 
   it("returns to step (a) when Back is pressed from step (c)", () => {
