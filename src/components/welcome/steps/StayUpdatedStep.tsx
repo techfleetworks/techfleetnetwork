@@ -34,7 +34,12 @@ export function StayUpdatedStep() {
 
   const handleToggle = (next: boolean) => {
     setOn(next); // optimistic — the switch responds immediately
-    setSubscription.mutate({ subscribed: next });
+    setSubscription.mutate(
+      { subscribed: next },
+      // Reconcile the optimistic switch if the write fails — never leave a false "on"
+      // (and so the confirm note below, gated on success, never lies about a failed opt-in).
+      { onError: () => setOn(!next) },
+    );
   };
 
   return (
@@ -54,7 +59,12 @@ export function StayUpdatedStep() {
         </Text>
       </Stack>
 
-      {on ? (
+      {setSubscription.isError ? (
+        <Alert variant="destructive" role="alert" data-no-translate>
+          {c.saveError}
+        </Alert>
+      ) : on && setSubscription.isSuccess ? (
+        // Only after the intent is actually recorded — double opt-in, never a false promise.
         <Alert variant="info" role="status" data-no-translate>
           {c.confirmNote}
         </Alert>

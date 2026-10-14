@@ -3,7 +3,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { RHFTextField, SaveStatus, Skeleton, Stack, Text } from "@/design-system";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAutosave } from "@/hooks/use-autosave";
-import { ProfileService, type Profile } from "@/services/profile.service";
+import { useUpdateProfileFields } from "@/hooks/use-update-profile-fields";
+import type { Profile } from "@/services/profile.service";
 import {
   welcomeProfileSchema,
   type WelcomeProfileForm,
@@ -38,11 +39,11 @@ export function ProfileStep() {
     );
   }
 
-  return <ProfileForm userId={user.id} profile={profile} />;
+  return <ProfileForm profile={profile} />;
 }
 
-function ProfileForm({ userId, profile }: { userId: string; profile: Profile | null }) {
-  const { refreshProfile } = useAuth();
+function ProfileForm({ profile }: { profile: Profile | null }) {
+  const saveProfile = useUpdateProfileFields();
   const c = WELCOME_CONTENT.profile;
 
   const form = useForm<WelcomeProfileForm>({
@@ -65,11 +66,9 @@ function ProfileForm({ userId, profile }: { userId: string; profile: Profile | n
     // Don't persist while a field (e.g. a URL) is invalid; empty is always valid (optional).
     enabled: !hasErrors,
     label: "welcome-profile",
-    onSave: async (v) => {
-      await ProfileService.updateFields(userId, v);
-      // Bidirectional: refresh the shared profile so the edit page / dashboard see the edit.
-      await refreshProfile();
-    },
+    // Writes through the hook → ProfileService (allow-listed) → refreshes the shared
+    // profile so the edit page / dashboard see the edit (bidirectional, FR-f3).
+    onSave: (v) => saveProfile(v),
   });
 
   return (

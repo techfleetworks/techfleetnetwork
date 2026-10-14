@@ -50,9 +50,11 @@ export const WELCOME_CONTENT = {
     privacyLinkLabel: "Read our privacy policy",
     emailLabel: "The email we will use",
     emailPlaceholder: "[ email from account ]",
-    // Shown only once the toggle is on — double opt-in, so we promise a confirmation
-    // email, never claim the subscription is complete.
+    // Shown only once the toggle is on AND the intent was recorded — double opt-in, so we
+    // promise a confirmation email, never claim the subscription is complete.
     confirmNote: "Check your inbox to confirm your subscription.",
+    // Shown when recording the choice fails, so we never leave a false "you're signed up".
+    saveError: "We couldn't save your newsletter choice. Please try again.",
   },
 
   /**
