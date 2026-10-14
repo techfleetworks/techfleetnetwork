@@ -11,8 +11,12 @@ name: Mutation testing (product code)
 on:
   pull_request:
     branches: [main]
+    # Trigger only when the MUTATED code or the gate's own config/workflow changes — the
+    # trigger must match `mutate` in stryker.conf.json, or an unrelated src/lib change
+    # launches a full security.ts mutation campaign for nothing. Expand this list in
+    # lockstep whenever `mutate` grows.
     paths:
-      - "src/lib/**"
+      - "src/lib/security.ts"
       - "stryker.conf.json"
       - ".github/workflows/mutation.yml"
   schedule:
