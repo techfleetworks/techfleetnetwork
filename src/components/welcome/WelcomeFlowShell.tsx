@@ -115,6 +115,9 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
               variant="ghost"
               onClick={onBack}
               disabled={!canGoBack(step)}
+              // AAA target size (WCAG 2.5.5, §12.8): the DS Button is 40px tall;
+              // bump to 44x44 for the mandatory flow.
+              sx={{ minHeight: 44, minWidth: 44 }}
             >
               {WELCOME_NAV.back}
             </Button>
@@ -124,6 +127,7 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
               size="sm"
               onClick={onNext}
               disabled={!canGoNext(step, total)}
+              sx={{ minHeight: 44, minWidth: 44 }}
             >
               {active.nextLabel ?? WELCOME_NAV.next}
             </Button>

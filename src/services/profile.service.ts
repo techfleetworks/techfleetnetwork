@@ -5,6 +5,7 @@ import { pickAllowedFields, deepSanitize } from "@/lib/security";
 import { retryPostgrest } from "@/lib/data/transient-retry";
 import { withAuthLockRetry } from "@/lib/auth/auth-lock-retry";
 import { withBoundedSave, type BoundedSaveStatus } from "@/lib/data/bounded-save";
+import { handleServiceError } from "@/lib/service-result";
 
 const log = createLogger("ProfileService");
 
@@ -287,13 +288,15 @@ export const ProfileService = {
           "get_welcome_flow_completion_count",
         );
         if (error) {
-          log.error(
-            "getWelcomeFlowCompletionCount",
-            `Failed to read completion count: ${error.message}`,
-            {},
-            error,
-          );
-          throw new Error("Failed to read Welcome Flow completion count.");
+          // Report through the service-result seam (logs + mirrors to audit_log +
+          // reportError), not a bare log.error — services/CLAUDE.md requires reporting.
+          // Throws the throwMessage, so the hook's QueryCache onError also surfaces it.
+          handleServiceError(error as Error, {
+            logger: log,
+            action: "getWelcomeFlowCompletionCount",
+            message: `Failed to read Welcome Flow completion count: ${(error as Error)?.message ?? "unknown"}`,
+            throwMessage: "Failed to read Welcome Flow completion count.",
+          });
         }
         return Number(data) || 0;
       },
