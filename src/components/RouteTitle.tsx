@@ -26,7 +26,7 @@ const ROUTE_TITLES: Array<{ pattern: string; title: string }> = [
   { pattern: "/reset-password", title: "Set new password" },
   { pattern: "/dashboard", title: "Dashboard" },
   { pattern: "/profile-setup", title: "Profile setup" },
-  { pattern: "/welcome", title: "Welcome wizard" },
+  { pattern: "/welcome", title: "Welcome" },
 
   { pattern: "/my-journey/quest/:pathId", title: "Quest detail" },
   { pattern: "/my-journey", title: "My journey" },

@@ -4,6 +4,7 @@ import { createLogger } from "@/services/logger.service";
 import { pickAllowedFields, deepSanitize } from "@/lib/security";
 import { retryPostgrest } from "@/lib/data/transient-retry";
 import { withAuthLockRetry } from "@/lib/auth/auth-lock-retry";
+import { withBoundedSave, type BoundedSaveStatus } from "@/lib/data/bounded-save";
 
 const log = createLogger("ProfileService");
 
@@ -36,6 +37,13 @@ export interface Profile {
   membership_gumroad_sale_id: string;
   membership_updated_at: string | null;
   preferred_language: string | null;
+  /**
+   * Set ONCE by mark_welcome_flow_complete() when the member finishes the mandatory
+   * Welcome Flow. NULL = the route gate still shows the flow. Reads (dot access) are
+   * fine anywhere; the ONLY writer is markWelcomeFlowComplete() below (never
+   * updateFields). ADR 20261009-welcome-flow-data-model.
+   */
+  welcome_flow_completed_at: string | null;
 }
 
 export const ProfileService = {
@@ -49,7 +57,7 @@ export const ProfileService = {
         retryPostgrest(() =>
           supabase
             .from("profiles")
-            .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, scheduling_url, experience_areas, professional_goals, notify_training_opportunities, notify_announcements, education_background, has_discord_account, discord_invite_url, membership_tier, is_founding_member, membership_billing_period, membership_sku, membership_gumroad_sale_id, membership_updated_at, preferred_language")
+            .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, scheduling_url, experience_areas, professional_goals, notify_training_opportunities, notify_announcements, education_background, has_discord_account, discord_invite_url, membership_tier, is_founding_member, membership_billing_period, membership_sku, membership_gumroad_sale_id, membership_updated_at, preferred_language, welcome_flow_completed_at")
             .eq("user_id", userId)
             .maybeSingle(),
         ),
@@ -199,5 +207,96 @@ export const ProfileService = {
       }
       log.info("updateFields", `Profile fields updated for user ${userId}`, { userId });
     });
+  },
+
+  /**
+   * Mark the mandatory Welcome Flow complete for the current user. The SOLE writer
+   * of `welcome_flow_completed_at` (never updateFields — set-once belongs only to the
+   * RPC; src/components/welcome/CLAUDE.md). Calls the no-arg SECURITY DEFINER RPC
+   * `mark_welcome_flow_complete()` which pins to auth.uid() and set-once-COALESCEs,
+   * so a double-click / replay never moves the original timestamp.
+   *
+   * Wrapped in withBoundedSave (ProfileService is direct supabase-js, not invokeEdge):
+   * a hung PostgREST write must not infinite-spin the final step and strand the user
+   * (requirements §6.5 / §9.4 — the S1 lockout surface). On an unconfirmable timeout
+   * it throws SaveIndeterminateError so the finish CTA can show Retry; `userId` is used
+   * only by the resolve-probe, never sent to the RPC.
+   */
+  async markWelcomeFlowComplete(
+    userId: string,
+    opts?: { onStatus?: (status: BoundedSaveStatus) => void; timeoutMs?: number },
+  ): Promise<void> {
+    return log.track(
+      "markWelcomeFlowComplete",
+      `Marking Welcome Flow complete for user ${userId}`,
+      { userId },
+      async () => {
+        await withBoundedSave({
+          timeoutMs: opts?.timeoutMs ?? 15_000,
+          save: async () => {
+            // No arguments — the RPC derives the user from auth.uid(); a client cannot
+            // complete the flow for anyone else.
+            const { error } = await (supabase as any).rpc("mark_welcome_flow_complete");
+            if (error) throw error;
+          },
+          probe: async () => {
+            const { data, error } = await supabase
+              .from("profiles")
+              .select("welcome_flow_completed_at")
+              .eq("user_id", userId)
+              .maybeSingle();
+            if (error) return "unresolved";
+            return (data as { welcome_flow_completed_at: string | null } | null)
+              ?.welcome_flow_completed_at
+              ? "persisted"
+              : "unresolved";
+          },
+          onStatus: opts?.onStatus,
+          beacon: (outcome, details) => {
+            // Telemetry only — user id + event kind, never PII (DoD §17). Routes through
+            // record_event, never a direct ops_events insert (ADR-0060).
+            void (supabase as any).rpc("record_event", {
+              p_sink: "ops_events",
+              p_kind:
+                outcome === "saved" ? "welcome.complete.ok" : `welcome.complete.${outcome}`,
+              p_payload: { user_id: userId, ...details },
+            });
+          },
+        });
+        log.info("markWelcomeFlowComplete", `Welcome Flow marked complete for user ${userId}`, {
+          userId,
+        });
+      },
+    );
+  },
+
+  /**
+   * Live count of members who have completed the Welcome Flow (includes the viewer if
+   * they have). Powered by the SECURITY DEFINER RPC `get_welcome_flow_completion_count()`,
+   * which counts source-of-truth rows at read time — excluding test accounts — and returns
+   * a single scalar, never per-user rows. There is NO stored counter to drift (ADR-0050;
+   * src/components/welcome/CLAUDE.md). Used by the Courses completion stat (§4.11 / §6.13).
+   */
+  async getWelcomeFlowCompletionCount(): Promise<number> {
+    return log.track(
+      "getWelcomeFlowCompletionCount",
+      "Reading live Welcome Flow completion count",
+      {},
+      async () => {
+        const { data, error } = await (supabase as any).rpc(
+          "get_welcome_flow_completion_count",
+        );
+        if (error) {
+          log.error(
+            "getWelcomeFlowCompletionCount",
+            `Failed to read completion count: ${error.message}`,
+            {},
+            error,
+          );
+          throw new Error("Failed to read Welcome Flow completion count.");
+        }
+        return Number(data) || 0;
+      },
+    );
   },
 };
