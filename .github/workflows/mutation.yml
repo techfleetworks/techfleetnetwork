@@ -3,22 +3,17 @@ name: Mutation testing (product code)
 # Mutation testing for product code — the audit (2026-10) found the repo mutation-tests its CI
 # GUARDS (verify-guard-test-discrimination) but never its APPLICATION code, so a product test could
 # assert nothing and still pass. This runs StrykerJS over the configured target (stryker.conf.json —
-# currently src/lib/security.ts) and FAILS when the mutation score drops below `thresholds.break`.
+# currently src/lib/security.ts) and FAILS when the mutation score drops below `thresholds.break` (40).
 #
-# Scoped + bounded: coverageAnalysis "perTest" runs only the tests that cover each mutant. Runs on PRs
-# that touch the mutated code or the config, plus weekly and on demand — not on every PR (a full
-# campaign is slow). To make it a required status, enable it in branch protection.
+# ALWAYS-REPORT PATTERN (so the `stryker` check can be a REQUIRED status check without deadlocking):
+# a path-filtered workflow only posts its check on PRs that match the filter, so making it required
+# would leave every unrelated PR waiting forever for a status that never arrives. Instead this job runs
+# on EVERY PR but first checks whether the diff actually touches the mutated target; if not, it skips
+# the (slow) campaign and reports success in seconds. The heavy run only happens when it is relevant,
+# yet the `stryker` check always reports — so it is safe to require in branch protection.
 on:
   pull_request:
     branches: [main]
-    # Trigger only when the MUTATED code or the gate's own config/workflow changes — the
-    # trigger must match `mutate` in stryker.conf.json, or an unrelated src/lib change
-    # launches a full security.ts mutation campaign for nothing. Expand this list in
-    # lockstep whenever `mutate` grows.
-    paths:
-      - "src/lib/security.ts"
-      - "stryker.conf.json"
-      - ".github/workflows/mutation.yml"
   schedule:
     - cron: "0 7 * * MON"
   workflow_dispatch:
@@ -37,17 +32,52 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          # Full history so the merge-base with the target branch is available to diff against.
+          fetch-depth: 0
+      - name: Is the mutated target in scope for this run?
+        id: scope
+        # Run the campaign only when the diff touches the mutated code or the gate's own
+        # config/workflow — this list MUST stay in sync with `mutate` in stryker.conf.json (expand both
+        # in lockstep when the target grows). On schedule / manual dispatch there is no base ref, so
+        # always run the full campaign. base_ref via env, never inline, to avoid script injection.
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -z "$BASE_REF" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Scheduled / manual run — running the full mutation campaign."
+            exit 0
+          fi
+          git fetch --no-tags origin "$BASE_REF"
+          base=$(git merge-base HEAD "origin/$BASE_REF")
+          # Include D so deleting/renaming-away the mutated target still triggers the (failing) run,
+          # surfacing the config/target mismatch rather than silently reporting a pass.
+          changed=$(git diff --name-only --diff-filter=ACMRD "$base" HEAD)
+          # here-string, not `printf | grep -q`: `grep -q` closes the pipe on first match and, under
+          # the default `pipefail` shell, a SIGPIPE on the writer could flip the pipeline to non-zero
+          # and misread an in-scope diff as out-of-scope (a false pass).
+          if grep -qxE 'src/lib/security\.ts|stryker\.conf\.json|\.github/workflows/mutation\.yml' <<<"$changed"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Diff touches the mutated target — running the mutation campaign."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Diff does not touch src/lib/security.ts (or the gate config) — skipping the campaign, reporting pass."
+          fi
       - name: Setup Node
+        if: steps.scope.outputs.run == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version-file: .nvmrc
           cache: npm
       - name: Install dependencies
+        if: steps.scope.outputs.run == 'true'
         run: npm ci
       - name: Run Stryker mutation testing
+        if: steps.scope.outputs.run == 'true'
         run: npm run test:mutation
       - name: Upload mutation report
-        if: always()
+        if: always() && steps.scope.outputs.run == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: mutation-report
