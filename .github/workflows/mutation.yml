@@ -3,7 +3,8 @@ name: Mutation testing (product code)
 # Mutation testing for product code — the audit (2026-10) found the repo mutation-tests its CI
 # GUARDS (verify-guard-test-discrimination) but never its APPLICATION code, so a product test could
 # assert nothing and still pass. This runs StrykerJS over the configured target (stryker.conf.json —
-# currently src/lib/security.ts) and FAILS when the mutation score drops below `thresholds.break` (40).
+# currently src/lib/security.ts) and FAILS when the mutation score drops below `thresholds.break`
+# (ratcheted upward with each climb batch; see stryker.conf.json for the current floor).
 #
 # ALWAYS-REPORT PATTERN (so the `stryker` check can be a REQUIRED status check without deadlocking):
 # a path-filtered workflow only posts its check on PRs that match the filter, so making it required
@@ -28,7 +29,9 @@ permissions:
 jobs:
   stryker:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45 (not 30): the dry run may take up to dryRunTimeoutMinutes (15) to boot the full suite, so the
+    # campaign needs headroom beyond that within the job budget.
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
