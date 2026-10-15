@@ -70,6 +70,11 @@ export const ROUTES: readonly RouteSpec[] = [
 
   // ---- Authenticated (trainee + admin both reach these) ----
   { path: "/dashboard", label: "Dashboard", kind: "authed" },
+  // The mandatory Welcome Flow. Ungated in PR2 (reachable by direct nav), so the
+  // audit's authed fixture reaches it without a gate redirect. When the route gate
+  // lands (PR5) the fixture user must be welcome-complete, and a welcome-incomplete
+  // fixture is added to scan the flow itself (requirements §15.3).
+  { path: "/welcome", label: "Welcome Flow", kind: "authed" },
   { path: "/profile-setup", label: "Profile setup", kind: "authed" },
   { path: "/profile/edit", label: "Edit profile", kind: "authed" },
   { path: "/profile/notifications", label: "Notifications", kind: "authed" },

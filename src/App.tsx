@@ -86,7 +86,9 @@ const ResetPasswordPage = lazy(() => import("@/features/auth/ui/ResetPasswordScr
 const ConfirmRecoveryLinkPage = lazy(() => import("./pages/ConfirmRecoveryLinkPage"));
 const ConfirmSignupPage = lazy(() => import("./pages/ConfirmSignupPage"));
 const ProfileSetupPage = lazy(() => import("./pages/ProfileSetupPage"));
-const WelcomeWizard = lazy(() => import("./pages/WelcomeWizard"));
+// The new mandatory Welcome Flow (replaces the legacy WelcomeWizard at /welcome; the
+// legacy page is retired in a later PR). Reachable only by direct nav in PR2 (ungated).
+const WelcomePage = lazy(() => import("./pages/WelcomePage"));
 const FirstStepsPage = lazy(() => import("./pages/FirstStepsPage"));
 const SecondStepsPage = lazy(() => import("./pages/SecondStepsPage"));
 const ThirdStepsPage = lazy(() => import("./pages/ThirdStepsPage"));
@@ -270,7 +272,7 @@ const App = () => (
                         path="/welcome"
                         element={
                           <ProtectedRoute>
-                            <WelcomeWizard />
+                            <WelcomePage />
                           </ProtectedRoute>
                         }
                       />

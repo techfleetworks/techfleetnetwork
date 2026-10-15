@@ -17,6 +17,14 @@ function clearEnv() {
   Deno.env.delete("BRAINTRUST_API_KEY");
   Deno.env.delete("FLEETY_BRAINTRUST_ENABLED");
   Deno.env.delete("BRAINTRUST_PROJECT_ID");
+  Deno.env.delete("BRAINTRUST_COMPLIANCE_READY");
+}
+
+/** Fully enable: key present AND compliance affirmed — the only state in which member-PII telemetry
+ *  may emit (ADR-0073; audit C2/H7). Having the key alone is a fail-safe no-op. */
+function enableEnv() {
+  Deno.env.set("BRAINTRUST_API_KEY", "bt-test-key");
+  Deno.env.set("BRAINTRUST_COMPLIANCE_READY", "DPA-2026-test");
 }
 
 Deno.test("braintrustEnabled: OFF when no API key (fail-safe default)", () => {
@@ -25,10 +33,20 @@ Deno.test("braintrustEnabled: OFF when no API key (fail-safe default)", () => {
 });
 
 Deno.test(
-  "braintrustEnabled: ON when key present and flag unset (default-on, no dark launch)",
+  "braintrustEnabled: OFF when key present but compliance NOT affirmed (fail-safe gate, audit C2/H7)",
   () => {
     clearEnv();
-    Deno.env.set("BRAINTRUST_API_KEY", "bt-test-key");
+    Deno.env.set("BRAINTRUST_API_KEY", "bt-test-key"); // key alone must NOT enable PII export
+    assertEquals(braintrustEnabled(), false);
+    clearEnv();
+  }
+);
+
+Deno.test(
+  "braintrustEnabled: ON only when key present AND compliance affirmed (flag unset)",
+  () => {
+    clearEnv();
+    enableEnv();
     assertEquals(braintrustEnabled(), true);
     clearEnv();
   }
@@ -36,7 +54,7 @@ Deno.test(
 
 Deno.test("braintrustEnabled: OFF when flag explicitly disabled (kill switch)", () => {
   clearEnv();
-  Deno.env.set("BRAINTRUST_API_KEY", "bt-test-key");
+  enableEnv();
   for (const v of ["0", "false", "off", "no", "OFF", "False"]) {
     Deno.env.set("FLEETY_BRAINTRUST_ENABLED", v);
     assertEquals(braintrustEnabled(), false, `flag="${v}" should disable`);
@@ -67,7 +85,7 @@ Deno.test(
   "enabled: task root + llm child; raw user_id intact; secrets scrubbed; names kept; timing present",
   () => {
     clearEnv();
-    Deno.env.set("BRAINTRUST_API_KEY", "bt-test-key");
+    enableEnv();
     const USER = "11111111-1111-4111-8111-111111111111";
     const JWT = "eyJabcdefghij.eyJklmnopqrst.signaturesignature";
 
@@ -131,7 +149,7 @@ Deno.test(
 
 Deno.test("enabled: content UUIDs are preserved by secrets-only scrub (eval fidelity)", () => {
   clearEnv();
-  Deno.env.set("BRAINTRUST_API_KEY", "bt-test-key");
+  enableEnv();
   // A realistic v4 UUID contains hex letters (which break a credit-card digit run,
   // so it is not CC-redacted) and is <40 contiguous hex (so not hex-token-redacted).
   const someUuid = "a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5";
