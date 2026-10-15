@@ -5,7 +5,7 @@
   "mutate": ["src/lib/security.ts"],
   "ignoreStatic": true,
   "reporters": ["clear-text", "progress", "json"],
-  "thresholds": { "high": 80, "low": 60, "break": 44 },
+  "thresholds": { "high": 80, "low": 60, "break": 47 },
   "timeoutMS": 60000,
   "concurrency": 2
 }
