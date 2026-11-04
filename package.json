@@ -158,7 +158,7 @@
     "@types/react": "18.3.23",
     "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react-swc": "3.11.0",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.12",
     "autoprefixer": "10.6.1",
     "eslint": "9.39.5",
     "eslint-plugin-compat": "^7.0.2",
@@ -184,7 +184,7 @@
     "typescript-eslint": "8.71.1",
     "vite": "^7.3.7",
     "vitepress": "^1.6.4",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "overrides": {
     "esbuild": "^0.25.0",
