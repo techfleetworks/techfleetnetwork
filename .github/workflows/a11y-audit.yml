@@ -137,7 +137,7 @@ jobs:
       - name: Upload a11y report
         if: always()
         # actions/upload-artifact@v7.0.1 — pinned SHA, runs on Node.js 24
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: a11y-report
           path: a11y-report/
