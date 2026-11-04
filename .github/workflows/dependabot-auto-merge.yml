@@ -1,0 +1,55 @@
+name: Dependabot auto-merge
+
+# Why this exists
+# ---------------
+# Branch protection on main is strict (branches must be up to date before merge),
+# requires 1 approval, and requires 6 status checks (CodeQL, dependency-advisories,
+# secret-scan, dependency-review, gate, stryker). Under those rules, merging Dependabot
+# PRs by hand is a serial grind: every merge moves main, forcing each remaining PR to be
+# re-rebased and re-checked. Left alone the backlog piles up, and an unmerged dependency
+# update is itself a supply-chain risk (OWASP A06:2025 — Vulnerable and Outdated Components).
+#
+# This workflow auto-approves each Dependabot PR (satisfies the review rule) and turns on
+# GitHub-native auto-merge, so GitHub keeps the PR rebased and merges it the instant its
+# required checks pass. It does NOT lower the bar: all required checks must still pass, and
+# a bump that fails one (e.g. dependency-review flags a CVE) stays open for a human.
+#
+# Majors are never auto-merged — a breaking rewrite needs a deliberate migration PR
+# (see .github/dependabot.yml, which already ignores them; this is the second guard).
+#
+# Requires two repo settings (Settings -> General -> Pull Requests):
+#   * Allow auto-merge                              = ON
+#   * Always suggest updating pull request branches = ON  (keeps PRs rebased under strict)
+# If either is off, auto-merge silently will not engage. See ADR 20261104.
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve (satisfies the required review)
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge (squash)
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
