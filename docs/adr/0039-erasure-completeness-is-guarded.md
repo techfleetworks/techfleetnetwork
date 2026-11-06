@@ -1,6 +1,6 @@
 # ADR 0039 — Right-to-erasure completeness is enforced by a guard, not by hoping the function stays whole
 
-- Status: Accepted
+- Status: Accepted (the reconcile migration and the structural principle stand; the guard's hand-maintained 12-table list is superseded by ADR 20261106, which derives the PII surface from the schema and reconciles it against a committed registry)
 - Date: 2026-09-11
 - Deciders: TechFleet (owner)
 - Related: `supabase/migrations/20260911120000_erasure_completeness_reconcile.sql` (the definitive `handle_user_deletion`), `scripts/ci/check-erasure-completeness.mjs` + `src/test/smoke/check-erasure-completeness.smoke.test.ts` (the guard), `supabase/tests/h9_erasure_cascade_test.sql` + `supabase/tests/gdpr_erasure_email_gumroad_test.sql` (behavioral proof), ADR-0026 (expand/contract — why back-dated migrations are dangerous), ADR-0023 (guards must discriminate). Audit finding H9 (right-to-erasure completeness). Skills: compliance-data-lifecycle, owasp-secure-coding-bdd, bdd-comprehensive-testing, release-deployment-safety, arch-encode.
