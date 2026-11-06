@@ -1,0 +1,9 @@
+{
+  "_comment": "Edge functions that still call raw admin.auth.admin.signOut( as a (non-working) revocation mechanism — the SEC-1 / RH1 defect (re-audit 2026-10-30): a user id is passed where a JWT is required, and the error is swallowed. SESSION-REVOCATION-ENFORCED-001 (check-session-revocation-enforced.mjs) blocks any NEW signOut call site and forbids growing this list vs main; a site migrated off signOut MUST be removed here. The replacement (a SECURITY DEFINER RPC that deletes auth.refresh_tokens / auth.sessions for the target) requires a hand-applied, prod-blocked migration (ADR 20261106-server-side-session-revocation), so these are tracked debt, not fixed in that PR. Server-side enforcement of is_session_revoked at the edge (this PR) already defends the stolen-token path regardless. Burn down toward [].",
+  "functions": [
+    "admin-sign-out-all-users",
+    "finalize-password-reset",
+    "revoke-user-sessions",
+    "sign-out-all-devices"
+  ]
+}
