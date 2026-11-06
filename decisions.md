@@ -565,6 +565,28 @@ the leak anyway (enterprise-readiness audit 2026-10). Now enforced mechanically 
 fails closed on a missing functions dir / zero files. Pinned + discriminated by
 `src/test/smoke/check-no-error-in-edge-response.smoke.test.ts`.
 
+**Prompt-injection detection has one owner.** Deciding whether untrusted user text is a jailbreak /
+instruction-override attempt (OWASP LLM01) is a security invariant — never a per-call hand-rolled copy.
+This detector shipped TWICE (the live guard inline in `techfleet-chat` and a never-called
+`hasPromptInjectionPattern` in `src/lib/security.ts` with DIFFERENT patterns and its own test), so the
+copy that was tested was not the copy that ran — re-audit 2026-10-30 RH3·PAT-1, **ADR 20261106**.
+
+```ts
+// ❌ never — a second, per-file copy of the detector (drifts from the one that is tested/runs)
+const PROMPT_INJECTION_PATTERNS = [/ignore\s+(previous|prior)\s+instructions/i, /jailbreak/i];
+function hasPromptInjection(s: string) { return PROMPT_INJECTION_PATTERNS.some((p) => p.test(s)); }
+// ✅ always — import the one owner (pure regex, usable from edge AND src)
+import { hasPromptInjection } from "../_shared/prompt-injection.ts";
+if (hasPromptInjection(lastUserMessage)) return boundaryReply();
+```
+
+Enforced by `scripts/ci/check-single-prompt-injection-owner.mjs` (blocking, `critical` lane): it flags a
+NEW detector re-declared by name OR by the injection regex signature (a renamed copy) anywhere under
+`src/**` / `supabase/functions/**` except the owner, and fails closed if the one owner is deleted or its
+detector stripped. Pinned + discriminated by
+`src/test/smoke/check-single-prompt-injection-owner.smoke.test.ts`; live behavior proved by
+`supabase/functions/_shared/prompt-injection.test.ts`.
+
 **A user id is not stored in the clear in web storage** (CodeQL `js/clear-text-storage-of-sensitive-data`).
 When a marker only needs "same user vs different", store `fingerprintUserId(id)`, not the id.
 
