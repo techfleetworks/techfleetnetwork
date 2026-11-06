@@ -49,40 +49,23 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-      - name: Compute changed paths
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+      # Fail-open change detection (RC1 / RP-A, ADR 20261106). The previous inline step
+      # re-fetched the base with `--depth=1` and ran `git diff base...HEAD`; a shallow base
+      # has no merge-base, so the diff came back empty and every filter silently went false
+      # (e2e / migrations / functions / db_schema skipped even on PRs that changed them).
+      # The node script diffs against the real merge-base and FAILS OPEN (every filter true)
+      # on any error or empty set, so a broken diff can never again silently skip a gate.
+      # Its pure classification core is unit-tested by detect-changed-paths.test.mjs, run as
+      # a blocking step in gate-verify.
+      - name: Compute changed paths (fail-open)
         id: filter
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
-            BASE="origin/${{ github.base_ref }}"
-            CHANGED=$(git diff --name-only "$BASE"...HEAD)
-          else
-            BASE="${{ github.event.before }}"
-            CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || git diff --name-only HEAD~1 HEAD)
-          fi
-          echo "Changed files:"; echo "$CHANGED"
-          if echo "$CHANGED" | grep -q '^supabase/migrations/'; then
-            echo "migrations=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "migrations=false" >> "$GITHUB_OUTPUT"
-          fi
-          if echo "$CHANGED" | grep -qE '^(src/|supabase/functions/)'; then
-            echo "e2e=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "e2e=false" >> "$GITHUB_OUTPUT"
-          fi
-          if echo "$CHANGED" | grep -q '^supabase/functions/'; then
-            echo "functions=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "functions=false" >> "$GITHUB_OUTPUT"
-          fi
-          # db-schema gate (ADR-0036): runs on migration changes OR changes to the gate's own inputs
-          # (the guard, its allowlist, its dynamic-object sidecar, the shared tokenizer).
-          if echo "$CHANGED" | grep -qE '^supabase/migrations/|^scripts/ci/(check-db-schema-present\.mjs|db-schema-allowlist\.json|db-dynamic-objects\.json|_sql-scan\.mjs)$'; then
-            echo "db_schema=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "db_schema=false" >> "$GITHUB_OUTPUT"
-          fi
+        env:
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+        run: node scripts/ci/detect-changed-paths.mjs
 
   # ---------------------------------------------------------------------------
   # setup — install deps ONCE, share node_modules (zstd artifact) downstream.
@@ -163,6 +146,13 @@ jobs:
       # No-hang guard — unguarded networkidle waits cause 45s CI hangs (P-15).
       - name: Guard — no unguarded waitForLoadState("networkidle") in e2e
         run: node scripts/ci/check-no-unguarded-networkidle.mjs
+
+      # detect-changes fail-open discrimination (RC1 / RP-A, ADR 20261106): proves the
+      # change-detection classifier runs EVERY gated job when detection is unreliable, so a
+      # broken merge-base can never again silently skip e2e / migrations / db_schema. This
+      # test reddens if fail-open is reverted.
+      - name: Test — detect-changes fails open (RC1)
+        run: node scripts/ci/detect-changed-paths.test.mjs
 
       # Lockfile guard — npm is canonical. A stray bun.lock made Cloudflare
       # build with bun (can't parse nested overrides) and froze prod 11 days.
