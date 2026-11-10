@@ -495,12 +495,22 @@ ALTER TABLE public.classes ALTER COLUMN outcomes SET NOT NULL;
 ALTER TABLE public.t DROP COLUMN old_c;
 ```
 
-Enforced by `scripts/ci/check-migration-expand-contract.mjs` (blocking, `critical` lane): any `DROP COLUMN`
-/ `RENAME COLUMN` / `ALTER COLUMN … TYPE` / `SET NOT NULL` in `supabase/migrations/*.sql` must carry a
-`-- expand-contract-ok: <reason>` line or sit on the **shrink-only** grandfather
-(`migration-expand-contract-grandfather.json`); it fails closed on a missing migrations dir / zero migrations
-and prunes stale grandfather entries. Pinned + discriminated by
-`src/test/smoke/check-migration-expand-contract.smoke.test.ts`.
+Enforced by `scripts/ci/check-migration-expand-contract.mjs` (blocking, `critical` lane). It matches a
+**statement at a time** (so a multi-line change can't slip the line scanner) and flags the full
+expand/contract rule set in `supabase/migrations/*.sql`: `DROP TABLE`, `TRUNCATE`, `DROP COLUMN`,
+`RENAME COLUMN`/`RENAME TO`, `DROP FUNCTION`, `ADD … NOT NULL` without a `DEFAULT`, a bare `SET NOT NULL`,
+`ALTER COLUMN … TYPE`, an `ADD CHECK`/`FOREIGN KEY` without `NOT VALID`, and a non-`CONCURRENTLY`
+`CREATE INDEX` (an index or constraint on a table **created in the same migration** is auto-safe and not
+flagged). Each flagged statement must carry its own `-- expand-contract-ok: <reason>` line (scope to one
+rule with `-- expand-contract-ok=<rule>: <reason>`) or sit on the **shrink-only** grandfather
+(`migration-expand-contract-grandfather.json`). Shrink-only is **mechanical**: the guard rejects any
+allowlist entry dated on/after the widening cutoff (`20261110`), so a new violator can't be waved through by
+adding its filename — a new migration must annotate. It also fails closed on a missing migrations dir / zero
+migrations / unreadable allowlist, and prunes stale entries (a gone file, or one that no longer violates).
+`COLUMN` is optional in Postgres, so the short forms (`DROP col`, `RENAME col TO`, `ALTER col TYPE`) are
+caught too; the new-table exception is schema-aware and string-safe. Widened 2026-11-10 from the original
+four column rules — **ADR 20261110** (re-audit REL-4/DB-3). Pinned + discriminated by
+`src/test/smoke/check-migration-expand-contract.smoke.test.ts` (EC-001..EC-040).
 
 ---
 
