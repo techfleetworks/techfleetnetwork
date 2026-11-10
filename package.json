@@ -20,6 +20,8 @@
     "test:mutation": "stryker run",
     "test:unit:watch": "vitest",
     "test:watch": "vitest",
+    "test:bdd": "node --import tsx/esm node_modules/@cucumber/cucumber/bin/cucumber.js",
+    "test:bdd:all": "node --import tsx/esm node_modules/@cucumber/cucumber/bin/cucumber.js --profile all",
     "test:e2e": "playwright test",
     "test:e2e:ci": "PLAYWRIGHT_START_SERVER=1 playwright test",
     "test:e2e:full": "PLAYWRIGHT_FULL_MATRIX=1 playwright test",
@@ -146,6 +148,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "13.2.1",
     "@eslint/js": "9.39.5",
     "@playwright/test": "1.64.1",
     "@size-limit/file": "^12.1.0",

@@ -1,0 +1,232 @@
+{
+  "audienceVocab": [
+    "anonymous",
+    "authenticated",
+    "admin",
+    "api-consumer",
+    "partner",
+    "internal"
+  ],
+  "totals": {
+    "features": 12,
+    "scenarios": 106,
+    "executable": 8,
+    "pending": 98,
+    "byStatus": {
+      "excluded-auth": 1,
+      "pending": 9,
+      "executable": 1,
+      "partial": 1
+    }
+  },
+  "features": [
+    {
+      "path": "src/features/auth/auth-redirect.feature",
+      "domain": "auth",
+      "title": "Post-auth redirect targets are validated (no open redirect / XSS)",
+      "scenarios": {
+        "total": 3,
+        "executable": 0,
+        "pending": 3
+      },
+      "status": "excluded-auth",
+      "featureTags": [
+        "@auth",
+        "@pending"
+      ],
+      "audiences": [
+        "anonymous",
+        "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/figma-extract.feature",
+      "domain": "_shared",
+      "title": "Fleety reads Figma boards via the Figma REST API (2.2-A)",
+      "scenarios": {
+        "total": 9,
+        "executable": 0,
+        "pending": 9
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "authenticated",
+        "partner"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/html-to-text.feature",
+      "domain": "_shared",
+      "title": "HTML → text is stripped safely at one owner",
+      "scenarios": {
+        "total": 5,
+        "executable": 5,
+        "pending": 0
+      },
+      "status": "executable",
+      "featureTags": [],
+      "audiences": [
+        "authenticated",
+        "internal"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/prompt-injection.feature",
+      "domain": "_shared",
+      "title": "Prompt-injection detection has one tested owner",
+      "scenarios": {
+        "total": 4,
+        "executable": 3,
+        "pending": 1
+      },
+      "status": "partial",
+      "featureTags": [],
+      "audiences": [
+        "authenticated",
+        "internal"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/session-revocation.feature",
+      "domain": "_shared",
+      "title": "Session revocation is enforced on the SERVER, for every authenticated edge call",
+      "scenarios": {
+        "total": 3,
+        "executable": 0,
+        "pending": 3
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "authenticated",
+        "admin"
+      ]
+    },
+    {
+      "path": "supabase/functions/discord-interactions/fleety-2.1-discord.feature",
+      "domain": "discord-interactions",
+      "title": "Discord /fleety on the unified 2.0 brain (Fleety 2.1)",
+      "scenarios": {
+        "total": 16,
+        "executable": 0,
+        "pending": 16
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "authenticated",
+        "partner"
+      ]
+    },
+    {
+      "path": "supabase/functions/fleety-extract/fleety-2.2-f-uploads.feature",
+      "domain": "fleety-extract",
+      "title": "Fleety file uploads — read/extract/review an attached file (2.2-F)",
+      "scenarios": {
+        "total": 12,
+        "executable": 0,
+        "pending": 12
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/handoff-download/handoff-download.feature",
+      "domain": "handoff-download",
+      "title": "Hand-off output download (server-issued signed URL)",
+      "scenarios": {
+        "total": 5,
+        "executable": 0,
+        "pending": 5
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/handoff-produce/handoff-produce.feature",
+      "domain": "handoff-produce",
+      "title": "Hand-off production (enqueue + durable async pipeline)",
+      "scenarios": {
+        "total": 14,
+        "executable": 0,
+        "pending": 14
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/handoff-submit/handoff-submit.feature",
+      "domain": "handoff-submit",
+      "title": "Hand-off deliverable submission (intake)",
+      "scenarios": {
+        "total": 12,
+        "executable": 0,
+        "pending": 12
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/resend-webhook/resend-webhook.feature",
+      "domain": "resend-webhook",
+      "title": "Resend delivery-event ingestion (email observability + suppression)",
+      "scenarios": {
+        "total": 10,
+        "executable": 0,
+        "pending": 10
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "api-consumer",
+        "internal"
+      ]
+    },
+    {
+      "path": "supabase/functions/techfleet-chat/fleety-modes.feature",
+      "domain": "techfleet-chat",
+      "title": "Fleety conversation modes — Chat / Deliverables Review / Plan (2.2-B)",
+      "scenarios": {
+        "total": 13,
+        "executable": 0,
+        "pending": 13
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "authenticated"
+      ]
+    }
+  ]
+}
