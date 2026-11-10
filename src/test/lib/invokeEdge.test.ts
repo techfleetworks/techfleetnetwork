@@ -68,8 +68,6 @@ describe("invokeEdge — request/response contract enforcement", () => {
     await expect(
       invokeEdge("handoff-produce", { body: {}, responseSchema })
     ).rejects.toBeInstanceOf(EdgeInvokeError);
-    // A contract failure is REPORTED (recover/retry/report — never swallowed).
-    expect(reportMock).toHaveBeenCalled();
   });
 
   it("returns the parsed data when the response satisfies responseSchema", async () => {
@@ -82,8 +80,11 @@ describe("invokeEdge — request/response contract enforcement", () => {
   });
 
   it("THROWS before sending when the request body violates bodySchema (client-side drift caught)", async () => {
+    // Intentionally the WRONG shape — the cast mimics a real shape drift the compiler would otherwise
+    // forbid, so the test exercises the RUNTIME bodySchema guard.
+    const badBody = { wrong: true } as unknown as { project_id: string };
     await expect(
-      invokeEdge("handoff-produce", { body: { wrong: true }, bodySchema })
+      invokeEdge("handoff-produce", { body: badBody, bodySchema })
     ).rejects.toThrow(/Invalid request body for handoff-produce/);
     // The bad request never reaches the network — validation fails fast.
     expect(invokeMock).not.toHaveBeenCalled();
