@@ -1,3 +1,5 @@
+# @pending — committed spec; step defs not yet wired (needs Deno + techfleet-chat). See ADR 20261110.
+@pending
 Feature: Fleety conversation modes — Chat / Deliverables Review / Plan (2.2-B)
   A UI switch (like Claude's chat/plan modes) sends a `mode` to techfleet-chat, which swaps the
   answer contract. The mode is new untrusted input on an existing authenticated, rate-limited,
