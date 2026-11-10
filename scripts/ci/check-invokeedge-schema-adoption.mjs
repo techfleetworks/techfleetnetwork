@@ -49,22 +49,15 @@ function isExcluded(rel) {
   return false;
 }
 
+// Fail CLOSED on the traversal itself: an unexpected readdir/stat error throws out of walk and is
+// caught by the top-level scan guard (→ exit 2), rather than silently returning a partial tree that
+// could under-count a schema-less caller (decisions.md §6). node_modules/dist/coverage are skipped
+// before any read, so a normal tree never throws here.
 function walk(dir, out = []) {
-  let entries;
-  try {
-    entries = readdirSync(dir);
-  } catch {
-    return out;
-  }
-  for (const name of entries) {
+  for (const name of readdirSync(dir)) {
     if (name === "node_modules" || name === "dist" || name === "coverage") continue;
     const full = join(dir, name);
-    let s;
-    try {
-      s = statSync(full);
-    } catch {
-      continue;
-    }
+    const s = statSync(full);
     if (s.isDirectory()) walk(full, out);
     else if (EXTS.has(full.slice(full.lastIndexOf(".")))) out.push(full);
   }
@@ -73,6 +66,12 @@ function walk(dir, out = []) {
 
 // A call site is `invokeEdge` (not `x.invokeEdge`, which is the auth sessionPort) with an optional
 // generic, then `(`. The lookbehind rejects a `.`/identifier char immediately before the name.
+// This is a regex guard, not a full TS parser (cf. decisions.md §8's acknowledged regex limit): the
+// optional-generic `<[^>]*>` does not span a NESTED generic (`invokeEdge<Map<string, number>>`), and
+// SCHEMA_RE below tests the raw argument text, so a body whose string literal happened to contain
+// "responseSchema" would read as schematized. No current caller hits either, and the live tree and the
+// committed snapshot are scanned by this SAME regex, so the counts stay self-consistent — the ratchet
+// still catches the case that matters (a new, extra, plainly schema-less call site).
 const CALL_RE = /(?<![.\w])invokeEdge\s*(?:<[^>]*>)?\s*\(/g;
 const SCHEMA_RE = /\b(?:body|response)Schema\b/;
 
@@ -155,6 +154,28 @@ const totalCurrent = Object.values(current).reduce((a, b) => a + b, 0);
 
 // --- --update: record the backlog ------------------------------------------------------------
 if (process.argv.includes("--update")) {
+  // Enforce "can only shrink" at the WRITE boundary, so the claim is mechanical, not just reviewed:
+  // --update may LOWER the backlog total but never RAISE it. A new schema-less caller therefore
+  // cannot be waved green by regenerating the snapshot — it must carry a schema. A deliberate,
+  // reviewed increase (e.g. a large feature landing with its own backlog) is possible only with the
+  // explicit --allow-increase flag, which shows plainly in the diff. Mirrors the shrink-only budget
+  // guards (check-dropped-supabase-error-budget-shrinks.mjs).
+  const allowIncrease = process.argv.includes("--allow-increase");
+  let priorTotal = null;
+  try {
+    const prior = JSON.parse(readFileSync(SNAPSHOT_PATH, "utf8")).total;
+    if (typeof prior === "number") priorTotal = prior;
+  } catch {
+    priorTotal = null; // first creation — nothing to compare against
+  }
+  if (priorTotal !== null && totalCurrent > priorTotal && !allowIncrease) {
+    console.error(
+      `✖ check-invokeedge-schema-adoption --update: refusing to RAISE the backlog from ${priorTotal} ` +
+        `to ${totalCurrent}. A new schema-less invokeEdge caller must carry a bodySchema/responseSchema, ` +
+        `not be snapshotted in. If this increase is deliberate and reviewed, re-run with --allow-increase.`
+    );
+    process.exit(1);
+  }
   const callers = Object.fromEntries(Object.entries(current).sort(([a], [b]) => a.localeCompare(b)));
   writeFileSync(
     SNAPSHOT_PATH,

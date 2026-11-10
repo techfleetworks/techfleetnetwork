@@ -51,10 +51,13 @@ through `sessionPort` (a different API). They are excluded from both the batch a
    counts the schema-less `invokeEdge` call sites per file, and compares the count to
    `invokeedge-schema-adoption.snapshot.json`. A count **above** the snapshot fails (a new schema-less
    caller, or an existing one that dropped its schema). A count **below** the snapshot also fails as
-   **stale** (the backlog shrank but the committed number was not tightened). The backlog can therefore
-   only shrink, and the number in the repo is never a lie. It fails closed on a missing snapshot or a
-   zero-file scan (decisions.md §6) and auto-wires into the `lint-arch-critical` matrix via
-   `emit-guard-matrix` (ADR-0047) — no hand-edit of `ci.yml`.
+   **stale** (the backlog shrank but the committed number was not tightened). "Can only shrink" is
+   enforced mechanically at both ends: CI (verify) reds a risen per-file count, and `--update` itself
+   **refuses to raise** the backlog total — a new schema-less caller cannot be waved green by
+   regenerating the snapshot; it must carry a schema (a deliberate, reviewed increase needs the explicit
+   `--allow-increase` flag, visible in the diff). It fails closed on a missing snapshot or a zero-file
+   scan (decisions.md §6) and auto-wires into the `lint-arch-critical` matrix via `emit-guard-matrix`
+   (ADR-0047) — no hand-edit of `ci.yml`.
 
 4. **Prove the enforcement.** Two discrimination layers:
    - `src/test/lib/invokeEdge.test.ts` reds if the helper's `bodySchema` or `responseSchema` block is

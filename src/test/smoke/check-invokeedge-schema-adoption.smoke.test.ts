@@ -14,10 +14,10 @@ const GUARD = resolve(REPO, "scripts/ci/check-invokeedge-schema-adoption.mjs");
 
 afterAll(cleanupGuardFixtures);
 
-/** Run the real guard with cwd=root; return exit code (0 clean, 1 ratchet violation, 2 fail-closed). */
-function runGuard(root: string): number {
+/** Run the real guard with cwd=root (+optional args); return exit code (0 clean, 1 violation, 2 closed). */
+function runGuard(root: string, args: string[] = []): number {
   try {
-    execFileSync("node", [GUARD], { cwd: root, stdio: "pipe" });
+    execFileSync("node", [GUARD, ...args], { cwd: root, stdio: "pipe" });
     return 0;
   } catch (e) {
     return (e as { status?: number }).status ?? 1;
@@ -94,6 +94,32 @@ describe("check-invokeedge-schema-adoption guard (smoke)", () => {
       [SNAP]: snap({}),
     });
     expect(runGuard(r)).toBe(0);
+  });
+
+  it("ADOPT-011: --update REFUSES to raise the backlog total (can only shrink)", () => {
+    // Reality has 2 schema-less callers; the committed snapshot total is 1. Regenerating must not
+    // silently wave the extra caller in — exit 1 instead of rewriting a larger snapshot.
+    const r = guardFixture({
+      "src/services/x.service.ts": `invokeEdge("a", { body: {} }); invokeEdge("b", { body: {} });`,
+      [SNAP]: JSON.stringify({ total: 1, callers: { "src/services/x.service.ts": 1 } }),
+    });
+    expect(runGuard(r, ["--update"])).toBe(1);
+  });
+
+  it("ADOPT-012: --update --allow-increase permits an explicit, reviewed increase", () => {
+    const r = guardFixture({
+      "src/services/x.service.ts": `invokeEdge("a", { body: {} }); invokeEdge("b", { body: {} });`,
+      [SNAP]: JSON.stringify({ total: 1, callers: { "src/services/x.service.ts": 1 } }),
+    });
+    expect(runGuard(r, ["--update", "--allow-increase"])).toBe(0);
+  });
+
+  it("ADOPT-013: --update LOWERS the backlog total without a flag (the normal shrink path)", () => {
+    const r = guardFixture({
+      "src/services/x.service.ts": `invokeEdge("a", { body: {}, responseSchema: s });`,
+      [SNAP]: JSON.stringify({ total: 1, callers: { "src/services/x.service.ts": 1 } }),
+    });
+    expect(runGuard(r, ["--update"])).toBe(0);
   });
 
   it("ADOPT-010: the real repo passes the guard (snapshot is in sync)", () => {

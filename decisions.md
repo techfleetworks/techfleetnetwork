@@ -749,7 +749,8 @@ field must not red a valid response); a multipart (`FormData`) body carries a re
 body schema. Adoption is a shrinking backlog, not a big-bang: `check-invokeedge-schema-adoption.mjs`
 (`ci-lane: critical`) pins the per-file count of schema-less callers in
 `invokeedge-schema-adoption.snapshot.json` and fails CI when the count rises (a new schema-less caller)
-**or** falls without the snapshot being tightened (a stale number). `src/features/auth/**` callers are
+**or** falls without the snapshot being tightened (a stale number); `--update` itself refuses to raise
+the total (so a new caller can't be snapshotted green — it must carry a schema). `src/features/auth/**` callers are
 excluded (owned by the auth refactor, via `sessionPort`). Enforced by that guard + its discrimination
 smoke test and `src/test/lib/invokeEdge.test.ts`. Rationale: **ADR 20261110**, ARCH-2 / ARCH-4.
 
