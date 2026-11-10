@@ -96,31 +96,47 @@ describe("getCompleteness", () => {
 });
 
 describe("submission + production calls target the right edge functions", () => {
-  it("submitText sends a text submission to handoff-submit", async () => {
+  it("submitText sends a text submission to handoff-submit WITH a body+response contract", async () => {
     await submitText("p1", "phase_1", "pre-amble", "hello");
-    expect(invokeEdge).toHaveBeenCalledWith("handoff-submit", {
-      body: {
-        project_id: "p1",
-        phase: "phase_1",
-        component_slug: "pre-amble",
-        type: "text",
-        text: "hello",
-      },
-    });
+    expect(invokeEdge).toHaveBeenCalledWith(
+      "handoff-submit",
+      expect.objectContaining({
+        body: {
+          project_id: "p1",
+          phase: "phase_1",
+          component_slug: "pre-amble",
+          type: "text",
+          text: "hello",
+        },
+        // ARCH-2: the call carries a validated contract, not a bare body.
+        bodySchema: expect.anything(),
+        responseSchema: expect.anything(),
+      })
+    );
   });
 
-  it("produceHandoffs posts project+phase to handoff-produce", async () => {
+  it("produceHandoffs posts project+phase to handoff-produce WITH a body+response contract", async () => {
     await produceHandoffs("p1", "phase_2");
-    expect(invokeEdge).toHaveBeenCalledWith("handoff-produce", {
-      body: { project_id: "p1", phase: "phase_2" },
-    });
+    expect(invokeEdge).toHaveBeenCalledWith(
+      "handoff-produce",
+      expect.objectContaining({
+        body: { project_id: "p1", phase: "phase_2" },
+        bodySchema: expect.anything(),
+        responseSchema: expect.anything(),
+      })
+    );
   });
 
-  it("getDownloadUrl requests a signed URL by output_file_id", async () => {
+  it("getDownloadUrl requests a signed URL by output_file_id WITH a body+response contract", async () => {
     await getDownloadUrl("out-1");
-    expect(invokeEdge).toHaveBeenCalledWith("handoff-download", {
-      body: { output_file_id: "out-1" },
-    });
+    expect(invokeEdge).toHaveBeenCalledWith(
+      "handoff-download",
+      expect.objectContaining({
+        body: { output_file_id: "out-1" },
+        bodySchema: expect.anything(),
+        responseSchema: expect.anything(),
+      })
+    );
   });
 
   it("submitFile uploads with a generous timeout and no retry (a 50MB upload can't finish in the 8s default; the abort doesn't cancel the fetch, so a retry would duplicate the blob)", async () => {
@@ -130,6 +146,9 @@ describe("submission + production calls target the right edge functions", () => 
     const [fn, opts] = invokeEdge.mock.calls[0] as [string, Record<string, unknown>];
     expect(fn).toBe("handoff-submit");
     expect(opts.body).toBeInstanceOf(FormData);
+    // No bodySchema (the body is multipart, not a JSON object), but the JSON ack is still validated.
+    expect(opts.bodySchema).toBeUndefined();
+    expect(opts.responseSchema).toBeDefined();
     // Must be well above the 8s generic default so a real upload isn't aborted mid-flight.
     expect(opts.timeoutMs as number).toBeGreaterThanOrEqual(60_000);
     expect(opts.noRetry).toBe(true);

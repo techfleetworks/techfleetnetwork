@@ -3,6 +3,7 @@
 // edge functions (handoff-submit / handoff-produce / handoff-download) via invokeEdge. The server
 // is the source of truth for validation, the strict 26-gate, and access control — this layer only
 // shapes calls + types.
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdge } from "@/lib/edge/invokeEdge";
 
@@ -95,6 +96,34 @@ export async function listSubmissions(
   return (data ?? []) as unknown as HandoffSubmission[];
 }
 
+// ── Edge contract: handoff-submit (ARCH-2 — the frontend↔edge shape is verified, not assumed) ──
+// Body schemas catch a client-side shape drift before the request leaves; the response schema catches
+// a server-side drift on the way back — invokeEdge throws loudly (EdgeInvokeError) on either, so a
+// mismatch can never pass silently. Shapes mirror supabase/functions/handoff-submit/index.ts.
+const submitTextBodySchema = z
+  .object({
+    project_id: z.string(),
+    phase: z.string(),
+    component_slug: z.string(),
+    type: z.literal("text"),
+    text: z.string(),
+  })
+  .strict();
+const submitLinkBodySchema = z
+  .object({
+    project_id: z.string(),
+    phase: z.string(),
+    component_slug: z.string(),
+    type: z.enum(["figma", "figjam", "url"]),
+    external_url: z.string(),
+  })
+  .strict();
+// The server answers 201 `{ submission_id, completeness }`; `.passthrough()` keeps the contract to the
+// fields this client reads, so a server adding a field never reds a valid response.
+const submitResponseSchema = z
+  .object({ submission_id: z.string(), completeness: z.object({}).passthrough() })
+  .passthrough();
+
 export async function submitText(
   projectId: string,
   phase: string,
@@ -103,6 +132,8 @@ export async function submitText(
 ) {
   return invokeEdge("handoff-submit", {
     body: { project_id: projectId, phase, component_slug: componentSlug, type: "text", text },
+    bodySchema: submitTextBodySchema,
+    responseSchema: submitResponseSchema,
   });
 }
 
@@ -115,6 +146,8 @@ export async function submitLink(
 ) {
   return invokeEdge("handoff-submit", {
     body: { project_id: projectId, phase, component_slug: componentSlug, type, external_url: url },
+    bodySchema: submitLinkBodySchema,
+    responseSchema: submitResponseSchema,
   });
 }
 
@@ -141,9 +174,12 @@ export async function submitFile(
   form.set("component_slug", componentSlug);
   form.set("type", "file");
   form.set("file", file);
-  // FormData body -> supabase-js sends multipart/form-data automatically.
+  // FormData body -> supabase-js sends multipart/form-data automatically. No bodySchema here: the
+  // body is multipart, not a JSON object Zod can parse — the server validates the parts. The RESPONSE
+  // is the same JSON ack as text/link submits, so it carries the shared responseSchema.
   return invokeEdge("handoff-submit", {
     body: form,
+    responseSchema: submitResponseSchema,
     timeoutMs: FILE_UPLOAD_TIMEOUT_MS,
     noRetry: true,
   });
@@ -154,11 +190,22 @@ export async function deleteSubmission(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export interface ProduceResult {
-  run_id: string;
-  status: string;
-  message?: string;
-}
+// ── Edge contract: handoff-produce. The schema is the single source of truth for the result shape;
+// `ProduceResult` is inferred from it so the type and the runtime check can never drift apart. ──
+const produceBodySchema = z
+  .object({
+    project_id: z.string(),
+    phase: z.string(),
+    audiences: z
+      .array(z.enum(["client", "teammate", "teammate_case_study", "org_case_study"]))
+      .optional(),
+  })
+  .strict();
+const produceResultSchema = z
+  .object({ run_id: z.string(), status: z.string(), message: z.string().optional() })
+  .passthrough();
+export type ProduceResult = z.infer<typeof produceResultSchema>;
+
 /**
  * Kick off async production (returns immediately; poll getLatestProduction for status). Pass
  * `audiences` to request a targeted re-create of only those versions — the server decides whether
@@ -169,12 +216,14 @@ export async function produceHandoffs(
   phase: string,
   audiences?: HandoffAudience[]
 ): Promise<ProduceResult> {
-  return invokeEdge<ProduceResult>("handoff-produce", {
+  return invokeEdge("handoff-produce", {
     body: {
       project_id: projectId,
       phase,
       ...(audiences && audiences.length ? { audiences } : {}),
     },
+    bodySchema: produceBodySchema,
+    responseSchema: produceResultSchema,
   });
 }
 
@@ -205,15 +254,20 @@ export async function listOutputs(productionId: string): Promise<HandoffOutputFi
   return (data ?? []) as unknown as HandoffOutputFile[];
 }
 
-export interface DownloadLink {
-  url: string;
-  format: string;
-  expires_in: number;
-}
+// ── Edge contract: handoff-download. `DownloadLink` is inferred from the response schema (one owner
+// for the shape); the body carries exactly the one id the server expects. ──
+const downloadBodySchema = z.object({ output_file_id: z.string() }).strict();
+const downloadLinkSchema = z
+  .object({ url: z.string(), format: z.string(), expires_in: z.number() })
+  .passthrough();
+export type DownloadLink = z.infer<typeof downloadLinkSchema>;
+
 /** Get a short-lived, ownership-checked signed URL for one produced output file. */
 export async function getDownloadUrl(outputFileId: string): Promise<DownloadLink> {
-  return invokeEdge<DownloadLink>("handoff-download", {
+  return invokeEdge("handoff-download", {
     body: { output_file_id: outputFileId },
+    bodySchema: downloadBodySchema,
+    responseSchema: downloadLinkSchema,
   });
 }
 
