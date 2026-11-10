@@ -721,6 +721,40 @@ reported separately, never as a capability-denial. Rationale: **ADR-0034**.
 
 ---
 
+## 10 · Edge calls carry a validated request/response contract
+
+A client→edge call whose shape is agreed only by convention drifts silently: one side renames or drops
+a field and the mismatch surfaces far away as an undefined read or a wrong value, never at the call.
+Every `invokeEdge` call site must carry a Zod contract — `bodySchema` (checked before send) and/or
+`responseSchema` (checked after receive) — so a drift throws a reported `EdgeInvokeError` instead of
+flowing through as `unknown`-cast data. The helper (`src/lib/edge/invokeEdge.ts`) is the single owner
+of that validation; call sites pass schemas, never re-implement the check.
+
+```
+❌ never — a bare body + an unchecked, unknown-cast response (a shape drift fails silently)
+return invokeEdge<DownloadLink>("handoff-download", { body: { output_file_id: id } });
+
+✅ always — a schema on each end; the result TYPE is inferred from the response schema (one source)
+const downloadLinkSchema = z.object({ url: z.string(), format: z.string(), expires_in: z.number() }).passthrough();
+export type DownloadLink = z.infer<typeof downloadLinkSchema>;
+return invokeEdge("handoff-download", {
+  body: { output_file_id: id },
+  bodySchema: z.object({ output_file_id: z.string() }).strict(),
+  responseSchema: downloadLinkSchema,
+});
+```
+
+Response schemas use `.passthrough()` and assert only the fields the client reads (a server adding a
+field must not red a valid response); a multipart (`FormData`) body carries a response schema but no
+body schema. Adoption is a shrinking backlog, not a big-bang: `check-invokeedge-schema-adoption.mjs`
+(`ci-lane: critical`) pins the per-file count of schema-less callers in
+`invokeedge-schema-adoption.snapshot.json` and fails CI when the count rises (a new schema-less caller)
+**or** falls without the snapshot being tightened (a stale number). `src/features/auth/**` callers are
+excluded (owned by the auth refactor, via `sessionPort`). Enforced by that guard + its discrimination
+smoke test and `src/test/lib/invokeEdge.test.ts`. Rationale: **ADR 20261110**, ARCH-2 / ARCH-4.
+
+---
+
 ## Decision log (ADRs)
 
 Bigger or reversible decisions (which email pipeline is canonical, who owns `freescout_customer_id`,
