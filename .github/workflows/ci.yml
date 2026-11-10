@@ -399,6 +399,41 @@ jobs:
       - name: Architecture gate (ratchet — blocks new violations)
         run: npm run check:architecture
 
+  # ---------------------------------------------------------------------------
+  # bdd — executable Gherkin runner. BLOCKING (in the gate aggregator). The repo's
+  # .feature scenarios were documentation with NO runner (re-audit RP-G / BDD-1·2);
+  # this job EXECUTES the implemented subset in strict cucumber-js (an undefined /
+  # pending step is a hard failure — a scenario not wired to code cannot pass) and
+  # reconciles the committed BDD datastore against the feature files so no scenario
+  # is silently dropped and auth features never run here. Unconditional (like
+  # security-owasp) so the behavioural contract is checked on everything that ships.
+  # check-bdd-runner.mjs is a ci-lane:bespoke guard, wired by its own step below.
+  # See docs/adr/20261110-gherkin-executable-runner.md.
+  # ---------------------------------------------------------------------------
+  bdd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: setup
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+      - name: Restore node_modules
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: node-modules-${{ github.sha }}
+          path: /tmp
+      - run: tar --use-compress-program="zstd -d" -xf /tmp/node_modules.tar.zst
+      - name: BDD index integrity (datastore in sync, auth excluded, non-vacuous)
+        run: node scripts/ci/check-bdd-runner.mjs
+      - name: Run executable Gherkin scenarios (strict)
+        run: npm run test:bdd
+
   # Required status check — stays named "gate" so branch protection is unchanged.
   # Aggregates the three parallel gate jobs and fails if any did not succeed.
   # `if: always()` so it still runs (and reports failure) when a dependency fails,
@@ -419,6 +454,7 @@ jobs:
         migration-smoke,
         db-schema-gate,
         deno-check,
+        bdd,
       ]
     if: always()
     permissions:
@@ -437,7 +473,8 @@ jobs:
           migr='${{ needs.migration-smoke.result }}'
           schema='${{ needs.db-schema-gate.result }}'
           dchk='${{ needs.deno-check.result }}'
-          echo "gate-verify=$verify  gate-test=$test  coverage=$cov  gate-build=$build  guard-matrix=$gm  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk"
+          bdd='${{ needs.bdd.result }}'
+          echo "gate-verify=$verify  gate-test=$test  coverage=$cov  gate-build=$build  guard-matrix=$gm  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk  bdd=$bdd"
           fail=0
           [ "$verify" = "success" ] || fail=1
           [ "$test" = "success" ] || fail=1
@@ -461,8 +498,10 @@ jobs:
           # deno-check is conditional on function changes: skipped (no function changes) passes,
           # otherwise it must succeed — this is what makes the edge-function unit tests block merge.
           if [ "$dchk" != "success" ] && [ "$dchk" != "skipped" ]; then fail=1; fi
+          # bdd is unconditional (strict Gherkin runner + datastore reconciliation): must succeed.
+          [ "$bdd" = "success" ] || fail=1
           if [ "$fail" -ne 0 ]; then
-            echo "::error::Gate failed (verify=$verify test=$test coverage=$cov build=$build guard-matrix=$gm arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk)."
+            echo "::error::Gate failed (verify=$verify test=$test coverage=$cov build=$build guard-matrix=$gm arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk bdd=$bdd)."
             exit 1
           fi
           echo "All gate jobs passed."

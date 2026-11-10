@@ -1,3 +1,7 @@
+# @pending — scenarios are the committed spec; step definitions not yet wired
+# (needs Deno + live Figma REST). Tracked in features/bdd-index.json; excluded
+# from the strict runner until implemented. See ADR 20261110.
+@pending
 Feature: Fleety reads Figma boards via the Figma REST API (2.2-A)
   Members paste a Figma board link into Fleety chat or the deliverable-review coach.
   Fleety must read the ACTUAL design content (text + structure) via the Figma REST API,

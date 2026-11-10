@@ -1,3 +1,7 @@
+# @pending — committed spec; step defs not yet wired (needs Deno + Supabase auth). Behaviour is
+# already proven by src/test/smoke + the session-revocation guard; this is the BDD execution layer.
+# See ADR 20261110.
+@pending
 Feature: Session revocation is enforced on the SERVER, for every authenticated edge call
   Revoking a session (self "sign out all devices", admin revoke, emergency global
   sign-out) writes the revocation fact to public.revoked_sessions, read by the DB

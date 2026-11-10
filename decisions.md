@@ -461,6 +461,28 @@ Enforced by `arch-gate.mjs` itself: it fails **closed** (exit 2) if any waiver h
 in `src/test/smoke/arch-gate.smoke.test.ts` (undated / unparseable → exit 2). The backlog of 305 baseline
 waivers is dated `2027-04-30`; shrink it (the file is the architectural backlog), and raise no new permanent ones.
 
+**A `.feature` file is not coverage until a runner executes it.** Gherkin scenarios with no executable
+runner are documentation that reads like tests — a false green of "we have BDD coverage" (re-audit
+2026-10-30, BDD-1·BDD-2: ~106 scenarios, zero executed). A scenario proves behaviour only when a strict
+runner binds it to real code and fails on an undefined/pending step; a scenario not yet wired must be
+**visibly tracked as pending**, never silently skipped.
+
+```
+❌ never — a .feature nobody runs, or a pending scenario dropped silently (the runner just never sees it)
+features/x.feature            # committed, cited as "coverage", but no cucumber job executes it
+cucumber --tags 'not @wip'    # @wip scenarios vanish from the report — undefined steps never surface
+✅ always — strict runner executes the implemented subset; pending is tracked in the datastore, not hidden
+npm run test:bdd              # cucumber-js strict: an undefined/pending step is a HARD failure
+# unimplemented features carry a @pending tag AND a row in features/bdd-index.json (status: pending)
+```
+
+Enforced by the blocking `bdd` CI job (strict `cucumber-js` executes the `not @pending`/`not @auth`
+subset) plus `scripts/ci/check-bdd-runner.mjs` (`bespoke` lane): it reconciles the committed datastore
+`features/bdd-index.json` against the `.feature` files and fails closed on index drift, a feature with no
+declared audience, an `@auth` feature that would execute, or an **empty** executable set (vacuous green).
+Auth features (`@auth`) are excluded — the auth refactor owns them. Pinned + discriminated by
+`src/test/smoke/check-bdd-runner.smoke.test.ts`. See **ADR 20261110**.
+
 ---
 
 ## 7 · Schema changes are expand/contract

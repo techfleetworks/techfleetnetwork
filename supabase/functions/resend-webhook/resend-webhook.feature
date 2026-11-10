@@ -1,3 +1,5 @@
+# @pending — committed spec; step defs not yet wired (needs Deno + webhook verify). See ADR 20261110.
+@pending
 Feature: Resend delivery-event ingestion (email observability + suppression)
   As the platform, so we stop sending blind, Resend's post-send events
   (bounce/complaint/delivered) are ingested to suppress bad addresses and make
