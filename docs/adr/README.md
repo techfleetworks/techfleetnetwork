@@ -45,6 +45,7 @@ would break existing links). Reference a legacy ADR as `ADR-NNNN`, a date ADR as
 | [0018](0018-transactional-marketing-scope-separation.md)          | Transactional/marketing scope separation and independent suppression scopes        | Accepted           |
 | [20261110](20261110-widen-expand-contract-migration-guard.md)     | Widen the expand/contract migration guard to the full unsafe-DDL rule set           | Accepted           |
 | [20261110](20261110-alerting-cannot-go-dark.md)                    | The main-failure alert cannot go dark (GitHub-issue fallback + coverage guard)       | Accepted           |
+| [20261110](20261110-deno-test-coverage.md)                         | Every edge-function test must run in CI (deno-test-coverage guard; RP-H scoping)      | Accepted           |
 
 The first block of ADRs covers the **Hand-Off Production System + SPF data-layer migration** work
 (0008 to 0012 exist in this directory as well). **0015** is the design-system ADR (MUI-owned layer).

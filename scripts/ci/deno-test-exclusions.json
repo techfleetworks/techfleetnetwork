@@ -1,0 +1,32 @@
+{
+  "_comment": "DENO-TEST-COVERAGE-001 shrink-only backlog. supabase/functions/**/*.test.ts files NOT run by the ci.yml `deno test` command (neither named explicitly nor covered by one of its directory args) — re-audit TST-2. Snapshot taken 2026-11-10 when check-deno-test-coverage.mjs was added. It may ONLY shrink: a NEW test must be wired into the ci.yml deno test command (a file arg, or a directory already passed there), never added here. Burn down by wiring each test (confirm it passes in CI) and removing it. See ADR 20261110-deno-test-coverage.",
+  "excluded": [
+    "supabase/functions/_shared/discord-invite-utils.test.ts",
+    "supabase/functions/_shared/discord-oauth.test.ts",
+    "supabase/functions/_shared/email-lane-routing.test.ts",
+    "supabase/functions/_shared/email/domain/policies.test.ts",
+    "supabase/functions/_shared/feature-flags.test.ts",
+    "supabase/functions/_shared/html-to-text.test.ts",
+    "supabase/functions/_shared/http.test.ts",
+    "supabase/functions/_shared/internal-auth.test.ts",
+    "supabase/functions/_shared/request-auth.test.ts",
+    "supabase/functions/_shared/url-host.test.ts",
+    "supabase/functions/auth-prober/alert.test.ts",
+    "supabase/functions/discord-interactions/echo.test.ts",
+    "supabase/functions/discord-interactions/spf-links.test.ts",
+    "supabase/functions/discord-notify/notify-utils.test.ts",
+    "supabase/functions/discord-oauth-callback/decide.test.ts",
+    "supabase/functions/edge-deploy-smoke/probe.test.ts",
+    "supabase/functions/finalize-password-reset/index.test.ts",
+    "supabase/functions/fleety-embed/spf-kb.test.ts",
+    "supabase/functions/fleety-extract/lib.test.ts",
+    "supabase/functions/fleety-review/lib.test.ts",
+    "supabase/functions/guide-ingest/lib.test.ts",
+    "supabase/functions/ingest-csv-knowledge/attachment-skip.test.ts",
+    "supabase/functions/ingest-reference-csv/attachment-classification.test.ts",
+    "supabase/functions/ingest-workshop-docs/sanitize-markdown.test.ts",
+    "supabase/functions/notify-applicant-status/index.test.ts",
+    "supabase/functions/resend-webhook/logic.test.ts",
+    "supabase/functions/techfleet-chat/material-frame.test.ts"
+  ]
+}
