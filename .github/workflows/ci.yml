@@ -203,6 +203,15 @@ jobs:
       - name: Guard — no inline CORS in edge functions (shrink-only)
         run: node scripts/ci/check-no-inline-cors.mjs
 
+      # Server-side session revocation must stay enforced at the edge (SEC-1 / RH1): the
+      # is_session_revoked check in _shared/request-auth.ts cannot be removed (client-only
+      # revocation), and no NEW raw admin.auth.admin.signOut( call site may appear. The
+      # grandfather of the 4 pre-existing sites may only shrink (needs origin/main to diff;
+      # hence this runs in gate-verify's fetch-depth: 0 checkout). See ADR 20261106-server-
+      # side-session-revocation. ci-lane: bespoke.
+      - name: Guard — server-side session revocation enforced (shrink-only)
+        run: node scripts/ci/check-session-revocation-enforced.mjs
+
       # The dropped-supabase-error grandfather budget (scripts/lint/dropped-supabase-error-grandfather.json)
       # may only shrink, so a dev cannot destructure `data` without `error` and raise the number past
       # the no-dropped-supabase-error lint rule (the audit's #1 error-handling class; ADR-0032).
