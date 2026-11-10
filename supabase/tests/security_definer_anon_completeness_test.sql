@@ -29,20 +29,20 @@ SELECT plan(2);
 -- exact set). Growth is review-gated (adding a line is a visible diff a reviewer blocks); it may only
 -- shrink. Seed example:  INSERT INTO _anon_definer_grandfather(sig) VALUES ('foo(text)'), ('bar(uuid)');
 CREATE TEMP TABLE _anon_definer_grandfather (sig text PRIMARY KEY);
--- Seeded 2026-11-10 from the db-test CI run of this file (76 current anon-exposed public SECURITY DEFINER
--- functions). This is the DB-1 burndown: many of these (admin_recompute_stats, delete_class_*, publish_*,
--- record_login_event, set_class_release_policy, use_invitation, upsert_class_* …) should have anon EXECUTE
--- REVOKEd; a few are intentional public RPCs (validate_invitation, get_feature_flags, get_i18n_bundle,
--- get_network_stats, get_member_*_distribution). Revoking needs the call graph (don't break a legit
--- authenticated RPC) — the Held burndown. Remove each signature here as its anon grant is revoked.
+-- Seeded 2026-11-10 from the db-test CI run of this file (76 anon-exposed public SECURITY DEFINER
+-- functions). This is the DB-1 burndown — remove each signature as its anon grant is revoked.
+-- BATCH 1 (2026-11-10, migration 20261110210000): 18 TRIGGER functions revoked (anon EXECUTE removed via
+-- REVOKE … FROM PUBLIC — safe because trigger functions are fired by the trigger as the table owner and
+-- are not callable via RPC), so the list is now 58. Still to burn down: the rpc-callable admin mutations
+-- (class-admin, gumroad, record_event, …) with per-caller role analysis; and some functions are KEPT as
+-- intentional public RPCs (get_feature_flags, get_i18n_bundle, get_network_stats, member-distribution,
+-- policy reads). Auth/sign-in/rate-limit functions are owned by the auth refactor, not this burndown.
 INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('_assert_class_editor(_class_id uuid)'),
   ('_learner_cohort_start(_class_id uuid, _user_id uuid)'),
   ('_upsert_kpi(p_date date, p_key text, p_value numeric, p_unit text, p_window text, p_num bigint, p_den bigint)'),
   ('admin_recompute_stats()'),
   ('attach_gumroad_sale(p_sale_id text, p_user_id uuid)'),
-  ('broadcast_project_application_change()'),
-  ('broadcast_refactor_kpi_change()'),
   ('can_read_class_module_file(_name text)'),
   ('can_write_class_module_file(_name text)'),
   ('check_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
@@ -52,13 +52,7 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('delete_class_module_attachment(p_attachment_id uuid)'),
   ('delete_class_module_item(p_item_id uuid)'),
   ('delete_class_section(p_section_id uuid)'),
-  ('eo_enqueue_contact_delete_on_user_deletion()'),
   ('fill_content_gaps_check_and_inc(p_cap integer)'),
-  ('fn_emit_application_badge()'),
-  ('fn_enqueue_application_confirmation()'),
-  ('fn_evaluate_course_completion_trg()'),
-  ('fn_recompute_phase_definitions()'),
-  ('general_applications_protect_completed_status()'),
   ('get_class_curriculum_for_learner(p_class_id uuid)'),
   ('get_course_completion_counts(_course_specs jsonb)'),
   ('get_current_policy(p_key text, p_language text)'),
@@ -74,15 +68,11 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('is_class_learner(_class_id uuid, _user_id uuid)'),
   ('is_class_owner(_class_id uuid, _user_id uuid)'),
   ('is_enrolled_in_class(_class_id uuid, _user_id uuid)'),
-  ('journey_progress_block_silent_uncomplete()'),
-  ('journey_progress_guard_uncomplete()'),
   ('list_founding_discord_role_targets()'),
   ('mark_community_agreement_required(p_application_id uuid)'),
   ('mark_task_incomplete(p_phase journey_phase, p_task_id text)'),
   ('membership_health()'),
-  ('mirror_community_agreement_signed_at()'),
   ('peek_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
-  ('project_applications_protect_completed_status()'),
   ('publish_class_curriculum(p_class_id uuid)'),
   ('publish_policy_version(p_key text, p_version text, p_language text, p_title text, p_summary text, p_body_md text, p_body_html text)'),
   ('record_event(p_sink text, p_kind text, p_actor uuid, p_payload jsonb, p_severity text, p_ref_table text, p_ref_id text)'),
@@ -95,18 +85,12 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('reorder_class_sections(p_class_id uuid, p_ordered_ids uuid[])'),
   ('report_founding_discord_role_gap()'),
   ('resolve_gumroad_user(p_email text)'),
-  ('respect_notification_prefs()'),
   ('set_class_release_policy(p_class_id uuid, p_policy class_release_policy, p_release_at timestamp with time zone, p_offset_days integer)'),
-  ('set_discord_linked_at()'),
   ('sign_community_agreement(p_application_id uuid, p_user_agent text)'),
-  ('tg_email_outbox_terminal_to_send_log()'),
   ('toggle_class_module_completion(p_item_id uuid, p_completed boolean)'),
-  ('trg_email_alias_resolve_pending()'),
   ('trg_fn_profiles_provision_customer()'),
   ('trg_fn_user_roles_provision_admin()'),
   ('trg_general_app_submitted()'),
-  ('trg_gumroad_sales_purchase_email()'),
-  ('trg_journey_progress_complete()'),
   ('upsert_class_module_item(p_section_id uuid, p_item_id uuid, p_title text, p_content_html text, p_video_url text, p_action_type class_module_action_type, p_duration_minutes integer, p_required boolean, p_status class_module_status)'),
   ('upsert_class_module_link(p_item_id uuid, p_attachment_id uuid, p_url text, p_label text)'),
   ('upsert_class_section(p_class_id uuid, p_section_id uuid, p_title text, p_summary text, p_status class_module_status)'),
