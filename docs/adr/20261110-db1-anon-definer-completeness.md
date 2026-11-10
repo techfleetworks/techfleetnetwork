@@ -63,8 +63,14 @@ will promote to blocking once green.
 
 ## Consequences
 
-- Any new (or existing) `public` SECURITY DEFINER function that is `anon`-executable and not grandfathered
-  fails db-test — the DB-1 hole can no longer be added silently. The grandfather is the visible burndown.
+- The db-test CI run revealed **76** `public` SECURITY DEFINER functions currently `anon`-executable
+  (`observed`, run 42894102954) — DB-1 is real and broad. These are seeded into the grandfather so the
+  assertion is green; from here, any new (or existing) such function not grandfathered fails db-test — the
+  DB-1 hole can no longer be added silently. The grandfather (76) is the visible burndown. Many are clear
+  (admin/mutation/policy RPCs, e.g. `admin_recompute_stats`, `delete_class_*`, `publish_policy_version`,
+  `set_class_release_policy`, `record_login_event`, `use_invitation`); a few are intentional public RPCs
+  (`validate_invitation`, `get_feature_flags`, `get_i18n_bundle`, `get_network_stats`, member-distribution
+  stats); the rest are trigger functions whose anon grant is moot but still worth cleaning.
 - **db-test is informational and must stay so.** It is NOT in the `gate` aggregator and NOT a required
   status check (verified: `main-security-gates` requires only CodeQL, dependency-advisories, secret-scan,
   dependency-review, gate, stryker), so a red db-test does not block a PR. But db-test has no
