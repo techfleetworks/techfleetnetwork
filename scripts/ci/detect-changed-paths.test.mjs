@@ -44,12 +44,22 @@ t("migration change triggers migrations + db_schema", () => {
   assert.equal(r.db_schema, true);
 });
 
+// A pgTAP suite change runs db-test (db_tests) without implying a migration change — so editing a
+// test actually runs it, and a test-only PR does not trip the migration/db_schema gates.
+t("pgTAP test change triggers db_tests only (not migrations)", () => {
+  const r = classify(["supabase/tests/security_definer_anon_completeness_test.sql"], false);
+  assert.equal(r.db_tests, true);
+  assert.equal(r.migrations, false);
+  assert.equal(r.db_schema, false);
+});
+
 // The gate must not be vacuous the other way: a genuinely unaffected (docs-only) change,
-// with reliable detection, correctly skips e2e/migrations.
-t("docs-only change (reliable) skips e2e and migrations", () => {
+// with reliable detection, correctly skips e2e/migrations/db_tests.
+t("docs-only change (reliable) skips e2e, migrations, and db_tests", () => {
   const r = classify(["README.md", "docs/adr/20261106-x.md"], false);
   assert.equal(r.e2e, false);
   assert.equal(r.migrations, false);
+  assert.equal(r.db_tests, false);
 });
 
 // Proves fail-open is load-bearing: WITHOUT it, an empty/unreliable set skips everything

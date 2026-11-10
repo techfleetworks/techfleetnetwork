@@ -44,6 +44,7 @@ jobs:
       e2e: ${{ steps.filter.outputs.e2e }}
       functions: ${{ steps.filter.outputs.functions }}
       db_schema: ${{ steps.filter.outputs.db_schema }}
+      db_tests: ${{ steps.filter.outputs.db_tests }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -723,7 +724,7 @@ jobs:
   # ---------------------------------------------------------------------------
   db-test:
     needs: [detect-changes]
-    if: needs.detect-changes.outputs.migrations == 'true'
+    if: needs.detect-changes.outputs.migrations == 'true' || needs.detect-changes.outputs.db_tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

@@ -28,6 +28,9 @@ export const FILTERS = {
   migrations: /^supabase\/migrations\//m,
   e2e: /^(src\/|supabase\/functions\/)/m,
   functions: /^supabase\/functions\//m,
+  // Run the pgTAP suite (db-test) when a migration changes OR when the suite itself changes —
+  // editing a pgTAP test should actually run it (it did not before).
+  db_tests: /^supabase\/tests\//m,
   // Mirrors the original grep: `^supabase/migrations/` is a PREFIX (no `$`), while the
   // scripts/ci inputs are exact filenames (`$`). The `$` must bind only the second branch.
   db_schema:
