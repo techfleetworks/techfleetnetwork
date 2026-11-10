@@ -17,6 +17,10 @@ import {
   NO_KNOWLEDGE_DIRECTIVE,
 } from "./prompt.ts";
 import { extractRecentAllowedUrls, fetchMaterialText } from "../_shared/material-fetch.ts";
+// OWASP LLM01: the ONE owner of prompt-injection detection (ADR 20261106). Never hand-rolled
+// per-call — a second copy drifts from the one that is tested. Enforced by
+// scripts/ci/check-single-prompt-injection-owner.mjs.
+import { hasPromptInjection } from "../_shared/prompt-injection.ts";
 import { frameMaterialContext } from "./material-frame.ts";
 import { buildDegradeMarkdown } from "./degrade.ts";
 // Residency pin for DeepSeek (ADR-0005): the SAME US-provider allow-list the hand-off LLM port
@@ -135,31 +139,8 @@ const PRICE_OUT_PER_TOKEN = 2.6 / 1_000_000;
 // 5-way fallback resilience within the compliant set. Harmless on non-OpenRouter hosts.
 const OPENROUTER_PROVIDER = { only: US_INFERENCE_PROVIDERS, allow_fallbacks: true };
 
-/**
- * OWASP AI: Prompt injection detection patterns.
- * Detects common prompt injection / jailbreak attempts in user messages.
- */
-const PROMPT_INJECTION_PATTERNS = [
-  /ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|rules?|guidelines?)/i,
-  /disregard\s+(all\s+)?(previous|prior|above|system)\s+(instructions?|prompts?|rules?)/i,
-  /you\s+are\s+now\s+(a|an|the|DAN|jailbroken|unrestricted)/i,
-  /act\s+as\s+(if\s+you\s+are\s+|a\s+)?(DAN|unrestricted|unfiltered|evil)/i,
-  /pretend\s+(you\s+are|to\s+be)\s+(a\s+)?(DAN|unrestricted|different\s+AI)/i,
-  /system\s*prompt/i,
-  /\[SYSTEM\]/i,
-  /\<\|im_start\|/i,
-  /\<\|endoftext\|/i,
-  /reveal\s+(your|the)\s+(system|initial|original)\s+(prompt|instructions?)/i,
-  /what\s+(are|is)\s+your\s+(system\s+)?(prompt|instructions?|rules?)/i,
-  /override\s+(safety|content|security)\s+(filter|policy|rules?)/i,
-  /bypass\s+(the\s+)?(restrictions?|filters?|rules?|safety)/i,
-  /do\s+anything\s+now/i,
-  /jailbreak/i,
-];
-
-function hasPromptInjection(content: string): boolean {
-  return PROMPT_INJECTION_PATTERNS.some((p) => p.test(content));
-}
+// Prompt-injection detection (OWASP LLM01) lives in its ONE owner, imported above:
+// ../_shared/prompt-injection.ts. Do not re-declare the patterns here.
 
 // Content-safety gate (owner rule): Fleety NEVER converses on rude, hateful, harassing,
 // or sexually-explicit input. Whole-word, case-insensitive patterns (\b boundaries) so
