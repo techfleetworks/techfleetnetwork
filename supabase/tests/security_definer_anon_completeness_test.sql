@@ -37,9 +37,15 @@ CREATE TEMP TABLE _anon_definer_grandfather (sig text PRIMARY KEY);
 --   + publish_policy_version + mark_task_incomplete kept for `authenticated`; gumroad/discord/
 --   mark_community_agreement_required kept for `service_role`), 58 -> 38. The migration self-checks that the
 --   intended role retained EXECUTE.
--- STILL to burn down (the 38 below): SECURITY DEFINER RLS helpers (has_role, is_class_*, _assert_class_editor,
---   can_*_class_module_file, handoff_is_active_member, _learner_cohort_start) need proof no anon-visible table's
---   RLS policy calls them before revoke; ops/monitoring fns (get_stuck_pending_email_count,
+-- BATCH 3 (2026-11-10, migration 20261110230000): 8 SECURITY DEFINER RLS-helper functions revoked FROM anon,
+--   PUBLIC after proving every policy that references them is `TO authenticated` (none anon/public) — the 6
+--   policy-helpers (is_class_owner, is_enrolled_in_class, is_class_learner, can_read/write_class_module_file,
+--   handoff_is_active_member) plus the 2 nested-only helpers (_assert_class_editor, _learner_cohort_start, in
+--   no policy, PERFORMed as definer). The migration self-checks (a) authenticated retains EXECUTE and (b) NO
+--   anon/public policy references any of the 8 — the latter reads the live catalog at apply, so a hidden prod
+--   policy aborts the apply. 38 -> 30.
+-- STILL to burn down (the 30 below): has_role (deliberately deferred — referenced by hundreds of policies,
+--   highest blast radius, needs its own anon-policy audit); ops/monitoring fns (get_stuck_pending_email_count,
 --   community_events_staleness_check, fill_content_gaps_check_and_inc, class_item_release,
 --   get_class_curriculum_for_learner); and the missed trigger trg_general_app_submitted (+ auth-provisioning
 --   triggers). KEPT as intentional public RPCs (anon legitimately calls): get_feature_flags, get_i18n_bundle,
@@ -48,12 +54,8 @@ CREATE TEMP TABLE _anon_definer_grandfather (sig text PRIMARY KEY);
 --   record_event + auth-provisioning triggers are owned by the auth refactor; stats/KPI (admin_recompute_stats,
 --   _upsert_kpi, membership_health) are out of scope.
 INSERT INTO _anon_definer_grandfather(sig) VALUES
-  ('_assert_class_editor(_class_id uuid)'),
-  ('_learner_cohort_start(_class_id uuid, _user_id uuid)'),
   ('_upsert_kpi(p_date date, p_key text, p_value numeric, p_unit text, p_window text, p_num bigint, p_den bigint)'),
   ('admin_recompute_stats()'),
-  ('can_read_class_module_file(_name text)'),
-  ('can_write_class_module_file(_name text)'),
   ('check_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
   ('chunk_stale_log_rate_limit()'),
   ('class_item_release(_item_id uuid, _user_id uuid, OUT released boolean, OUT available_at timestamp with time zone)'),
@@ -69,11 +71,7 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('get_network_stats()'),
   ('get_stuck_pending_email_count(p_age_minutes integer)'),
   ('get_welcome_flow_completion_count()'),
-  ('handoff_is_active_member(p_project_id uuid)'),
   ('has_role(_user_id uuid, _role app_role)'),
-  ('is_class_learner(_class_id uuid, _user_id uuid)'),
-  ('is_class_owner(_class_id uuid, _user_id uuid)'),
-  ('is_enrolled_in_class(_class_id uuid, _user_id uuid)'),
   ('membership_health()'),
   ('peek_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
   ('record_event(p_sink text, p_kind text, p_actor uuid, p_payload jsonb, p_severity text, p_ref_table text, p_ref_id text)'),
