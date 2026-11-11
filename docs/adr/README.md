@@ -52,6 +52,7 @@ would break existing links). Reference a legacy ADR as `ADR-NNNN`, a date ADR as
 | [20261110](20261110-db1-revoke-rls-helper-functions.md)            | DB-1 burndown batch 3: revoke anon EXECUTE on 8 RLS-helper functions                     | Accepted           |
 | [20261110](20261110-db1-tighten-has-role-policies.md)              | DB-1 burndown batch 4: tighten 9 implicit-PUBLIC has_role RLS policies to authenticated  | Accepted           |
 | [20261110](20261110-db1-revoke-has-role.md)                        | DB-1 burndown batch 5: revoke anon EXECUTE on has_role                                    | Accepted           |
+| [20261110](20261110-db-test-start-retry.md)                        | Retry `supabase start` in db-test so a transient 502 can't false-page main            | Accepted           |
 
 The first block of ADRs covers the **Hand-Off Production System + SPF data-layer migration** work
 (0008 to 0012 exist in this directory as well). **0015** is the design-system ADR (MUI-owned layer).
