@@ -44,8 +44,17 @@ CREATE TEMP TABLE _anon_definer_grandfather (sig text PRIMARY KEY);
 --   no policy, PERFORMed as definer). The migration self-checks (a) authenticated retains EXECUTE and (b) NO
 --   anon/public policy references any of the 8 — the latter reads the live catalog at apply, so a hidden prod
 --   policy aborts the apply. 38 -> 30.
--- STILL to burn down (the 30 below): has_role (deliberately deferred — referenced by hundreds of policies,
---   highest blast radius, needs its own anon-policy audit); ops/monitoring fns (get_stuck_pending_email_count,
+-- BATCH 4 (2026-11-10, migration 20261111000000): NO grant change — the prerequisite for the has_role revoke.
+--   The has_role anon-policy audit (deferred by batch 3) found 9 LIVE RLS policies that call has_role and had
+--   NO `TO` clause (so they defaulted to PUBLIC/anon): policy_versions "admin write", policy_acknowledgments
+--   "ack self read", recording_consents "rec self read", sanctions_screenings "sanctions admin read",
+--   dispute_intake "admin read"/"admin update", dpa_executions "dpa admin all", observer_role_optins "Admins
+--   can view all observer opt-ins", lesson_video_events "lve self or admin read". Batch 4 ALTERed all 9 to
+--   `TO authenticated` (behavior-preserving: anon never matched them — auth.uid() NULL). After batch 4, NO
+--   anon/public policy references has_role, so has_role IS now safe to revoke from anon — that is the next
+--   batch (which will remove has_role from this grandfather). Grandfather unchanged (still 30).
+-- STILL to burn down (the 30 below): has_role (audit done, 9 blocking policies tightened by batch 4 — now
+--   safe to revoke from anon in the next batch); ops/monitoring fns (get_stuck_pending_email_count,
 --   community_events_staleness_check, fill_content_gaps_check_and_inc, class_item_release,
 --   get_class_curriculum_for_learner); and the missed trigger trg_general_app_submitted (+ auth-provisioning
 --   triggers). KEPT as intentional public RPCs (anon legitimately calls): get_feature_flags, get_i18n_bundle,
