@@ -64,15 +64,19 @@ BEGIN
   -- prokind IN ('f','p') excludes aggregates/windows (pg_get_functiondef errors on those); the body is
   -- scanned via BOTH prosrc (dollar-quoted bodies) AND pg_get_functiondef (SQL-standard BEGIN ATOMIC
   -- bodies, where prosrc is empty), so a BEGIN ATOMIC invoker function cannot evade the check.
+  -- System schemas are excluded and the match is on a word boundary (~* '\mhas_role\M') so the built-in
+  -- pg_catalog.pg_has_role — whose C symbol / name contains the substring "has_role" — is NOT matched;
+  -- only a real reference to our public.has_role (standalone identifier) counts.
   FOR rec IN
     SELECT n.nspname || '.' || p.proname AS obj
       FROM pg_proc p
       JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE NOT p.prosecdef
+       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
        AND p.prokind IN ('f', 'p')
        AND has_function_privilege('anon', p.oid, 'EXECUTE')
-       AND (coalesce(p.prosrc, '') ILIKE '%has_role%'
-            OR pg_get_functiondef(p.oid) ILIKE '%has_role%')
+       AND (coalesce(p.prosrc, '') ~* '\mhas_role\M'
+            OR pg_get_functiondef(p.oid) ~* '\mhas_role\M')
   LOOP
     danger := danger || 'invoker-fn ' || rec.obj || '; ';
   END LOOP;
@@ -81,13 +85,14 @@ BEGIN
     SELECT c.relnamespace::regnamespace || '.' || c.relname AS obj
       FROM pg_class c
      WHERE c.relkind = 'v'
+       AND c.relnamespace NOT IN ('pg_catalog'::regnamespace, 'information_schema'::regnamespace)
        AND c.reloptions IS NOT NULL
        AND EXISTS (
          SELECT 1 FROM unnest(c.reloptions) o
           WHERE o ILIKE 'security_invoker=true' OR o ILIKE 'security_invoker=on'
        )
        AND has_table_privilege('anon', c.oid, 'SELECT')
-       AND pg_get_viewdef(c.oid) ILIKE '%has_role%'
+       AND pg_get_viewdef(c.oid) ~* '\mhas_role\M'
   LOOP
     danger := danger || 'invoker-view ' || rec.obj || '; ';
   END LOOP;

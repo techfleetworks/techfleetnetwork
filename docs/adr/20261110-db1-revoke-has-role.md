@@ -68,8 +68,10 @@ and remove `has_role` from the completeness grandfather (30 → 29). Single over
   (which also run at prod apply). The policy/function-reference analysis is `observed` from migration
   history. Self-check #3 scans function bodies via BOTH `pg_proc.prosrc` (dollar-quoted) AND
   `pg_get_functiondef` (SQL-standard `BEGIN ATOMIC`, where `prosrc` is empty), and view definitions via
-  `pg_get_viewdef`, for the bare name `has_role`, so it over-matches (a comment mentioning `has_role` causes
-  a spurious, safe abort). It covers a multi-hop chain wherever each hop is independently anon-executable
+  `pg_get_viewdef`, matching the standalone identifier `has_role` on a word boundary (`~* '\mhas_role\M'`)
+  in non-system schemas — so the built-in `pg_catalog.pg_has_role` (whose symbol/name contains the
+  substring `has_role`) is NOT matched, only a real reference to our `public.has_role`. A comment mentioning
+  the bare word `has_role` would still cause a spurious, safe abort. It covers a multi-hop chain wherever each hop is independently anon-executable
   (the terminal fn/view carrying the `has_role` token is flagged). Residual gaps (all fail-safe — a miss
   would mean a missing abort, and the current transitive vector is clear: the only SECURITY INVOKER caller,
   `get_top_error_fingerprints`, is already anon-revoked and in no policy): the view scan matches only the
