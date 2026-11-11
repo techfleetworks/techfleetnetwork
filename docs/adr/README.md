@@ -48,6 +48,7 @@ would break existing links). Reference a legacy ADR as `ADR-NNNN`, a date ADR as
 | [20261110](20261110-deno-test-coverage.md)                         | Every edge-function test must run in CI (deno-test-coverage guard; RP-H scoping)      | Accepted           |
 | [20261110](20261110-db1-anon-definer-completeness.md)              | Prove no SECURITY DEFINER function is anon-executable (DB-1 completeness; RP-I)        | Accepted           |
 | [20261110](20261110-db1-revoke-trigger-functions.md)               | DB-1 burndown batch 1: revoke anon EXECUTE on 18 trigger functions                     | Accepted           |
+| [20261110](20261110-db1-revoke-rpc-admin-mutations.md)             | DB-1 burndown batch 2: revoke anon EXECUTE on 20 rpc-callable admin mutations           | Accepted           |
 | [20261110](20261110-db-test-start-retry.md)                        | Retry `supabase start` in db-test so a transient 502 can't false-page main            | Accepted           |
 
 The first block of ADRs covers the **Hand-Off Production System + SPF data-layer migration** work
