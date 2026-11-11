@@ -59,10 +59,15 @@ CREATE TEMP TABLE _anon_definer_grandfather (sig text PRIMARY KEY);
 --   fail-closed self-checks at prod apply: #1 authenticated+service_role retain EXECUTE; #2 NO anon/public
 --   policy references has_role directly (live catalog); #3 NO anon-reachable SECURITY INVOKER function or
 --   security_invoker view calls has_role (the transitive vector — closes the name-scan gap). 30 -> 29.
--- STILL to burn down (the 29 below): ops/monitoring fns (get_stuck_pending_email_count,
---   community_events_staleness_check, fill_content_gaps_check_and_inc, class_item_release,
---   get_class_curriculum_for_learner); and the missed trigger trg_general_app_submitted (+ auth-provisioning
---   triggers). KEPT as intentional public RPCs (anon legitimately calls): get_feature_flags, get_i18n_bundle,
+-- BATCH 6 (2026-11-11, migration 20261111020000): revoked anon EXECUTE FROM anon, PUBLIC on the last 6
+--   burn-down-able fns after per-caller analysis found none is anon-called: get_stuck_pending_email_count
+--   (authenticated+service_role), community_events_staleness_check (pg_cron/owner), fill_content_gaps_check_and_inc
+--   (service_role), class_item_release (authenticated+service_role; RLS policies all TO authenticated),
+--   get_class_curriculum_for_learner (authenticated+service_role), trg_general_app_submitted (trigger — not
+--   RPC-callable). Self-checks: #1 the caller roles retain EXECUTE; #2 NO anon/public policy references any of
+--   the 6 (live catalog, word-boundary match). 29 -> 23.
+-- REMAINING (the 23 below) are NOT burn-down in this program — all intentional keeps or out of scope.
+--   Intentional public RPCs (anon legitimately calls): get_feature_flags, get_i18n_bundle,
 --   get_network_stats, get_member_*_distribution, get_course_completion_counts, get_welcome_flow_completion_count,
 --   get_current_policy, record_policy_ack, validate_invitation. Auth/sign-in/rate-limit + use_invitation +
 --   record_event + auth-provisioning triggers are owned by the auth refactor; stats/KPI (admin_recompute_stats,
@@ -72,10 +77,6 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('admin_recompute_stats()'),
   ('check_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
   ('chunk_stale_log_rate_limit()'),
-  ('class_item_release(_item_id uuid, _user_id uuid, OUT released boolean, OUT available_at timestamp with time zone)'),
-  ('community_events_staleness_check()'),
-  ('fill_content_gaps_check_and_inc(p_cap integer)'),
-  ('get_class_curriculum_for_learner(p_class_id uuid)'),
   ('get_course_completion_counts(_course_specs jsonb)'),
   ('get_current_policy(p_key text, p_language text)'),
   ('get_feature_flags()'),
@@ -83,7 +84,6 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('get_member_continent_distribution()'),
   ('get_member_country_distribution()'),
   ('get_network_stats()'),
-  ('get_stuck_pending_email_count(p_age_minutes integer)'),
   ('get_welcome_flow_completion_count()'),
   ('membership_health()'),
   ('peek_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
@@ -94,7 +94,6 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('record_rate_limit_failure(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
   ('trg_fn_profiles_provision_customer()'),
   ('trg_fn_user_roles_provision_admin()'),
-  ('trg_general_app_submitted()'),
   ('use_invitation(p_token text)'),
   ('validate_invitation(p_token text)');
 
