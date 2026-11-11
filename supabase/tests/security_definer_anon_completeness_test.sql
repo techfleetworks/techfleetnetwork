@@ -31,27 +31,33 @@ SELECT plan(2);
 CREATE TEMP TABLE _anon_definer_grandfather (sig text PRIMARY KEY);
 -- Seeded 2026-11-10 from the db-test CI run of this file (76 anon-exposed public SECURITY DEFINER
 -- functions). This is the DB-1 burndown — remove each signature as its anon grant is revoked.
--- BATCH 1 (2026-11-10, migration 20261110210000): 18 TRIGGER functions revoked (anon EXECUTE removed via
--- REVOKE … FROM PUBLIC — safe because trigger functions are fired by the trigger as the table owner and
--- are not callable via RPC), so the list is now 58. Still to burn down: the rpc-callable admin mutations
--- (class-admin, gumroad, record_event, …) with per-caller role analysis; and some functions are KEPT as
--- intentional public RPCs (get_feature_flags, get_i18n_bundle, get_network_stats, member-distribution,
--- policy reads). Auth/sign-in/rate-limit functions are owned by the auth refactor, not this burndown.
+-- BATCH 1 (2026-11-10, migration 20261110210000): 18 TRIGGER functions revoked (caller-safe), 76 -> 58.
+-- BATCH 2 (2026-11-10, migration 20261110220000): 20 rpc-callable admin/authenticated mutations revoked
+--   FROM anon, PUBLIC after per-caller role analysis (class-curriculum admin CRUD + sign_community_agreement
+--   + publish_policy_version + mark_task_incomplete kept for `authenticated`; gumroad/discord/
+--   mark_community_agreement_required kept for `service_role`), 58 -> 38. The migration self-checks that the
+--   intended role retained EXECUTE.
+-- STILL to burn down (the 38 below): SECURITY DEFINER RLS helpers (has_role, is_class_*, _assert_class_editor,
+--   can_*_class_module_file, handoff_is_active_member, _learner_cohort_start) need proof no anon-visible table's
+--   RLS policy calls them before revoke; ops/monitoring fns (get_stuck_pending_email_count,
+--   community_events_staleness_check, fill_content_gaps_check_and_inc, class_item_release,
+--   get_class_curriculum_for_learner); and the missed trigger trg_general_app_submitted (+ auth-provisioning
+--   triggers). KEPT as intentional public RPCs (anon legitimately calls): get_feature_flags, get_i18n_bundle,
+--   get_network_stats, get_member_*_distribution, get_course_completion_counts, get_welcome_flow_completion_count,
+--   get_current_policy, record_policy_ack, validate_invitation. Auth/sign-in/rate-limit + use_invitation +
+--   record_event + auth-provisioning triggers are owned by the auth refactor; stats/KPI (admin_recompute_stats,
+--   _upsert_kpi, membership_health) are out of scope.
 INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('_assert_class_editor(_class_id uuid)'),
   ('_learner_cohort_start(_class_id uuid, _user_id uuid)'),
   ('_upsert_kpi(p_date date, p_key text, p_value numeric, p_unit text, p_window text, p_num bigint, p_den bigint)'),
   ('admin_recompute_stats()'),
-  ('attach_gumroad_sale(p_sale_id text, p_user_id uuid)'),
   ('can_read_class_module_file(_name text)'),
   ('can_write_class_module_file(_name text)'),
   ('check_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
   ('chunk_stale_log_rate_limit()'),
   ('class_item_release(_item_id uuid, _user_id uuid, OUT released boolean, OUT available_at timestamp with time zone)'),
   ('community_events_staleness_check()'),
-  ('delete_class_module_attachment(p_attachment_id uuid)'),
-  ('delete_class_module_item(p_item_id uuid)'),
-  ('delete_class_section(p_section_id uuid)'),
   ('fill_content_gaps_check_and_inc(p_cap integer)'),
   ('get_class_curriculum_for_learner(p_class_id uuid)'),
   ('get_course_completion_counts(_course_specs jsonb)'),
@@ -68,32 +74,16 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('is_class_learner(_class_id uuid, _user_id uuid)'),
   ('is_class_owner(_class_id uuid, _user_id uuid)'),
   ('is_enrolled_in_class(_class_id uuid, _user_id uuid)'),
-  ('list_founding_discord_role_targets()'),
-  ('mark_community_agreement_required(p_application_id uuid)'),
-  ('mark_task_incomplete(p_phase journey_phase, p_task_id text)'),
   ('membership_health()'),
   ('peek_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
-  ('publish_class_curriculum(p_class_id uuid)'),
-  ('publish_policy_version(p_key text, p_version text, p_language text, p_title text, p_summary text, p_body_md text, p_body_html text)'),
   ('record_event(p_sink text, p_kind text, p_actor uuid, p_payload jsonb, p_severity text, p_ref_table text, p_ref_id text)'),
   ('record_failed_login(_email text, _ip text, _user_agent text)'),
   ('record_login_event(p_attempt_id uuid, p_outcome text, p_branch text, p_http_status integer, p_duration_ms integer, p_email text, p_ip text, p_user_agent text, p_origin_host text, p_request_id text, p_user_id uuid)'),
   ('record_policy_ack(p_policy_keys text[], p_version text, p_method text, p_ip inet, p_user_agent text, p_electronic_comms boolean, p_anon_id text)'),
   ('record_rate_limit_failure(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
-  ('register_class_module_file(p_item_id uuid, p_storage_path text, p_file_name text, p_mime_type text, p_size_bytes bigint)'),
-  ('reorder_class_module_items(p_section_id uuid, p_ordered_ids uuid[])'),
-  ('reorder_class_sections(p_class_id uuid, p_ordered_ids uuid[])'),
-  ('report_founding_discord_role_gap()'),
-  ('resolve_gumroad_user(p_email text)'),
-  ('set_class_release_policy(p_class_id uuid, p_policy class_release_policy, p_release_at timestamp with time zone, p_offset_days integer)'),
-  ('sign_community_agreement(p_application_id uuid, p_user_agent text)'),
-  ('toggle_class_module_completion(p_item_id uuid, p_completed boolean)'),
   ('trg_fn_profiles_provision_customer()'),
   ('trg_fn_user_roles_provision_admin()'),
   ('trg_general_app_submitted()'),
-  ('upsert_class_module_item(p_section_id uuid, p_item_id uuid, p_title text, p_content_html text, p_video_url text, p_action_type class_module_action_type, p_duration_minutes integer, p_required boolean, p_status class_module_status)'),
-  ('upsert_class_module_link(p_item_id uuid, p_attachment_id uuid, p_url text, p_label text)'),
-  ('upsert_class_section(p_class_id uuid, p_section_id uuid, p_title text, p_summary text, p_status class_module_status)'),
   ('use_invitation(p_token text)'),
   ('validate_invitation(p_token text)');
 
