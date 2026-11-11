@@ -51,10 +51,15 @@ CREATE TEMP TABLE _anon_definer_grandfather (sig text PRIMARY KEY);
 --   dispute_intake "admin read"/"admin update", dpa_executions "dpa admin all", observer_role_optins "Admins
 --   can view all observer opt-ins", lesson_video_events "lve self or admin read". Batch 4 ALTERed all 9 to
 --   `TO authenticated` (behavior-preserving: anon never matched them — auth.uid() NULL). After batch 4, NO
---   anon/public policy references has_role, so has_role IS now safe to revoke from anon — that is the next
---   batch (which will remove has_role from this grandfather). Grandfather unchanged (still 30).
--- STILL to burn down (the 30 below): has_role (audit done, 9 blocking policies tightened by batch 4 — now
---   safe to revoke from anon in the next batch); ops/monitoring fns (get_stuck_pending_email_count,
+--   anon/public policy references has_role, so has_role IS now safe to revoke from anon — that is batch 5
+--   (which removes has_role from this grandfather). Grandfather unchanged (still 30).
+-- BATCH 5 (2026-11-10, migration 20261111010000): revoked anon EXECUTE on has_role(uuid, app_role) FROM anon,
+--   PUBLIC (single overload; direct grants to authenticated @20260430021322 + service_role @20260708050000
+--   are untouched). Safe because batch 4 removed every anon/public policy reference to has_role. THREE
+--   fail-closed self-checks at prod apply: #1 authenticated+service_role retain EXECUTE; #2 NO anon/public
+--   policy references has_role directly (live catalog); #3 NO anon-reachable SECURITY INVOKER function or
+--   security_invoker view calls has_role (the transitive vector — closes the name-scan gap). 30 -> 29.
+-- STILL to burn down (the 29 below): ops/monitoring fns (get_stuck_pending_email_count,
 --   community_events_staleness_check, fill_content_gaps_check_and_inc, class_item_release,
 --   get_class_curriculum_for_learner); and the missed trigger trg_general_app_submitted (+ auth-provisioning
 --   triggers). KEPT as intentional public RPCs (anon legitimately calls): get_feature_flags, get_i18n_bundle,
@@ -80,7 +85,6 @@ INSERT INTO _anon_definer_grandfather(sig) VALUES
   ('get_network_stats()'),
   ('get_stuck_pending_email_count(p_age_minutes integer)'),
   ('get_welcome_flow_completion_count()'),
-  ('has_role(_user_id uuid, _role app_role)'),
   ('membership_health()'),
   ('peek_rate_limit(p_identifier text, p_action text, p_max_attempts integer, p_window_minutes integer, p_block_minutes integer)'),
   ('record_event(p_sink text, p_kind text, p_actor uuid, p_payload jsonb, p_severity text, p_ref_table text, p_ref_id text)'),
