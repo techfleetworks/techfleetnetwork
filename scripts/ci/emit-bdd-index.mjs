@@ -49,6 +49,7 @@ export const AUDIENCE_VOCAB = [
 ];
 
 export const FEATURE_AUDIENCES = {
+  "supabase/functions/_shared/email/announcement-reach.feature": ["admin", "internal"],
   "supabase/functions/_shared/html-to-text.feature": ["authenticated", "internal"],
   "supabase/functions/_shared/prompt-injection.feature": ["authenticated", "internal"],
   "supabase/functions/_shared/session-revocation.feature": ["authenticated", "admin"],

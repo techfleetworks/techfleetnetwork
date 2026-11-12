@@ -8,13 +8,13 @@
     "internal"
   ],
   "totals": {
-    "features": 12,
-    "scenarios": 106,
+    "features": 13,
+    "scenarios": 109,
     "executable": 8,
-    "pending": 98,
+    "pending": 101,
     "byStatus": {
       "excluded-auth": 1,
-      "pending": 9,
+      "pending": 10,
       "executable": 1,
       "partial": 1
     }
@@ -37,6 +37,24 @@
       "audiences": [
         "anonymous",
         "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/email/announcement-reach.feature",
+      "domain": "_shared",
+      "title": "A failed announcement broadcast is never silent",
+      "scenarios": {
+        "total": 3,
+        "executable": 0,
+        "pending": 3
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "admin",
+        "internal"
       ]
     },
     {
