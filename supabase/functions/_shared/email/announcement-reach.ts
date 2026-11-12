@@ -31,9 +31,14 @@ export interface ReachAlertInput {
   enqueued?: number;
 }
 
-/** The minimal surface we need from the service-role client — keeps this unit-testable. */
+/**
+ * The minimal surface we need from the service-role client — keeps this unit-testable.
+ * `rpc` returns a PromiseLike (not a Promise): the supabase-js query builder is a
+ * thenable, not a real Promise, so typing this as Promise<...> would reject the real
+ * client. `await` handles both.
+ */
 export interface AuditWriter {
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ error: unknown }>;
+  rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ error: unknown }>;
 }
 
 /**

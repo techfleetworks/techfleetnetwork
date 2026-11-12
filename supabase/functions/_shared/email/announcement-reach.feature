@@ -1,10 +1,14 @@
+# @pending: the executable proof is the Deno unit test announcement-reach.test.ts,
+# which runs in CI (ci.yml deno test list). The cucumber runner excludes @pending;
+# this feature documents the behaviour and is wired to the runner in a later PR.
+@pending
 Feature: A failed announcement broadcast is never silent
   send-announcement-email is invoked fire-and-forget from the UI, so a 500 that is
   not also paged is invisible — that is how the 2026-11-12 under-reach (enqueue
   cancelled by the 8s statement_timeout, rolled back to zero rows) went unnoticed.
   The single owner supabase/functions/_shared/email/announcement-reach.ts routes
   that failure to the durable audit sink (System Health → Top Errors).
-  Executable proof: announcement-reach.test.ts.
+  Executable proof: announcement-reach.test.ts (runs in CI).
 
   @critical
   Scenario: An enqueue failure pages through the audit sink
