@@ -8,6 +8,7 @@ import { requireMarketingAttestation } from "./attestation.ts";
 import { htmlToPlainText } from "../_shared/html-to-text.ts";
 import { renderAnnouncementEmail } from "../_shared/email/announcement-render.ts";
 import { emitAnnouncementReachAlert } from "../_shared/email/announcement-reach.ts";
+import { enqueueAnnouncementInBatches } from "../_shared/email/announcement-batch-enqueue.ts";
 // CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it);
 // an inline block that omits it makes the browser block the POST. See supabase/functions/CLAUDE.md.
 import { corsHeaders } from "../_shared/http.ts";
@@ -142,54 +143,74 @@ Deno.serve(
         }
       }
 
-      // Render once — the body is identical for every recipient, so the fan-out is
-      // a single set-based INSERT in the DB rather than a per-recipient edge loop.
+      // Render once — the body is identical for every recipient.
       const { subject, html, text } = renderAnnouncementEmail({
         announcementId: announcement_id,
         title: announcement.title,
         bodyHtml: announcement.body_html || "",
       });
 
-      // Enqueue the WHOLE audience in one atomic statement. This is the fix for the
-      // ~198/1579 under-reach: the old per-recipient loop did ~5 DB round-trips each
-      // and the edge runtime killed it after ~200 recipients, so the rest were never
-      // enqueued. enqueue_announcement_emails cannot partially complete.
-      const { data: enqueueRows, error: enqueueError } = await adminClient.rpc(
-        "enqueue_announcement_emails",
-        {
-          p_announcement_id: announcement_id,
-          p_subject: subject,
-          p_html: html,
-          p_text: text,
-          p_recipients: testMode ? test_recipients : null,
-        }
-      );
+      let eligible = 0;
+      let enqueued = 0;
 
-      if (enqueueError) {
-        console.error("enqueue_announcement_emails failed:", enqueueError);
-        // No silent failure: page via the durable audit sink (System Health → Top
-        // Errors) BEFORE returning. The UI invokes this fire-and-forget, so the 500
-        // alone is invisible — exactly how the 2026-11-12 under-reach went unnoticed.
-        // A delivery test is a probe, not a broadcast, so it does not page.
-        if (!testMode) {
+      if (testMode) {
+        // Delivery probe: an explicit, bounded (<=50) recipient list — a single
+        // call cannot approach the statement timeout, so no batching is needed.
+        const { data: enqueueRows, error: enqueueError } = await adminClient.rpc(
+          "enqueue_announcement_emails",
+          {
+            p_announcement_id: announcement_id,
+            p_subject: subject,
+            p_html: html,
+            p_text: text,
+            p_recipients: test_recipients,
+          }
+        );
+        if (enqueueError) {
+          console.error("enqueue_announcement_emails (test) failed:", enqueueError);
+          return new Response(JSON.stringify({ error: "Failed to enqueue announcement" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const row = (Array.isArray(enqueueRows) ? enqueueRows[0] : enqueueRows) as
+          { eligible_count?: number; enqueued_count?: number } | null | undefined;
+        eligible = Number(row?.eligible_count ?? 0);
+        enqueued = Number(row?.enqueued_count ?? 0);
+      } else {
+        // Real broadcast: enqueue the WHOLE audience in bounded batches (PR2). Each
+        // enqueue_announcement_batch statement touches at most p_batch_size rows, so
+        // audience size can never cancel it on the 8s statement_timeout the way the
+        // single-shot set-based INSERT did on 2026-11-12. A crash mid-loop leaves
+        // committed batches in place and a re-run resumes idempotently.
+        const result = await enqueueAnnouncementInBatches(adminClient, {
+          announcementId: announcement_id,
+          subject,
+          html,
+          text,
+        });
+        if (result.error) {
+          console.error("enqueue_announcement_batch failed:", result.error);
+          // No silent failure: page via the durable audit sink (System Health → Top
+          // Errors) before returning — the UI invokes this fire-and-forget, so the
+          // 500 alone is invisible.
           await emitAnnouncementReachAlert(adminClient, {
             announcementId: announcement_id,
             reason: "enqueue_failed",
-            detail: `announcement ${announcement_id} enqueue failed and rolled back: ${
-              String((enqueueError as { message?: string })?.message ?? enqueueError).slice(0, 300)
+            detail: `announcement ${announcement_id} batched enqueue failed after ${result.batches} batch(es): ${
+              String((result.error as { message?: string })?.message ?? result.error).slice(0, 300)
             }`,
+            eligible: result.eligible,
+            enqueued: result.enqueued,
+          });
+          return new Response(JSON.stringify({ error: "Failed to enqueue announcement" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        return new Response(JSON.stringify({ error: "Failed to enqueue announcement" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        eligible = result.eligible;
+        enqueued = result.enqueued;
       }
-
-      const row = (Array.isArray(enqueueRows) ? enqueueRows[0] : enqueueRows) as
-        { eligible_count?: number; enqueued_count?: number } | null | undefined;
-      const eligible = Number(row?.eligible_count ?? 0);
-      const enqueued = Number(row?.enqueued_count ?? 0);
 
       // Reach signal — surfaced in the response AND the audit trail. `eligible` is
       // the true audience size (would have read ~1579, not 198, on the failed send),
