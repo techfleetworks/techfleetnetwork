@@ -8,13 +8,13 @@
     "internal"
   ],
   "totals": {
-    "features": 13,
-    "scenarios": 109,
+    "features": 14,
+    "scenarios": 112,
     "executable": 8,
-    "pending": 101,
+    "pending": 104,
     "byStatus": {
       "excluded-auth": 1,
-      "pending": 10,
+      "pending": 11,
       "executable": 1,
       "partial": 1
     }
@@ -37,6 +37,24 @@
       "audiences": [
         "anonymous",
         "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/email/announcement-batch-enqueue.feature",
+      "domain": "_shared",
+      "title": "The announcement audience is enqueued in bounded, resumable batches",
+      "scenarios": {
+        "total": 3,
+        "executable": 0,
+        "pending": 3
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "admin",
+        "internal"
       ]
     },
     {
