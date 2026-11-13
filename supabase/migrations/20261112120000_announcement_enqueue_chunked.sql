@@ -148,6 +148,7 @@ SECURITY DEFINER
 SET search_path = public
 SET statement_timeout = '120s'
 AS $$
+#variable_conflict use_column
 DECLARE
   v_exp timestamptz := now() + interval '24 hours';
   v_batch integer := greatest(1, least(coalesce(p_batch_size, 500), 2000)); -- clamp
