@@ -70,8 +70,10 @@ DECLARE
 BEGIN
   RETURN QUERY
   WITH audience AS (
-    -- Full send: the one audience owner.
-    SELECT email FROM public.announcement_eligible_emails()
+    -- Full send: the one audience owner. announcement_eligible_emails() RETURNS SETOF
+    -- text, so its column must be aliased (AS e(email)) — otherwise the column is named
+    -- after the function and "email" does not resolve.
+    SELECT e.email FROM public.announcement_eligible_emails() AS e(email)
     WHERE p_recipients IS NULL
     UNION
     -- Delivery probe: exactly the addresses passed (a known QA inbox). Suppression
