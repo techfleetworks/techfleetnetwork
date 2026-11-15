@@ -40,6 +40,7 @@ function renderDropdown(user: UserRow) {
     onPromoteTeacher: vi.fn(),
     onResendTeacher: vi.fn(),
     onRevokeTeacher: vi.fn(),
+    onResetWelcome: vi.fn(),
   };
   render(<UserActionsDropdown user={user} isSelf={false} {...handlers} />);
   return handlers;
@@ -77,5 +78,26 @@ describe("UserActionsDropdown — teacher promotion resend", () => {
     expect(await screen.findByText("Revoke Teacher")).toBeInTheDocument();
     expect(screen.queryByText("Resend Teacher Invite")).not.toBeInTheDocument();
     expect(screen.queryByText("Promote to Teacher")).not.toBeInTheDocument();
+  });
+});
+
+describe("UserActionsDropdown — Welcome Flow break-glass reset", () => {
+  it("fires onResetWelcome for a user with a profile", async () => {
+    const u = makeUser({ hasProfile: true });
+    const handlers = renderDropdown(u);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /Actions for/i }));
+    await user.click(await screen.findByText("Reset Welcome Flow"));
+
+    expect(handlers.onResetWelcome).toHaveBeenCalledWith(u);
+  });
+
+  it("hides the reset for a user with no profile row (nothing to reset)", async () => {
+    renderDropdown(makeUser({ hasProfile: false }));
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /Actions for/i }));
+    expect(screen.queryByText("Reset Welcome Flow")).not.toBeInTheDocument();
   });
 });
