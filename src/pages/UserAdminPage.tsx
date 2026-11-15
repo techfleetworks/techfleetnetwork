@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { getSessionSafe } from "@/lib/auth/session-port";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { ProfileService } from "@/services/profile.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -88,7 +89,13 @@ export default function UserAdminPage() {
   const [promoting, setPromoting] = useState<string | null>(null);
   const [confirmUser, setConfirmUser] = useState<UserRow | null>(null);
   const [confirmAction, setConfirmAction] = useState<
-    "promote" | "resend" | "delete" | "promote_teacher" | "resend_teacher" | "revoke_teacher"
+    | "promote"
+    | "resend"
+    | "delete"
+    | "promote_teacher"
+    | "resend_teacher"
+    | "revoke_teacher"
+    | "reset_welcome"
   >("promote");
   const [viewUser, setViewUser] = useState<UserRow | null>(null);
 
@@ -338,6 +345,29 @@ export default function UserAdminPage() {
     }
   };
 
+  // Break-glass (§7.7): clear a user's Welcome Flow completion so they re-enter the mandatory
+  // flow. Goes through the single owner (ProfileService.resetWelcomeFlow → admin-gated, audited
+  // RPC); never a direct column write.
+  const handleResetWelcome = async (targetUser: UserRow) => {
+    setPromoting(targetUser.user_id);
+    try {
+      await ProfileService.resetWelcomeFlow(targetUser.user_id);
+      toast.success(
+        `Welcome Flow reset for ${targetUser.email} — they'll go through it again on next sign-in.`
+      );
+      await fetchData();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "We couldn't reset the Welcome Flow. Try again in a moment.";
+      toast.error(message);
+    } finally {
+      setPromoting(null);
+      setConfirmUser(null);
+    }
+  };
+
   const handlePromoteTeacher = async (targetUser: UserRow) => {
     setPromoting(targetUser.user_id);
     try {
@@ -503,6 +533,10 @@ export default function UserAdminPage() {
           }}
           onRevokeTeacher={(usr) => {
             setConfirmAction("revoke_teacher");
+            setConfirmUser(usr);
+          }}
+          onResetWelcome={(usr) => {
+            setConfirmAction("reset_welcome");
             setConfirmUser(usr);
           }}
         />
@@ -758,7 +792,9 @@ export default function UserAdminPage() {
             ? "Resend Teacher Invite?"
             : confirmAction === "revoke_teacher"
               ? "Revoke Teacher Role?"
-              : "Delete User?";
+              : confirmAction === "reset_welcome"
+                ? "Reset Welcome Flow?"
+                : "Delete User?";
   const confirmDesc =
     confirmAction === "promote"
       ? `This will send a confirmation email to ${confirmUser?.email}. They must click the link to activate their admin role.`
@@ -770,7 +806,9 @@ export default function UserAdminPage() {
             ? `This will re-send the teacher confirmation email to ${confirmUser?.email}. A new confirmation link will be generated.`
             : confirmAction === "revoke_teacher"
               ? `This will remove the teacher role from ${confirmUser?.email}. Their existing classes are preserved but they will lose access to author new ones.`
-              : `This will permanently delete ${confirmUser?.email} and remove related app data. This cannot be undone.`;
+              : confirmAction === "reset_welcome"
+                ? `This clears the Welcome Flow completion for ${confirmUser?.email}, so they go through the mandatory welcome again on their next sign-in. Use this for a member stranded in a bad state. The action is audited.`
+                : `This will permanently delete ${confirmUser?.email} and remove related app data. This cannot be undone.`;
   const confirmButton =
     confirmAction === "promote"
       ? "Send Confirmation"
@@ -782,7 +820,9 @@ export default function UserAdminPage() {
             ? "Resend Invite"
             : confirmAction === "revoke_teacher"
               ? "Revoke Teacher"
-              : "Delete User";
+              : confirmAction === "reset_welcome"
+                ? "Reset Welcome Flow"
+                : "Delete User";
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6">
@@ -844,6 +884,7 @@ export default function UserAdminPage() {
                 else if (confirmAction === "promote_teacher") handlePromoteTeacher(confirmUser);
                 else if (confirmAction === "resend_teacher") handleResendTeacher(confirmUser);
                 else if (confirmAction === "revoke_teacher") handleRevokeTeacher(confirmUser);
+                else if (confirmAction === "reset_welcome") handleResetWelcome(confirmUser);
                 else handleDeleteUser(confirmUser);
               }}
               disabled={!!promoting}

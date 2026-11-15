@@ -126,6 +126,34 @@ for (const f of FIXTURES) {
   }
 }
 
+// ── Welcome Flow gate fixtures (PR5). The mandatory /welcome gate redirects any
+//    welcome-INCOMPLETE authenticated user, so mark the standard fixtures COMPLETE or the
+//    whole authed e2e suite (a11y, responsive, admin, profile-setup, …) gets bounced to
+//    /welcome (the §15.3 fixture collision). e2e-outsider is left INCOMPLETE on purpose — it
+//    is the user the welcome-gate redirect test drives. Direct service-role PATCH: this is
+//    fixture seeding, not an app write path (the app's single writer is still the set-once RPC).
+for (const email of [
+  "e2e-member@techfleet.test",
+  "e2e-admin@techfleet.test",
+  "e2e-teacher@techfleet.test",
+]) {
+  const uid = idByEmail[email];
+  if (!uid) continue;
+  const patch = await adminFetch(`/rest/v1/profiles?user_id=eq.${uid}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ welcome_flow_completed_at: new Date().toISOString() }),
+  });
+  if (!patch.ok) {
+    console.error(
+      `::error::welcome-complete patch failed for ${email}: HTTP ${patch.status} ${await patch.text()}`
+    );
+    failures += 1;
+  } else {
+    console.log(`welcome ${email} -> complete`);
+  }
+}
+
 // ── Curriculum fixture: a draft class owned by the teacher, a cohort the member
 //    is registered in, and one published section with two published modules.
 const teacherId = idByEmail["e2e-teacher@techfleet.test"];

@@ -7,6 +7,7 @@ import {
   Trash2,
   GraduationCap,
   UserMinus,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +64,7 @@ interface UserActionsDropdownProps {
   onPromoteTeacher: (user: UserRow) => void;
   onResendTeacher: (user: UserRow) => void;
   onRevokeTeacher: (user: UserRow) => void;
+  onResetWelcome: (user: UserRow) => void;
 }
 
 export function UserActionsDropdown({
@@ -75,6 +77,7 @@ export function UserActionsDropdown({
   onPromoteTeacher,
   onResendTeacher,
   onRevokeTeacher,
+  onResetWelcome,
 }: UserActionsDropdownProps) {
   const [open, setOpen] = useState(false);
 
@@ -165,6 +168,18 @@ export function UserActionsDropdown({
           >
             <UserMinus className="h-4 w-4 mr-2" />
             Revoke Teacher
+          </DropdownMenuItem>
+        )}
+
+        {user.hasProfile && (
+          <DropdownMenuItem
+            onClick={() => {
+              setOpen(false);
+              onResetWelcome(user);
+            }}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset Welcome Flow
           </DropdownMenuItem>
         )}
 
