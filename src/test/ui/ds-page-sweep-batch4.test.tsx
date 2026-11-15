@@ -15,7 +15,6 @@ import { describe, it, expect } from "vitest";
  *   src/pages/ConfirmAdminPage.tsx
  *   src/pages/ConfirmTeacherPage.tsx
  *   src/pages/ClassDetailPage.tsx
- *   src/pages/WelcomeWizard.tsx
  */
 import * as NotificationsPage from "@/pages/NotificationsPage";
 import * as QuestDetailPage from "@/pages/QuestDetailPage";
@@ -28,7 +27,6 @@ import * as MyJourneyPage from "@/pages/MyJourneyPage";
 import * as ConfirmAdminPage from "@/pages/ConfirmAdminPage";
 import * as ConfirmTeacherPage from "@/pages/ConfirmTeacherPage";
 import * as ClassDetailPage from "@/pages/ClassDetailPage";
-import * as WelcomeWizard from "@/pages/WelcomeWizard";
 
 describe("page sweep batch 4 — migrated pages load", () => {
   it.each([
@@ -43,7 +41,6 @@ describe("page sweep batch 4 — migrated pages load", () => {
     ["ConfirmAdminPage", ConfirmAdminPage],
     ["ConfirmTeacherPage", ConfirmTeacherPage],
     ["ClassDetailPage", ClassDetailPage],
-    ["WelcomeWizard", WelcomeWizard],
   ])("%s module compiles and exports a component", (_name, mod) => {
     const exported = Object.values(mod as Record<string, unknown>);
     expect(exported.some((v) => typeof v === "function")).toBe(true);

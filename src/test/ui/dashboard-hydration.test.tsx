@@ -70,10 +70,6 @@ vi.mock("@/components/ResumeApplicationBanner", () => ({
   ResumeApplicationBanner: () => null,
 }));
 
-vi.mock("@/components/WelcomeDialog", () => ({
-  WelcomeDialog: () => null,
-}));
-
 vi.mock("@/services/stats.service", () => ({
   StatsService: { getNetworkStats: vi.fn(async () => ({ badges_earned: 0 })) },
 }));
