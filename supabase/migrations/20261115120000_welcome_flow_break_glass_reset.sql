@@ -31,11 +31,14 @@ BEGIN
     RAISE EXCEPTION 'no profile for user' USING errcode = 'P0002';
   END IF;
 
-  -- Audit the break-glass action (admin actor + target) to the append-only, hash-chained
-  -- audit_log sink (ADR-0060 record_event). Nested SECURITY DEFINER call runs with this
-  -- function's owner privileges, so the service_role-only grant on record_event is satisfied.
+  -- Audit the break-glass action (admin actor + target) via record_event (ADR-0060). Use the
+  -- 'ops_events' sink, which INSERTs directly into public.ops_events — NOT 'audit_log', whose
+  -- writer (append_audit_log_entry) is absent so that branch silently no-ops (a privileged
+  -- action with no trace). The nested SECURITY DEFINER call runs with this function's owner
+  -- privileges, so record_event's service_role-only grant is satisfied. The pgTAP asserts this
+  -- row is actually written (verifiable-quality-gates — prove the audit, don't claim it).
   PERFORM public.record_event(
-    'audit_log',
+    'ops_events',
     'welcome_flow.break_glass_reset',
     auth.uid(),
     jsonb_build_object('target_user_id', _user_id),

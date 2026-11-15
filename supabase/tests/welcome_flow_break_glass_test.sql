@@ -9,7 +9,7 @@
 -- Runs in a rolled-back txn.
 
 BEGIN;
-SELECT plan(5);
+SELECT plan(6);
 
 SELECT has_function(
   'public', 'admin_reset_welcome_flow', ARRAY['uuid'],
@@ -61,6 +61,16 @@ SELECT is(
   (SELECT welcome_flow_completed_at FROM public.profiles
     WHERE user_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
   NULL, 'target completion was cleared (user re-enters the mandatory flow)');
+
+-- ── Audit actually fired (not a silent no-op) ───────────────────────────────────────
+-- The admin reset above must have written an ops_events row naming the admin actor and the
+-- target. This fails loudly if record_event's sink ever no-ops for this privileged action.
+SELECT is(
+  (SELECT count(*)::int FROM public.ops_events
+     WHERE kind = 'welcome_flow.break_glass_reset'
+       AND actor_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+       AND payload->>'target_user_id' = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
+  1, 'break-glass reset wrote an ops_events audit row (admin actor + target)');
 
 SELECT * FROM finish();
 ROLLBACK;

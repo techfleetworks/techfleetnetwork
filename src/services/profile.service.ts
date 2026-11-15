@@ -309,7 +309,7 @@ export const ProfileService = {
   /**
    * Break-glass: clear welcome_flow_completed_at for ONE user so they re-enter the mandatory
    * flow (requirements §7.7). Admin-only + audited server-side by the admin_reset_welcome_flow
-   * RPC (has_role gate + audit_log). This is the only writer of the column besides the set-once
+   * RPC (has_role gate + an ops_events audit row). This is the only writer of the column besides the set-once
    * completion RPC, and it lives here with markWelcomeFlowComplete so the column keeps a single
    * owning seam. Never a normal/user path — reached only from an admin surface.
    */
