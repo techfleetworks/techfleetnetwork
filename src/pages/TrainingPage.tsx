@@ -13,6 +13,7 @@ import {
   Lightbulb,
   Rocket,
   Eye,
+  Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,6 +34,7 @@ import {
   useCourseCompletionCounts,
   type CourseCompletionSpec,
 } from "@/hooks/use-course-completion-counts";
+import { useWelcomeFlowCompletionCount } from "@/hooks/use-welcome-flow-completion-count";
 import { TOTAL_FIRST_STEPS, FIRST_STEPS_TASK_IDS } from "@/pages/FirstStepsPage";
 import { TOTAL_CONNECT_DISCORD, CONNECT_DISCORD_TASK_IDS } from "@/pages/ConnectDiscordPage";
 import { ALL_AGILE_LESSON_IDS } from "@/data/agile-course";
@@ -202,10 +204,15 @@ const COURSE_COMPLETION_SPECS: CourseCompletionSpec[] = [
 ];
 
 export default function TrainingPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const userId = user?.id;
 
   const totalFirstSteps = TOTAL_FIRST_STEPS;
+
+  // Welcome Flow (§4.11): completed state reflects the server flag (never a second copy);
+  // the count is live-derived via the owning RPC (ADR-0050), not a stored counter.
+  const welcomeFlowComplete = profile?.welcome_flow_completed_at != null;
+  const { data: welcomeFlowCompleters = 0 } = useWelcomeFlowCompletionCount();
 
   const { data: connectDiscordCompleted = 0 } = useCompletedCount(
     userId,
@@ -231,6 +238,22 @@ export default function TrainingPage() {
   const { data: completers = {} } = useCourseCompletionCounts(COURSE_COMPLETION_SPECS);
 
   const gettingStartedCourses: CourseCard[] = [
+    {
+      // The durable, always-reachable way back into the Welcome Flow (§4.11 FR-CO1):
+      // first entry, first tab, visible to everyone, re-enterable (routes to /welcome).
+      // Completed state is a read-only reflection of welcome_flow_completed_at; replay is
+      // idempotent (set-once), so it never re-arms the gate or inflates the count.
+      id: "welcome-flow",
+      title: "Welcome to Tech Fleet",
+      description:
+        "Meet Tech Fleet, see how our training helps, and set up for your first steps. Revisit any time.",
+      icon: Sparkles,
+      href: "/welcome",
+      totalTasks: 1,
+      completedTasks: welcomeFlowComplete ? 1 : 0,
+      locked: false,
+      otherCompleters: welcomeFlowCompleters,
+    },
     {
       id: "connect-discord",
       title: "Connect to Discord",

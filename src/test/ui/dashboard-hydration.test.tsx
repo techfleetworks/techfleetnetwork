@@ -70,10 +70,6 @@ vi.mock("@/components/ResumeApplicationBanner", () => ({
   ResumeApplicationBanner: () => null,
 }));
 
-vi.mock("@/components/WelcomeDialog", () => ({
-  WelcomeDialog: () => null,
-}));
-
 vi.mock("@/services/stats.service", () => ({
   StatsService: { getNetworkStats: vi.fn(async () => ({ badges_earned: 0 })) },
 }));
@@ -91,7 +87,7 @@ describe("Dashboard hydration", () => {
     renderWithRouter(<DashboardPage />);
 
     expect(screen.getByLabelText(/loading your progress/i)).toBeInTheDocument();
-    expect(screen.queryByText(/0 of 5 complete/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/0 of 6 complete/i)).not.toBeInTheDocument();
   });
 
   it("renders hydrated last-known checklist progress without the zero-state flash", () => {
@@ -113,7 +109,9 @@ describe("Dashboard hydration", () => {
     renderWithRouter(<DashboardPage />);
 
     expect(screen.queryByLabelText(/loading your progress/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/2 of 5 complete/i)).toBeInTheDocument();
-    expect(screen.queryByText(/0 of 5 complete/i)).not.toBeInTheDocument();
+    // 6 Get Started items now: the Welcome card (incomplete — no welcome_flow_completed_at
+    // on the mock profile) prepended to the 5 core courses (2 of which are complete here).
+    expect(screen.getByText(/2 of 6 complete/i)).toBeInTheDocument();
+    expect(screen.queryByText(/0 of 6 complete/i)).not.toBeInTheDocument();
   });
 });

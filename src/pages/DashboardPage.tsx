@@ -8,6 +8,7 @@ import {
   Heart,
   MessageSquare,
   FileCheck2,
+  Sparkles,
 } from "lucide-react";
 import { useAgreementStatus } from "@/hooks/use-agreement-status";
 import { CommunityAgreementSheet } from "@/components/agreements/CommunityAgreementSheet";
@@ -43,7 +44,6 @@ import { TOTAL_OBSERVER_LESSONS, ALL_OBSERVER_LESSON_IDS } from "@/data/observer
 import { Progress } from "@/components/ui/progress";
 
 import { format } from "date-fns";
-import { WelcomeDialog } from "@/components/WelcomeDialog";
 import { useQuery, useQueryClient } from "@/lib/react-query";
 import { useAdaptiveInterval } from "@/hooks/use-adaptive-interval";
 import { useDashboardOverview } from "@/hooks/use-dashboard-overview";
@@ -383,10 +383,25 @@ export default function DashboardPage() {
     ]
   );
 
+  // The Welcome card (§4.10 / FR-CARD): a read-only reflection of the server completion
+  // flag (never a second copy), shown in the normal hideable Get Started widget. Links to
+  // /welcome for replay. The durable way back lives in Courses (§4.11); this card is a
+  // transient celebratory reflection that the Get Started widget may collapse once done.
+  const welcomeFlowComplete = profile?.welcome_flow_completed_at != null;
+
   // Gumroad-style flat checklist derived from the same course progress.
   const onboardingChecklist: ChecklistItem[] = useMemo(
-    () =>
-      coreCourses.map((c) => ({
+    () => [
+      {
+        id: "welcome-flow",
+        title: "Welcome",
+        subtitle: "Your intro to Tech Fleet and your first steps. Revisit any time.",
+        icon: Sparkles,
+        href: "/welcome",
+        completed: welcomeFlowComplete,
+        locked: false,
+      },
+      ...coreCourses.map((c) => ({
         id: c.id,
         title: c.title,
         subtitle: c.description,
@@ -396,7 +411,8 @@ export default function DashboardPage() {
         locked: c.locked,
         prerequisiteLabel: c.prerequisiteLabel,
       })),
-    [coreCourses]
+    ],
+    [coreCourses, welcomeFlowComplete]
   );
 
   const displayName =
@@ -430,7 +446,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <WelcomeDialog />
       <DiscordInviteBanner />
       <ResumeApplicationBanner />
 
