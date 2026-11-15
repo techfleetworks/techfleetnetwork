@@ -1,3 +1,5 @@
+# @pending — committed spec; step defs not yet wired (needs Deno + Supabase storage). See ADR 20261110.
+@pending
 Feature: Hand-off output download (server-issued signed URL)
   As an active teammate, so I can read/download a produced hand-off, I request a
   short-lived signed URL for an output file. Access is re-checked on every request;

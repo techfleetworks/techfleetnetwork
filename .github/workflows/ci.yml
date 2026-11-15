@@ -44,45 +44,29 @@ jobs:
       e2e: ${{ steps.filter.outputs.e2e }}
       functions: ${{ steps.filter.outputs.functions }}
       db_schema: ${{ steps.filter.outputs.db_schema }}
+      db_tests: ${{ steps.filter.outputs.db_tests }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-      - name: Compute changed paths
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+      # Fail-open change detection (RC1 / RP-A, ADR 20261106). The previous inline step
+      # re-fetched the base with `--depth=1` and ran `git diff base...HEAD`; a shallow base
+      # has no merge-base, so the diff came back empty and every filter silently went false
+      # (e2e / migrations / functions / db_schema skipped even on PRs that changed them).
+      # The node script diffs against the real merge-base and FAILS OPEN (every filter true)
+      # on any error or empty set, so a broken diff can never again silently skip a gate.
+      # Its pure classification core is unit-tested by detect-changed-paths.test.mjs, run as
+      # a blocking step in gate-verify.
+      - name: Compute changed paths (fail-open)
         id: filter
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
-            BASE="origin/${{ github.base_ref }}"
-            CHANGED=$(git diff --name-only "$BASE"...HEAD)
-          else
-            BASE="${{ github.event.before }}"
-            CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || git diff --name-only HEAD~1 HEAD)
-          fi
-          echo "Changed files:"; echo "$CHANGED"
-          if echo "$CHANGED" | grep -q '^supabase/migrations/'; then
-            echo "migrations=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "migrations=false" >> "$GITHUB_OUTPUT"
-          fi
-          if echo "$CHANGED" | grep -qE '^(src/|supabase/functions/)'; then
-            echo "e2e=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "e2e=false" >> "$GITHUB_OUTPUT"
-          fi
-          if echo "$CHANGED" | grep -q '^supabase/functions/'; then
-            echo "functions=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "functions=false" >> "$GITHUB_OUTPUT"
-          fi
-          # db-schema gate (ADR-0036): runs on migration changes OR changes to the gate's own inputs
-          # (the guard, its allowlist, its dynamic-object sidecar, the shared tokenizer).
-          if echo "$CHANGED" | grep -qE '^supabase/migrations/|^scripts/ci/(check-db-schema-present\.mjs|db-schema-allowlist\.json|db-dynamic-objects\.json|_sql-scan\.mjs)$'; then
-            echo "db_schema=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "db_schema=false" >> "$GITHUB_OUTPUT"
-          fi
+        env:
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+        run: node scripts/ci/detect-changed-paths.mjs
 
   # ---------------------------------------------------------------------------
   # setup — install deps ONCE, share node_modules (zstd artifact) downstream.
@@ -96,7 +80,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Cache node_modules + npm tarballs
@@ -115,7 +99,7 @@ jobs:
       - name: Package node_modules for downstream jobs
         run: tar --use-compress-program=zstd -cf /tmp/node_modules.tar.zst node_modules
       - name: Upload node_modules artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: node-modules-${{ github.sha }}
           path: /tmp/node_modules.tar.zst
@@ -145,11 +129,11 @@ jobs:
         with:
           fetch-depth: 0 # check-raw-invoke-budget-shrinks needs origin/main to diff the budget
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Restore node_modules
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: node-modules-${{ github.sha }}
           path: /tmp
@@ -163,6 +147,13 @@ jobs:
       # No-hang guard — unguarded networkidle waits cause 45s CI hangs (P-15).
       - name: Guard — no unguarded waitForLoadState("networkidle") in e2e
         run: node scripts/ci/check-no-unguarded-networkidle.mjs
+
+      # detect-changes fail-open discrimination (RC1 / RP-A, ADR 20261106): proves the
+      # change-detection classifier runs EVERY gated job when detection is unreliable, so a
+      # broken merge-base can never again silently skip e2e / migrations / db_schema. This
+      # test reddens if fail-open is reverted.
+      - name: Test — detect-changes fails open (RC1)
+        run: node scripts/ci/detect-changed-paths.test.mjs
 
       # Lockfile guard — npm is canonical. A stray bun.lock made Cloudflare
       # build with bun (can't parse nested overrides) and froze prod 11 days.
@@ -213,6 +204,15 @@ jobs:
       - name: Guard — no inline CORS in edge functions (shrink-only)
         run: node scripts/ci/check-no-inline-cors.mjs
 
+      # Server-side session revocation must stay enforced at the edge (SEC-1 / RH1): the
+      # is_session_revoked check in _shared/request-auth.ts cannot be removed (client-only
+      # revocation), and no NEW raw admin.auth.admin.signOut( call site may appear. The
+      # grandfather of the 4 pre-existing sites may only shrink (needs origin/main to diff;
+      # hence this runs in gate-verify's fetch-depth: 0 checkout). See ADR 20261106-server-
+      # side-session-revocation. ci-lane: bespoke.
+      - name: Guard — server-side session revocation enforced (shrink-only)
+        run: node scripts/ci/check-session-revocation-enforced.mjs
+
       # The dropped-supabase-error grandfather budget (scripts/lint/dropped-supabase-error-grandfather.json)
       # may only shrink, so a dev cannot destructure `data` without `error` and raise the number past
       # the no-dropped-supabase-error lint rule (the audit's #1 error-handling class; ADR-0032).
@@ -250,11 +250,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Restore node_modules
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: node-modules-${{ github.sha }}
           path: /tmp
@@ -268,7 +268,7 @@ jobs:
         run: npx vitest run --shard=${{ matrix.shard }}/4 --coverage --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shard }}.json
       - name: Upload coverage blob (shard ${{ matrix.shard }})
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: vitest-blob-${{ matrix.shard }}
           path: .vitest-reports/blob-${{ matrix.shard }}.json
@@ -289,17 +289,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Restore node_modules
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: node-modules-${{ github.sha }}
           path: /tmp
       - run: tar --use-compress-program="zstd -d" -xf /tmp/node_modules.tar.zst
       - name: Download coverage blobs (all shards)
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           pattern: vitest-blob-*
           path: .vitest-reports
@@ -310,7 +310,7 @@ jobs:
         run: node scripts/ci/check-coverage-floor.mjs
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: coverage-report
           path: coverage/
@@ -326,11 +326,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Restore node_modules
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: node-modules-${{ github.sha }}
           path: /tmp
@@ -341,7 +341,7 @@ jobs:
         run: npm run sbom
       - name: Upload SBOM artifact
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: cyclonedx-sbom
           path: sbom.json
@@ -369,7 +369,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: OWASP static SAST sweep (secret-free)
@@ -394,11 +394,46 @@ jobs:
         with:
           fetch-depth: 0 # full history so --changed can find the merge-base
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Architecture gate (ratchet — blocks new violations)
         run: npm run check:architecture
+
+  # ---------------------------------------------------------------------------
+  # bdd — executable Gherkin runner. BLOCKING (in the gate aggregator). The repo's
+  # .feature scenarios were documentation with NO runner (re-audit RP-G / BDD-1·2);
+  # this job EXECUTES the implemented subset in strict cucumber-js (an undefined /
+  # pending step is a hard failure — a scenario not wired to code cannot pass) and
+  # reconciles the committed BDD datastore against the feature files so no scenario
+  # is silently dropped and auth features never run here. Unconditional (like
+  # security-owasp) so the behavioural contract is checked on everything that ships.
+  # check-bdd-runner.mjs is a ci-lane:bespoke guard, wired by its own step below.
+  # See docs/adr/20261110-gherkin-executable-runner.md.
+  # ---------------------------------------------------------------------------
+  bdd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: setup
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+      - name: Restore node_modules
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: node-modules-${{ github.sha }}
+          path: /tmp
+      - run: tar --use-compress-program="zstd -d" -xf /tmp/node_modules.tar.zst
+      - name: BDD index integrity (datastore in sync, auth excluded, non-vacuous)
+        run: node scripts/ci/check-bdd-runner.mjs
+      - name: Run executable Gherkin scenarios (strict)
+        run: npm run test:bdd
 
   # Required status check — stays named "gate" so branch protection is unchanged.
   # Aggregates the three parallel gate jobs and fails if any did not succeed.
@@ -420,6 +455,7 @@ jobs:
         migration-smoke,
         db-schema-gate,
         deno-check,
+        bdd,
       ]
     if: always()
     permissions:
@@ -438,7 +474,8 @@ jobs:
           migr='${{ needs.migration-smoke.result }}'
           schema='${{ needs.db-schema-gate.result }}'
           dchk='${{ needs.deno-check.result }}'
-          echo "gate-verify=$verify  gate-test=$test  coverage=$cov  gate-build=$build  guard-matrix=$gm  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk"
+          bdd='${{ needs.bdd.result }}'
+          echo "gate-verify=$verify  gate-test=$test  coverage=$cov  gate-build=$build  guard-matrix=$gm  lint-arch-critical=$arch  security-owasp=$owasp  arch-gate=$agate  migration-smoke=$migr  db-schema-gate=$schema  deno-check=$dchk  bdd=$bdd"
           fail=0
           [ "$verify" = "success" ] || fail=1
           [ "$test" = "success" ] || fail=1
@@ -462,8 +499,10 @@ jobs:
           # deno-check is conditional on function changes: skipped (no function changes) passes,
           # otherwise it must succeed — this is what makes the edge-function unit tests block merge.
           if [ "$dchk" != "success" ] && [ "$dchk" != "skipped" ]; then fail=1; fi
+          # bdd is unconditional (strict Gherkin runner + datastore reconciliation): must succeed.
+          [ "$bdd" = "success" ] || fail=1
           if [ "$fail" -ne 0 ]; then
-            echo "::error::Gate failed (verify=$verify test=$test coverage=$cov build=$build guard-matrix=$gm arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk)."
+            echo "::error::Gate failed (verify=$verify test=$test coverage=$cov build=$build guard-matrix=$gm arch=$arch security-owasp=$owasp arch-gate=$agate migration-smoke=$migr db-schema-gate=$schema deno-check=$dchk bdd=$bdd)."
             exit 1
           fi
           echo "All gate jobs passed."
@@ -488,7 +527,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - id: emit
@@ -515,11 +554,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Restore node_modules
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: node-modules-${{ github.sha }}
           path: /tmp
@@ -546,11 +585,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Restore node_modules
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: node-modules-${{ github.sha }}
           path: /tmp
@@ -668,7 +707,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: check-db-schema-present.mjs (declared schema exists in prod — ADR-0036)
@@ -685,7 +724,7 @@ jobs:
   # ---------------------------------------------------------------------------
   db-test:
     needs: [detect-changes]
-    if: needs.detect-changes.outputs.migrations == 'true'
+    if: needs.detect-changes.outputs.migrations == 'true' || needs.detect-changes.outputs.db_tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -713,8 +752,25 @@ jobs:
         uses: ./.github/actions/cache-supabase-images
         with:
           cli-version: "2.30.4"
-      - name: Start local Supabase (Postgres + pgTAP)
-        run: supabase start
+      - name: Start local Supabase (Postgres + pgTAP) — retry transient registry 502s
+        # `supabase start` pulls its Docker images from ECR Public on a cache miss, which intermittently
+        # returns 502 ("invalid response from the upstream server"). db-test has no continue-on-error and
+        # now runs on every supabase/tests change, so a transient 502 reddens the whole CI run and — on
+        # main — fires main-failure-alert (a false page; this exact flake did, 2026-11-10, ADR 20261110).
+        # Retry with backoff (mirrors the CLI-download retry above) so a transient pull can't false-fail.
+        # A PERSISTENT outage still fails after the retries — that is a real signal worth surfacing.
+        run: |
+          n=0; max=3; delay=15
+          until supabase start; do
+            n=$((n + 1))
+            if [ "$n" -ge "$max" ]; then
+              echo "::error::supabase start failed after ${max} attempts (likely a persistent registry/image-pull outage, not a flake)."
+              exit 1
+            fi
+            echo "::warning::supabase start failed (attempt ${n}/${max}) — stopping and retrying in ${delay}s (transient registry 502?)."
+            supabase stop --no-backup || true
+            sleep "$delay"; delay=$((delay * 2))
+          done
       - name: Save Supabase images to cache (first run / CLI bump only)
         if: ${{ env.SUPABASE_IMAGES_CACHE_MISS == '1' }}
         run: |
@@ -756,11 +812,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
       - name: Restore node_modules
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: node-modules-${{ github.sha }}
           path: /tmp
@@ -849,7 +905,7 @@ jobs:
         run: supabase stop --no-backup
       - name: Upload blob report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: playwright-blob-shard-${{ matrix.shard }}
           path: blob-report
@@ -934,12 +990,14 @@ jobs:
             supabase/functions/edge-deploy-smoke/alerts.test.ts \
             supabase/functions/gumroad-webhook/lifecycle.test.ts \
             supabase/functions/_shared/email/announcement-render.test.ts \
+            supabase/functions/_shared/email/announcement-reach.test.ts \
             supabase/functions/send-announcement-email/attestation.test.ts \
             supabase/functions/process-freescout-events/auth.test.ts \
             supabase/functions/reap-class-module-orphans/lib.test.ts \
             supabase/functions/_shared/confirm-role.test.ts \
             supabase/functions/_shared/translation-guard.test.ts \
             supabase/functions/_shared/escape-html.test.ts \
+            supabase/functions/_shared/prompt-injection.test.ts \
             supabase/functions/_shared/email/domain/email-tiers.test.ts \
             supabase/functions/_shared/email/infrastructure/ops-event-sink.test.ts \
             supabase/functions/_shared/client-ip.test.ts \

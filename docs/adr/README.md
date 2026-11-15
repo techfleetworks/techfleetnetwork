@@ -43,6 +43,17 @@ would break existing links). Reference a legacy ADR as `ADR-NNNN`, a date ADR as
 | [0016](0016-email-tiering-and-notify-announcements-retirement.md) | Email tiering and retirement of `notify_announcements`                             | Accepted           |
 | [0017](0017-email-octopus-marketing-source-of-truth.md)           | Email Octopus is the marketing source of truth (Ghost blog-only)                   | Accepted           |
 | [0018](0018-transactional-marketing-scope-separation.md)          | Transactional/marketing scope separation and independent suppression scopes        | Accepted           |
+| [20261110](20261110-widen-expand-contract-migration-guard.md)     | Widen the expand/contract migration guard to the full unsafe-DDL rule set           | Accepted           |
+| [20261110](20261110-alerting-cannot-go-dark.md)                    | The main-failure alert cannot go dark (GitHub-issue fallback + coverage guard)       | Accepted           |
+| [20261110](20261110-deno-test-coverage.md)                         | Every edge-function test must run in CI (deno-test-coverage guard; RP-H scoping)      | Accepted           |
+| [20261110](20261110-db1-anon-definer-completeness.md)              | Prove no SECURITY DEFINER function is anon-executable (DB-1 completeness; RP-I)        | Accepted           |
+| [20261110](20261110-db1-revoke-trigger-functions.md)               | DB-1 burndown batch 1: revoke anon EXECUTE on 18 trigger functions                     | Accepted           |
+| [20261110](20261110-db1-revoke-rpc-admin-mutations.md)             | DB-1 burndown batch 2: revoke anon EXECUTE on 20 rpc-callable admin mutations           | Accepted           |
+| [20261110](20261110-db1-revoke-rls-helper-functions.md)            | DB-1 burndown batch 3: revoke anon EXECUTE on 8 RLS-helper functions                     | Accepted           |
+| [20261110](20261110-db1-tighten-has-role-policies.md)              | DB-1 burndown batch 4: tighten 9 implicit-PUBLIC has_role RLS policies to authenticated  | Accepted           |
+| [20261110](20261110-db1-revoke-has-role.md)                        | DB-1 burndown batch 5: revoke anon EXECUTE on has_role                                    | Accepted           |
+| [20261111](20261111-db1-revoke-ops-functions.md)                   | DB-1 burndown batch 6: revoke anon EXECUTE on ops/monitoring + missed-trigger functions   | Accepted           |
+| [20261110](20261110-db-test-start-retry.md)                        | Retry `supabase start` in db-test so a transient 502 can't false-page main            | Accepted           |
 
 The first block of ADRs covers the **Hand-Off Production System + SPF data-layer migration** work
 (0008 to 0012 exist in this directory as well). **0015** is the design-system ADR (MUI-owned layer).

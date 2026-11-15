@@ -136,6 +136,67 @@ Deno.serve(withAuditWrapper("email-pipeline-health", async (req) => {
     }
   }
 
+  // ---- Circuit breaker not recovering ----
+  // With the half-open auto-close (migration 20261113010000) a transient blip recovers
+  // on its own, so a non-closed state alone is not alarming. The real "stuck" signal is
+  // a BACKLOG THAT IS NOT DRAINING: a lane that is not closed AND whose OLDEST pending
+  // row has been waiting past a long threshold. We key off oldest-pending age, not
+  // opened_at (which refreshes on every reopen while a down provider cycles
+  // open/half_open) — and a lane that is genuinely recovering drains oldest-first, so its
+  // oldest-pending age stays low and it does not page. De-noised per lane (mirrors the
+  // probe loop above). All query errors are surfaced — the observer must not go silent.
+  const BREAKER_STUCK_MINUTES = 60
+  try {
+    const staleSince = new Date(Date.now() - BREAKER_STUCK_MINUTES * 60 * 1000).toISOString()
+    const { data: lanes, error: lanesErr } = await supabase
+      .from('email_lane_state')
+      .select('lane, circuit_state, paused_by_admin')
+      .neq('circuit_state', 'closed')
+    if (lanesErr) console.error('[email-pipeline-health] lane_state read failed', lanesErr)
+    for (const lane of (lanes ?? []) as Array<{ lane: string; circuit_state: string; paused_by_admin: boolean }>) {
+      const { count: stalePending, error: pErr } = await supabase
+        .from('email_outbox')
+        .select('id', { count: 'exact', head: true })
+        .eq('lane', lane.lane)
+        .eq('status', 'pending')
+        .lt('created_at', staleSince)
+      if (pErr) { console.error('[email-pipeline-health] stale-pending read failed', { lane: lane.lane, pErr }); continue }
+      if (!stalePending || stalePending === 0) continue // draining (or nothing waiting) → not stuck
+
+      const eventType = 'email_breaker_degraded'
+      const laneTag = `lane:${lane.lane}`
+      const stateTag = `state:${lane.circuit_state}`
+      // Per-lane de-noise: the most recent prior alert for THIS lane.
+      const { data: prior, error: priorErr } = await supabase
+        .from('audit_log')
+        .select('changed_fields, created_at')
+        .eq('event_type', eventType)
+        .contains('changed_fields', [laneTag])
+        .order('created_at', { ascending: false })
+        .limit(1)
+      if (priorErr) console.error('[email-pipeline-health] breaker de-noise read failed', { lane: lane.lane, priorErr })
+      const lastRow = Array.isArray(prior) && prior.length > 0 ? prior[0] : null
+      const lastFields: string[] = Array.isArray(lastRow?.changed_fields) ? lastRow!.changed_fields : []
+      const sameState = lastFields.includes(laneTag) && lastFields.includes(stateTag)
+      const lastAt = lastRow?.created_at ? new Date(lastRow.created_at).getTime() : 0
+      const stale = Date.now() - lastAt > 24 * 60 * 60 * 1000 // 24h heartbeat even if unchanged
+
+      if (!sameState || stale) {
+        const { error: writeErr } = await supabase.rpc('write_audit_log', {
+          p_event_type: eventType,
+          p_table_name: 'email_lane_state',
+          p_record_id: lane.lane,
+          p_user_id: null,
+          p_changed_fields: [laneTag, stateTag, `stale_pending:${stalePending}`, `paused:${lane.paused_by_admin}`],
+          p_error_message: `email lane '${lane.lane}' circuit is ${lane.circuit_state} and its backlog is not draining — ${stalePending} row(s) pending >${BREAKER_STUCK_MINUTES}m. Provider likely down; resume_email_lane('${lane.lane}') if it has recovered.`,
+        })
+        if (writeErr) console.error('[email-pipeline-health] breaker alert write failed', { lane: lane.lane, writeErr })
+      }
+    }
+  } catch (err) {
+    console.error('[email-pipeline-health] breaker probe failed', err)
+  }
+
   // ---- Audit-log volume pressure (no new cron) ----
   // Cheap aggregate: count last 5 minutes, project to 24h, classify.
   let auditPressure: 'none' | 'soft' | 'medium' | 'hard' = 'none'

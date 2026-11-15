@@ -6,3 +6,9 @@
 supabase/functions.manifest.json text eol=lf
 supabase/functions/*/_manifest.json text eol=lf
 src/generated/edge-functions.manifest.json text eol=lf
+
+# Generated BDD datastore — written by scripts/ci/emit-bdd-index.mjs (Node, always
+# LF) and reconciled byte-for-byte by scripts/ci/check-bdd-runner.mjs. Pin to LF so
+# Windows core.autocrlf=true cannot turn the working copy into CRLF and trip the
+# guard with a spurious "datastore is stale" drift. (ADR 20261110.)
+features/bdd-index.json text eol=lf

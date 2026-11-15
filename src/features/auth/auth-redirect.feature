@@ -1,3 +1,7 @@
+# @auth — OUT OF SCOPE for the general BDD runner: the auth refactor owns auth features
+# (sign in/up/reset/MFA/redirect). Excluded from the strict runner via `not @auth`. Also
+# @pending until the auth owner wires step defs. See ADR 20261110.
+@auth @pending
 Feature: Post-auth redirect targets are validated (no open redirect / XSS)
   The auth register flow reads an untrusted ?redirect= query param and uses it
   for window.location.assign and for the email redirect target. Every use goes

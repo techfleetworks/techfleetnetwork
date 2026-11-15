@@ -1,45 +1,121 @@
 name: Main failure alert
 
-# PRD v1.2 D-24/P-20: production deploy/build failures must be LOUD.
-# The react-router build break sat silently on main until manually discovered;
-# the bun.lock freeze lasted 11 days. This workflow fires whenever a critical
-# workflow completes with failure on main and posts to the platform Discord
-# alerts channel.
+# PRD v1.2 D-24/P-20 + re-audit 2026-10-30 RH4 / SRE-1..3 / REL-1: a failure of a
+# production-critical workflow on main is a USER-FACING SYMPTOM (prod may be stale or
+# broken) and must reach a human — never a silent skip, and never a page that depends
+# on one secret being set.
 #
-# Setup (one secret): DISCORD_ALERT_WEBHOOK — a Discord webhook URL for the
-# alerts channel (same value as the edge-function DISCORD_PLATFORM_UPDATES_WEBHOOK
-# is fine). Until it is set, the alert degrades to a loud red annotation on the
-# run — never a silent skip.
+# Two channels so a main failure reaches a human without depending on one secret:
+#   1. PRIMARY — Discord webhook (DISCORD_ALERT_WEBHOOK), the fast platform channel.
+#   2. FALLBACK — a GitHub issue opened with the built-in GITHUB_TOKEN (NO secret
+#      required). If the webhook is unset OR the POST fails, we open/append an issue so
+#      repo watchers are notified. Only if BOTH channels fail does the step exit non-zero
+#      (a loud red run — the bounded last resort, not itself a page). The honest bound:
+#      this covers a watched run that concludes failure/timed_out/startup_failure and a
+#      repo that can open issues; see ADR 20261110-alerting-cannot-go-dark Limitations.
+#
+# Dedupe is BOUNDED, not forever (contrast the edge paging path, SRE-2): the fallback
+# reuses the one OPEN issue per workflow (commenting instead of spamming new issues) and
+# RESETS when that issue is closed — a later failure after resolution opens a fresh one.
+#
+# Setup (optional): DISCORD_ALERT_WEBHOOK — a Discord webhook URL for the alerts channel.
+# Until it is set, alerts still arrive via the GitHub-issue fallback.
+#
+# The watched-workflow list is the critical production set and is kept in lockstep with
+# scripts/ci/check-alert-coverage.mjs (a blocking guard that reds if a critical workflow
+# loses alert coverage or the fallback is removed). See ADR 20261110-alerting-cannot-go-dark.
 
 on:
   workflow_run:
-    workflows: ["CI", "Deploy edge functions", "Config preflight"]
+    workflows:
+      - "CI"
+      - "Deploy edge functions"
+      - "Deploy frontend (Cloudflare)"
+      - "Deploy migrations"
+      - "Config preflight"
+      - "Verify deploy"
     types: [completed]
     branches: [main]
 
 permissions:
   contents: read
+  issues: write # fallback channel — open/append a GitHub issue when Discord is unavailable
 
 jobs:
   alert:
-    if: github.event.workflow_run.conclusion == 'failure'
+    # A watched run that FAILED, TIMED OUT, or had a startup failure on main is the symptom (prod may be
+    # stale or broken) — all three must alert, or a hung Deploy/Verify run goes dark. 'cancelled' is
+    # excluded on purpose: a cancel is usually an intentional or superseded run, so paging on it is noise.
+    # head_branch == 'main' is belt-and-suspenders over on.workflow_run.branches (matches ci-alert.yml).
+    if: >-
+      github.event.workflow_run.head_branch == 'main' &&
+      contains(fromJSON('["failure","timed_out","startup_failure"]'), github.event.workflow_run.conclusion)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Post Discord alert (or fail loudly if webhook unset)
+      - name: Alert on main failure (Discord, else GitHub issue — never dark)
         env:
           WEBHOOK: ${{ secrets.DISCORD_ALERT_WEBHOOK }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           WF_NAME: ${{ github.event.workflow_run.name }}
           WF_URL: ${{ github.event.workflow_run.html_url }}
           WF_SHA: ${{ github.event.workflow_run.head_sha }}
           WF_TITLE: ${{ github.event.workflow_run.display_title }}
+          WF_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         run: |
-          msg="🚨 **${WF_NAME} FAILED on main** — ${WF_TITLE} (\`${WF_SHA:0:8}\`). Production may be stale or broken. ${WF_URL}"
+          set -uo pipefail
+          short="${WF_SHA:0:8}"
+          verb=$(echo "${WF_CONCLUSION:-failed}" | tr '[:lower:]' '[:upper:]' | tr '_' ' ')
+          msg="🚨 **${WF_NAME} ${verb} on main** — ${WF_TITLE} (\`${short}\`). Production may be stale or broken. ${WF_URL}"
           echo "$msg"
-          if [ -z "$WEBHOOK" ]; then
-            echo "::error::DISCORD_ALERT_WEBHOOK secret is not set — alert could not be delivered. Add it in Settings → Secrets so main failures page a human (PRD D-24)."
+
+          delivered=0
+
+          # 1) PRIMARY: Discord webhook, if configured and reachable.
+          if [ -n "${WEBHOOK}" ]; then
+            payload=$(jq -n --arg content "$msg" '{content: $content}')
+            if curl -sf -X POST -H "Content-Type: application/json" -d "$payload" "$WEBHOOK"; then
+              echo "Alert delivered to Discord."
+              delivered=1
+            else
+              echo "::warning::Discord webhook POST failed — falling back to the GitHub-issue channel."
+            fi
+          else
+            echo "::warning::DISCORD_ALERT_WEBHOOK not set — using the GitHub-issue fallback channel."
+          fi
+
+          # 2) FALLBACK: a GitHub issue (needs no secret — notifies repo watchers).
+          #    Bounded dedupe: reuse the one OPEN issue for this workflow; it resets on close.
+          if [ "$delivered" -eq 0 ]; then
+            label="main-failure"
+            title="🚨 ${WF_NAME} failing on main"
+            gh label create "$label" --color B60205 \
+              --description "Automated main-branch failure alert (fallback channel)" --force >/dev/null 2>&1 || true
+            body=$(printf '%s\n\n%s\n\n%s\n' \
+              "$msg" \
+              "Delivered via the **GitHub-issue fallback** because the Discord alert channel was unavailable (webhook unset or POST failed)." \
+              "**Runbook:** 1) open the failing run above and fix the failure; 2) set/repair the \`DISCORD_ALERT_WEBHOOK\` repo secret so the primary channel pages again; 3) close this issue once resolved — a later failure opens a fresh one (bounded dedupe).")
+            # Pass the title as a jq ARG (not string-interpolated into the program) so a workflow name
+            # containing a quote or backslash cannot break the filter and silently defeat the dedupe.
+            existing=$(gh issue list --repo "$GH_REPO" --state open --label "$label" --json number,title 2>/dev/null \
+              | jq -r --arg t "$title" '[.[] | select(.title == $t)] | .[0].number // empty' 2>/dev/null || echo "")
+            if [ -n "$existing" ]; then
+              if gh issue comment "$existing" --repo "$GH_REPO" \
+                   --body "Still failing: ${WF_TITLE} (\`${short}\`) — ${WF_URL}"; then
+                echo "Appended to existing alert issue #${existing}."
+                delivered=1
+              fi
+            else
+              if gh issue create --repo "$GH_REPO" --title "$title" --label "$label" --body "$body"; then
+                echo "Opened a new alert issue."
+                delivered=1
+              fi
+            fi
+          fi
+
+          # 3) Only now, if NEITHER channel worked, fail loudly so the run itself is the signal.
+          if [ "$delivered" -eq 0 ]; then
+            echo "::error::Both alert channels failed (Discord + GitHub issue). A main failure went undelivered — investigate immediately."
             exit 1
           fi
-          payload=$(jq -n --arg content "$msg" '{content: $content}')
-          curl -sf -X POST -H "Content-Type: application/json" -d "$payload" "$WEBHOOK"
-          echo "Alert posted."

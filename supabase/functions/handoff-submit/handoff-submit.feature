@@ -1,3 +1,5 @@
+# @pending — committed spec; step defs not yet wired (needs Deno + Supabase). See ADR 20261110.
+@pending
 Feature: Hand-off deliverable submission (intake)
   As an active teammate on a project, so our hand-off can be produced, I submit
   deliverables (text, links, or files) against the 26 hand-off components. Every

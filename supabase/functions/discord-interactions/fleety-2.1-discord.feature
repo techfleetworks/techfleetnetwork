@@ -2,6 +2,8 @@
 # trusted-caller seam. Threat model + security requirements (owasp-secure-coding-bdd). Executable
 # coverage lives in echo.test.ts / spf-links.test.ts / seam.test.ts (Deno) + the pgTAP RPC guards.
 
+# @pending — committed spec; step defs not yet wired (needs Deno + Discord seam). See ADR 20261110.
+@pending
 Feature: Discord /fleety on the unified 2.0 brain (Fleety 2.1)
 
   # ── Broken auth / the new trust boundary (authentication-session, api-tokens-microservices) ──

@@ -25,11 +25,20 @@ in Nginx/DNS/CDN/CI, not by adding client-side guards. The boot sequence in `mai
 pile of such band-aids; the goal is to REMOVE them as the real fixes land, not add more.
 When a root cause is fixed at the proper layer, delete the band-aid it replaces in the same PR.
 
-## Auth is frozen (see 06-auth-flow-lockdown.skill.md)
-Highest-priority area. Do not edit `src/integrations/supabase/client.ts`, the `main.tsx` boot
-block, `src/lib/auth/**`, `src/features/auth/**`, or sign-in/up/reset/MFA UI without the full
-auth regression suite passing. Exactly ONE Supabase client instance — never a second.
-Once the server does apex→www 301 (Nginx/CDN), DELETE `enforceCanonicalHost()` and the
+## Auth is under active refactor (freeze lifted 2026-11-06 — see ADR 20261106)
+The auth layer — `src/integrations/supabase/client.ts`, the `main.tsx` boot block,
+`src/lib/auth/**`, `src/features/auth/**`, and sign-in/up/reset/MFA UI — was frozen ("do not edit").
+The owner lifted that freeze on 2026-11-06 to refactor the buggy login / account-setup flow, so
+editing these files is now permitted. **The safety bar is NOT lowered** — it moves from a "do not
+touch" rule to CI enforcement. Every auth change must still:
+- keep the **auth regression suite** and the lockdown **contract tests** green in CI before merge
+  (`src/features/auth/testing/contract/auth-flow-lockdown.contract.test.ts`,
+  `auth-mfa-lockdown.contract.test.ts`);
+- use exactly **ONE** Supabase client instance — never a second;
+- never weaken auth, RLS, validation, or types to make something pass (prime directive #5).
+
+Still highest-priority, highest-blast-radius area (~767 live users) — smallest change, prove every
+fix. Once the server does apex→www 301 (Nginx/CDN), DELETE `enforceCanonicalHost()` and the
 OAuth-restart machinery.
 
 ## Definition of Done (every task)
@@ -54,7 +63,7 @@ OAuth-restart machinery.
 - `03-database-rls.skill.md` — migrations, RLS, indexing, RPC security, PGRST002.
 - `04-performance-scale.skill.md` — caching, dedupe, pagination, cost at 10k users.
 - `05-devops-cicd.skill.md` — CI gates, migrations in CI, environments, observability.
-- `06-auth-flow-lockdown.skill.md` — the frozen auth layer; overrides others on conflict.
+- `06-auth-flow-lockdown.skill.md` — auth-layer invariants (one client, never weaken auth, contract tests); the "frozen / do-not-edit" status was lifted 2026-11-06, the invariants remain and still override other skills on conflict.
 
 ## Architecture gate (blocking — every change)
 Every change that adds, moves, deletes, or restructures code or schema passes the architecture gate

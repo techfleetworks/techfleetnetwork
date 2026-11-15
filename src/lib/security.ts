@@ -1190,20 +1190,10 @@ export function isAllowedAiToolCall(policy: AiToolPolicy): boolean {
   return true;
 }
 
-/**
- * LLM01: Detect prompt injection patterns in user input (client-side).
- * Use as pre-flight check before sending to AI endpoint.
- */
-export function hasPromptInjectionPattern(input: string): boolean {
-  const patterns = [
-    /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?)/i,
-    /you\s+are\s+now\s+(a|an|the|DAN|jailbroken)/i,
-    /system\s*prompt/i,
-    /\[SYSTEM\]/i,
-    /reveal\s+(your|the)\s+(system|initial)\s+(prompt|instructions?)/i,
-    /bypass\s+(the\s+)?(restrictions?|filters?|safety)/i,
-    /tool\s*call|function\s*call|mcp\s*server/i,
-    /exfiltrate|send\s+(secrets?|tokens?|keys?)\s+to/i,
-  ];
-  return patterns.some((p) => p.test(input));
-}
+// LLM01 prompt-injection detection moved to its ONE owner,
+// supabase/functions/_shared/prompt-injection.ts (hasPromptInjection). The copy that used to
+// live here had ZERO production callers while a DIFFERENT copy guarded the live chat endpoint
+// — the tested detector was not the one that ran (re-audit 2026-10-30 RH3 / PAT-1,
+// ADR 20261106-prompt-injection-single-owner). Import from the shared owner if a client-side
+// pre-flight is ever needed; do not re-add a second implementation here
+// (scripts/ci/check-single-prompt-injection-owner.mjs forbids it).

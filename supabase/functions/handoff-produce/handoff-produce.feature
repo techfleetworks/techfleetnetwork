@@ -1,3 +1,5 @@
+# @pending — committed spec; step defs not yet wired (needs Deno + async pipeline). See ADR 20261110.
+@pending
 Feature: Hand-off production (enqueue + durable async pipeline)
   As an active teammate on a project, once all 26 hand-off components are provided, I
   trigger production. The front door only enqueues; a durable, cron-driven worker drives

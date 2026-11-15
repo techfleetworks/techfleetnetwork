@@ -7,6 +7,7 @@ import { fetchWithTimeout } from "../_shared/fetch-timeout.ts";
 import { requireMarketingAttestation } from "./attestation.ts";
 import { htmlToPlainText } from "../_shared/html-to-text.ts";
 import { renderAnnouncementEmail } from "../_shared/email/announcement-render.ts";
+import { emitAnnouncementReachAlert } from "../_shared/email/announcement-reach.ts";
 // CORS from the shared owner so the preflight allows x-trace-id (invokeEdge attaches it);
 // an inline block that omits it makes the browser block the POST. See supabase/functions/CLAUDE.md.
 import { corsHeaders } from "../_shared/http.ts";
@@ -166,6 +167,19 @@ Deno.serve(
 
       if (enqueueError) {
         console.error("enqueue_announcement_emails failed:", enqueueError);
+        // No silent failure: page via the durable audit sink (System Health → Top
+        // Errors) BEFORE returning. The UI invokes this fire-and-forget, so the 500
+        // alone is invisible — exactly how the 2026-11-12 under-reach went unnoticed.
+        // A delivery test is a probe, not a broadcast, so it does not page.
+        if (!testMode) {
+          await emitAnnouncementReachAlert(adminClient, {
+            announcementId: announcement_id,
+            reason: "enqueue_failed",
+            detail: `announcement ${announcement_id} enqueue failed and rolled back: ${
+              String((enqueueError as { message?: string })?.message ?? enqueueError).slice(0, 300)
+            }`,
+          });
+        }
         return new Response(JSON.stringify({ error: "Failed to enqueue announcement" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,3 +1,5 @@
+# @pending — committed spec; step defs not yet wired (needs Deno + file extraction). See ADR 20261110.
+@pending
 Feature: Fleety file uploads — read/extract/review an attached file (2.2-F)
   A member attaches a file (PDF / image / text-or-code) in any of the three Fleety chat surfaces.
   fleety-extract turns it into TEXT; the surface sends that text to techfleet-chat as an

@@ -1,0 +1,702 @@
+{
+  "doc": "See docs/adr/20261106-erasure-completeness-registry.md",
+  "generated_hint": "Human-maintained PII data map for check-erasure-completeness.mjs. coverage ∈ {erased, cascade, orphan, author-provenance, retained}. The gate re-derives erased/cascade from the schema and FAILS on any mismatch, on any unregistered PII table, and on an allow-list entry missing its reason. See docs/adr/20261106-erasure-completeness-registry.md.",
+  "external_processor_scope": "Discord is the only integrated external processor today (reaudit RC0/RC-held). Freescout/Airtable/Braintrust external deletion is NOT in scope for this gate.",
+  "tables": [
+    {
+      "table": "accessibility_training_completions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "admin_banners",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the authoring admin; banners are org content, not a member's personal data."
+    },
+    {
+      "table": "admin_promotions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "announcement_actions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Subject's per-announcement actions (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "announcement_reads",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "announcement_views",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Subject's per-announcement views (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "announcements",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the authoring admin; announcements are org broadcast content, not personal data."
+    },
+    {
+      "table": "application_confirmation_outbox",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Holds recipient_email for confirmation sends (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "audit_log",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "retained",
+      "reason": "SOC 2 / ISO 27001 tamper-evident hash-chained audit log; intentionally RETAINED on erasure (the winning handle_user_deletion() keeps it; redact-in-place is the admin path). user_id is nullable. Residual email-in-audit is tracked as CMP-8."
+    },
+    {
+      "table": "badges_awarded",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "banner_dismissals",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Subject's banner dismissals (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "career_plans",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Subject's career-plan notes free text (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "chat_conversations",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "class_audit",
+      "identity_columns": [
+        "actor_user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "actor_user_id records who acted on a class; rows are removed only via class_id -> the class OWNER, so an actor's audit rows on a class they do not own orphan. De-identify actor_user_id on erasure. CMP-2 (reaudit-2026-10-30), deferred to the RP-C schema-remediation follow-up."
+    },
+    {
+      "table": "class_certifications",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Certification mirror: email + raw Airtable data (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "class_followers",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "class_module_attachments",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "class_module_items",
+      "reason": "Authorship-only (created_by, the staff uploader); every row is removed via item_id/class_id (NOT NULL) ON DELETE CASCADE to the class content, which cascades to the class owner. Not the data subject's personal data."
+    },
+    {
+      "table": "class_module_audit",
+      "identity_columns": [
+        "actor_user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "actor_user_id records who acted on a class module; rows are removed only via class_id -> the class OWNER, so an actor's audit rows on a module they do not own orphan. De-identify actor_user_id on erasure. CMP-2 (reaudit-2026-10-30), deferred to the RP-C schema-remediation follow-up."
+    },
+    {
+      "table": "class_module_items",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "classes"
+    },
+    {
+      "table": "class_module_progress",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "class_module_sections",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "classes"
+    },
+    {
+      "table": "classes",
+      "identity_columns": [
+        "owner_user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "clients",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the admin who added the client org; clients are organizations, not TFN members."
+    },
+    {
+      "table": "cohort_registrations",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "community_agreement_signatures",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "project_applications",
+      "reason": "Covered via application_id (NOT NULL) ON DELETE CASCADE -> project_applications, which is erased WHERE user_id = OLD.id. Same-subject invariant: a signatory signs the community agreement for their OWN application, so signature.user_id = application.user_id; deleting the user removes their applications and cascades to their signatures. Value-level divergence is covered by the complementary pgTAP runtime sweep (CMP-2 Prevent)."
+    },
+    {
+      "table": "cookie_consents",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "course_completions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "dashboard_preferences",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "device_binding_nonces",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Device-binding nonces keyed to the subject (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "discord_oauth_states",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "discord_role_grant_queue",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Links user_id to discord_user_id (external identity). Local queue row; external role removal is RC0. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "dispute_intake",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "retained",
+      "reason": "Legal dispute record; user_id is ON DELETE SET NULL. Retained for the duration of a potential legal claim; residual email/ip de-identification CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "dpa_executions",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "retained",
+      "reason": "Executed Data Processing Agreement; signer (signed_by_name/email/ip) is a client representative, not necessarily a TFN member. Contract record retained under legal basis."
+    },
+    {
+      "table": "dsar_requests",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "retained",
+      "reason": "The data-subject request ledger itself; retained as proof the request was handled (accountability). De-identification after the retention window CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "email_octopus_contact_sync",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "EmailOctopus local mirror: email (PK) + fields jsonb (first_name). On account deletion handle_user_deletion() only SET NULLs user_id; email + first_name REMAIN. The EO outbox worker deletes the external contact and the local row by email (eo_contact_delete_on_account_deletion), but that is async and outside the synchronous erasure function, so local completeness is not proven here. CMP-2 (reaudit-2026-10-30), deferred to the RP-C schema-remediation follow-up."
+    },
+    {
+      "table": "exploration_queries",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Subject's free-text exploration queries (user_id, query_text). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "feedback",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "fleety_action_events",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "fleety_canned_answers",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the KB curator; canned answers are knowledge-base content."
+    },
+    {
+      "table": "fleety_examples",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the curator; few-shot examples are KB content."
+    },
+    {
+      "table": "fleety_message_feedback",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Subject's message feedback (user_id); cascades to fleety_turn_signals, which is itself orphaned. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "fleety_playbooks",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the curator; playbooks are KB content."
+    },
+    {
+      "table": "fleety_prompt_versions",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the curator; prompt versions are configuration content."
+    },
+    {
+      "table": "fleety_turn_signals",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Fleety telemetry with user_query free text; cascade via conversation_id is NULLABLE so rows with NULL conversation_id orphan (user_id NOT NULL). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "fleety_user_memory",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "form_drafts",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "general_application_submissions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "general_applications",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "grid_view_states",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "gumroad_sales",
+      "identity_columns": [
+        "resolved_user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "handoff_deliverable_submissions",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "handoff_feedback",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "orphan",
+      "reason": "created_by (DEFAULT auth.uid()) is the member giving feedback; subject PII. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "handoff_source_map",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the pipeline operator; rows map project components to source locations (project config), not personal data."
+    },
+    {
+      "table": "journey_progress",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "lesson_video_events",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "login_attempts",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Security log: email_hash, ip_hash, user_id. Should de-identify on erasure. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "notification_dlq",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Dead-letter notifications with payload (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "notification_outbox",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Queued notifications with payload (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "notifications",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "observer_role_optins",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "passkey_credentials",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "WebAuthn credentials keyed to the subject (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "passkey_login_challenges",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "WebAuthn login challenges (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "passkey_login_sessions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "WebAuthn login sessions (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "passkey_recovery_tokens",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "WebAuthn recovery tokens (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "policy_acknowledgments",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "profiles",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "profile_email_aliases",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "profiles"
+    },
+    {
+      "table": "project_applications",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "project_blast_recipients",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Per-recipient blast rows with email_hash (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "project_certifications",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Certification mirror: email + raw Airtable data (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "projects",
+      "identity_columns": [
+        "created_by"
+      ],
+      "coverage": "author-provenance",
+      "reason": "created_by is the admin/owner; projects are org content linked to a client, not a member's personal data."
+    },
+    {
+      "table": "push_subscriptions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "recording_consents",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "cascade",
+      "cascade_parent": "AUTH"
+    },
+    {
+      "table": "request_idempotency",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Short-TTL idempotency cache; user_id is nullable, low sensitivity but subject-linked. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "revoked_sessions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Revoked-session records keyed to the subject (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "sanctions_screenings",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "retained",
+      "reason": "AML/sanctions screening evidence; user_id is ON DELETE SET NULL. Retained under legal-obligation basis; residual email/ip de-identification CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "security_events",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Security/WAF log: user_id (nullable) + ip_address. Should de-identify on erasure. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "signup_confirmation_reminders",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Reminder rows with email (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "support_provisioning_log",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "support_rate_limits",
+      "identity_columns": [
+        "subject_user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Per-subject rate-limit counters (subject_user_id); low sensitivity but subject-linked. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "support_ticket_events",
+      "identity_columns": [
+        "customer_user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "support_ticket_pointers",
+      "identity_columns": [
+        "customer_user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Pointer linking customer_user_id to an external Freescout conversation. Local pointer orphans; external deletion is RC0. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "teacher_promotions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Promotion tokens keyed to the subject (user_id, token). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "tickets",
+      "identity_columns": [
+        "owner_user_id"
+      ],
+      "coverage": "retained",
+      "reason": "Local mirror of a Chatwoot support conversation; owner_user_id is ON DELETE SET NULL. External support record; local assignee_email retained. External deletion is RC0."
+    },
+    {
+      "table": "trusted_devices",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Device fingerprints keyed to the subject (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "two_factor_login_sessions",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "2FA login sessions keyed to the subject (user_id). CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    },
+    {
+      "table": "user_quest_selections",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "user_roles",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "erased"
+    },
+    {
+      "table": "web_vital_samples",
+      "identity_columns": [
+        "user_id"
+      ],
+      "coverage": "orphan",
+      "reason": "Performance telemetry; user_id is nullable, pseudonymous/low sensitivity but subject-linked. CMP-2 (reaudit-2026-10-30); erasure/de-identification deferred to the RP-C schema-remediation follow-up (held with RC0)."
+    }
+  ]
+}

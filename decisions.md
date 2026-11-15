@@ -461,6 +461,28 @@ Enforced by `arch-gate.mjs` itself: it fails **closed** (exit 2) if any waiver h
 in `src/test/smoke/arch-gate.smoke.test.ts` (undated / unparseable → exit 2). The backlog of 305 baseline
 waivers is dated `2027-04-30`; shrink it (the file is the architectural backlog), and raise no new permanent ones.
 
+**A `.feature` file is not coverage until a runner executes it.** Gherkin scenarios with no executable
+runner are documentation that reads like tests — a false green of "we have BDD coverage" (re-audit
+2026-10-30, BDD-1·BDD-2: ~106 scenarios, zero executed). A scenario proves behaviour only when a strict
+runner binds it to real code and fails on an undefined/pending step; a scenario not yet wired must be
+**visibly tracked as pending**, never silently skipped.
+
+```
+❌ never — a .feature nobody runs, or a pending scenario dropped silently (the runner just never sees it)
+features/x.feature            # committed, cited as "coverage", but no cucumber job executes it
+cucumber --tags 'not @wip'    # @wip scenarios vanish from the report — undefined steps never surface
+✅ always — strict runner executes the implemented subset; pending is tracked in the datastore, not hidden
+npm run test:bdd              # cucumber-js strict: an undefined/pending step is a HARD failure
+# unimplemented features carry a @pending tag AND a row in features/bdd-index.json (status: pending)
+```
+
+Enforced by the blocking `bdd` CI job (strict `cucumber-js` executes the `not @pending`/`not @auth`
+subset) plus `scripts/ci/check-bdd-runner.mjs` (`bespoke` lane): it reconciles the committed datastore
+`features/bdd-index.json` against the `.feature` files and fails closed on index drift, a feature with no
+declared audience, an `@auth` feature that would execute, or an **empty** executable set (vacuous green).
+Auth features (`@auth`) are excluded — the auth refactor owns them. Pinned + discriminated by
+`src/test/smoke/check-bdd-runner.smoke.test.ts`. See **ADR 20261110**.
+
 ---
 
 ## 7 · Schema changes are expand/contract
@@ -495,12 +517,22 @@ ALTER TABLE public.classes ALTER COLUMN outcomes SET NOT NULL;
 ALTER TABLE public.t DROP COLUMN old_c;
 ```
 
-Enforced by `scripts/ci/check-migration-expand-contract.mjs` (blocking, `critical` lane): any `DROP COLUMN`
-/ `RENAME COLUMN` / `ALTER COLUMN … TYPE` / `SET NOT NULL` in `supabase/migrations/*.sql` must carry a
-`-- expand-contract-ok: <reason>` line or sit on the **shrink-only** grandfather
-(`migration-expand-contract-grandfather.json`); it fails closed on a missing migrations dir / zero migrations
-and prunes stale grandfather entries. Pinned + discriminated by
-`src/test/smoke/check-migration-expand-contract.smoke.test.ts`.
+Enforced by `scripts/ci/check-migration-expand-contract.mjs` (blocking, `critical` lane). It matches a
+**statement at a time** (so a multi-line change can't slip the line scanner) and flags the full
+expand/contract rule set in `supabase/migrations/*.sql`: `DROP TABLE`, `TRUNCATE`, `DROP COLUMN`,
+`RENAME COLUMN`/`RENAME TO`, `DROP FUNCTION`, `ADD … NOT NULL` without a `DEFAULT`, a bare `SET NOT NULL`,
+`ALTER COLUMN … TYPE`, an `ADD CHECK`/`FOREIGN KEY` without `NOT VALID`, and a non-`CONCURRENTLY`
+`CREATE INDEX` (an index or constraint on a table **created in the same migration** is auto-safe and not
+flagged). Each flagged statement must carry its own `-- expand-contract-ok: <reason>` line (scope to one
+rule with `-- expand-contract-ok=<rule>: <reason>`) or sit on the **shrink-only** grandfather
+(`migration-expand-contract-grandfather.json`). Shrink-only is **mechanical**: the guard rejects any
+allowlist entry dated on/after the widening cutoff (`20261110`), so a new violator can't be waved through by
+adding its filename — a new migration must annotate. It also fails closed on a missing migrations dir / zero
+migrations / unreadable allowlist, and prunes stale entries (a gone file, or one that no longer violates).
+`COLUMN` is optional in Postgres, so the short forms (`DROP col`, `RENAME col TO`, `ALTER col TYPE`) are
+caught too; the new-table exception is schema-aware and string-safe. Widened 2026-11-10 from the original
+four column rules — **ADR 20261110** (re-audit REL-4/DB-3). Pinned + discriminated by
+`src/test/smoke/check-migration-expand-contract.smoke.test.ts` (EC-001..EC-040).
 
 ---
 
@@ -564,6 +596,28 @@ the leak anyway (enterprise-readiness audit 2026-10). Now enforced mechanically 
 `supabase/functions/**`, while leaving the safe `errorResponse` owner and `console`/`log` calls alone;
 fails closed on a missing functions dir / zero files. Pinned + discriminated by
 `src/test/smoke/check-no-error-in-edge-response.smoke.test.ts`.
+
+**Prompt-injection detection has one owner.** Deciding whether untrusted user text is a jailbreak /
+instruction-override attempt (OWASP LLM01) is a security invariant — never a per-call hand-rolled copy.
+This detector shipped TWICE (the live guard inline in `techfleet-chat` and a never-called
+`hasPromptInjectionPattern` in `src/lib/security.ts` with DIFFERENT patterns and its own test), so the
+copy that was tested was not the copy that ran — re-audit 2026-10-30 RH3·PAT-1, **ADR 20261106**.
+
+```ts
+// ❌ never — a second, per-file copy of the detector (drifts from the one that is tested/runs)
+const PROMPT_INJECTION_PATTERNS = [/ignore\s+(previous|prior)\s+instructions/i, /jailbreak/i];
+function hasPromptInjection(s: string) { return PROMPT_INJECTION_PATTERNS.some((p) => p.test(s)); }
+// ✅ always — import the one owner (pure regex, usable from edge AND src)
+import { hasPromptInjection } from "../_shared/prompt-injection.ts";
+if (hasPromptInjection(lastUserMessage)) return boundaryReply();
+```
+
+Enforced by `scripts/ci/check-single-prompt-injection-owner.mjs` (blocking, `critical` lane): it flags a
+NEW detector re-declared by name OR by the injection regex signature (a renamed copy) anywhere under
+`src/**` / `supabase/functions/**` except the owner, and fails closed if the one owner is deleted or its
+detector stripped. Pinned + discriminated by
+`src/test/smoke/check-single-prompt-injection-owner.smoke.test.ts`; live behavior proved by
+`supabase/functions/_shared/prompt-injection.test.ts`.
 
 **A user id is not stored in the clear in web storage** (CodeQL `js/clear-text-storage-of-sensitive-data`).
 When a marker only needs "same user vs different", store `fingerprintUserId(id)`, not the id.
@@ -686,6 +740,41 @@ link). On a turn that HAD readable material the handler generates the answer non
 replaces a detected first-person capability-denial with an honest fallback **before any of it
 reaches the member** (a denial can't even flicker on screen); an empty/error gateway response is
 reported separately, never as a capability-denial. Rationale: **ADR-0034**.
+
+---
+
+## 10 · Edge calls carry a validated request/response contract
+
+A client→edge call whose shape is agreed only by convention drifts silently: one side renames or drops
+a field and the mismatch surfaces far away as an undefined read or a wrong value, never at the call.
+Every `invokeEdge` call site must carry a Zod contract — `bodySchema` (checked before send) and/or
+`responseSchema` (checked after receive) — so a drift throws a reported `EdgeInvokeError` instead of
+flowing through as `unknown`-cast data. The helper (`src/lib/edge/invokeEdge.ts`) is the single owner
+of that validation; call sites pass schemas, never re-implement the check.
+
+```
+❌ never — a bare body + an unchecked, unknown-cast response (a shape drift fails silently)
+return invokeEdge<DownloadLink>("handoff-download", { body: { output_file_id: id } });
+
+✅ always — a schema on each end; the result TYPE is inferred from the response schema (one source)
+const downloadLinkSchema = z.object({ url: z.string(), format: z.string(), expires_in: z.number() }).passthrough();
+export type DownloadLink = z.infer<typeof downloadLinkSchema>;
+return invokeEdge("handoff-download", {
+  body: { output_file_id: id },
+  bodySchema: z.object({ output_file_id: z.string() }).strict(),
+  responseSchema: downloadLinkSchema,
+});
+```
+
+Response schemas use `.passthrough()` and assert only the fields the client reads (a server adding a
+field must not red a valid response); a multipart (`FormData`) body carries a response schema but no
+body schema. Adoption is a shrinking backlog, not a big-bang: `check-invokeedge-schema-adoption.mjs`
+(`ci-lane: critical`) pins the per-file count of schema-less callers in
+`invokeedge-schema-adoption.snapshot.json` and fails CI when the count rises (a new schema-less caller)
+**or** falls without the snapshot being tightened (a stale number); `--update` itself refuses to raise
+the total (so a new caller can't be snapshotted green — it must carry a schema). `src/features/auth/**` callers are
+excluded (owned by the auth refactor, via `sessionPort`). Enforced by that guard + its discrimination
+smoke test and `src/test/lib/invokeEdge.test.ts`. Rationale: **ADR 20261110**, ARCH-2 / ARCH-4.
 
 ---
 
