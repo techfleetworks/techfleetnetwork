@@ -81,3 +81,18 @@ describe("ProfileService.getWelcomeFlowCompletionCount", () => {
     );
   });
 });
+
+describe("ProfileService.resetWelcomeFlow (break-glass)", () => {
+  it("calls the admin reset RPC with the target user id", async () => {
+    rpc.mockResolvedValue({ data: null, error: null } as never);
+    await ProfileService.resetWelcomeFlow("target-1");
+    expect(rpc).toHaveBeenCalledWith("admin_reset_welcome_flow", { _user_id: "target-1" });
+  });
+
+  it("throws when the reset fails (e.g. forbidden / no profile)", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "forbidden" } } as never);
+    await expect(ProfileService.resetWelcomeFlow("target-1")).rejects.toThrow(
+      /reset the Welcome Flow/i,
+    );
+  });
+});
