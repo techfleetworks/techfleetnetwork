@@ -19,7 +19,14 @@ import { Button, SvgIcon } from "@/design-system";
 
 Enforced in two places (both block merge): the ESLint block in `eslint.config.js` scoped to
 `src/components/welcome/**` + `src/pages/WelcomePage.tsx`, and the arch-gate rule "Welcome Flow
-builds on the design system only". Brand only — no greyscale, no raw hex, no system font (§13).
+builds on the design system only".
+
+**Colors come from DS theme tokens, never raw hex.** The flow follows the Figma prototype,
+which is a light, greyscale-forward branded surface, so the shell pins the design system's
+LIGHT theme (`createAppTheme("light")`) and expresses greys through tokens (`grey.*`,
+`text.primary`, `background.paper`) — never raw hex. This supersedes the earlier "no greyscale"
+note (ADR 20261115-welcome-flow-prototype-fidelity, §13). A raw hex color in a `.tsx` here is
+still wrong; use a token.
 
 ## `welcome_flow_completed_at` has exactly one writer
 
@@ -47,9 +54,11 @@ import hero from "@/assets/welcome-flow/hero.svg";
 <img src={hero} alt="Two teammates building together" />;
 ```
 
-Illustrations are the unDraw-style SVGs from Figma (node 8770:8597), exported to
-`src/assets/welcome-flow/`, SVGO-optimized. Enforced by the arch-gate rule "Welcome Flow imports
-SVGs as URLs, never via SVGR".
+Illustrations are the unDraw-style SVGs from the Figma prototype (page "Welcome Flow",
+`8770:8597`; frames `8873:134x`), exported to `src/assets/welcome-flow/` with their Figma
+background rects stripped (they render on the shell's light surface). They are wired through
+`assets.ts` as URL imports. Enforced by the arch-gate rule "Welcome Flow imports SVGs as URLs,
+never via SVGR".
 
 ## The completion-count stat is live-derived, never a stored counter
 

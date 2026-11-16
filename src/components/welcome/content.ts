@@ -15,14 +15,18 @@ export const WELCOME_CONTENT = {
   /** Step (a) — Welcome (step (b) "empowered team" folded in, P8). */
   welcome: {
     heading: "Welcome to Tech Fleet's Platform",
+    // Prototype copy (Figma node 8873:1364). The step-(b) "empowered team" idea is carried
+    // by "work together to solve problems" (P8).
     body:
-      "Tech Fleet is a public charity nonprofit. We help people develop experience on empowered teams.",
+      "Tech Fleet is a public charity nonprofit where we train people how to work together to solve problems.",
     cta: "Get started",
   },
 
   /** Step (c) — Why it's helpful. The five items are display-only, not inputs (§4.5). */
   whyItsHelpful: {
     heading: "We prepare you for a changing world",
+    // Prototype label above the list (Figma node 8942:96).
+    listHeading: "Our teams:",
     items: [
       "Share ownership",
       "Decide together",
@@ -69,9 +73,15 @@ export const WELCOME_CONTENT = {
       first_name: "First name",
       last_name: "Last name",
       country: "Country",
+      state: "State",
       portfolio_url: "Portfolio URL",
       linkedin_url: "LinkedIn URL",
     },
+    // Placeholder shown in the Country/State selects before a value is chosen.
+    countryPlaceholder: "Select a country",
+    statePlaceholder: "Select a state or region",
+    // Shown in place of the State select when the chosen country has no region list.
+    stateUnavailable: "State or region is not tracked for the selected country.",
   },
 
   /**
@@ -82,15 +92,17 @@ export const WELCOME_CONTENT = {
    */
   start: {
     heading: "Start onboarding today!",
+    // Prototype copy (Figma node 8873:1505).
     body:
-      "It's easy to get started. We show you all of the details. Pick one of the options below to begin.",
+      "It's easy to get started. We show you all of the details. Click below to begin.",
     finishing: "Finishing your welcome…",
     errorNote: "We couldn't record that you finished the welcome. Please try again.",
     retry: "Try again",
+    // The prototype (node 8873:1484) shows a single "Onboarding course" option plus a
+    // "Take me home" footer CTA — no "Join Discord" option (dropped to match the design).
     cta: {
       home: "Take me home",
-      discord: "Join Discord",
-      onboarding: "Finish onboarding",
+      onboarding: "Onboarding course",
     },
   },
 } as const;
@@ -98,7 +110,6 @@ export const WELCOME_CONTENT = {
 /** Fixed step-(g) CTA destinations (FR-g1). No conditional d1/d2 routes (P9). */
 export const WELCOME_START_ROUTES = {
   home: "/dashboard",
-  discord: "/courses/connect-discord",
   onboarding: "/courses/onboarding",
 } as const;
 
