@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { Box } from "@/design-system";
+import { WELCOME_COLORS } from "./welcome-colors";
 
 /**
  * Check-style progress indicator pinned to the top of each Welcome Flow screen
@@ -66,9 +67,14 @@ export function WelcomeTopStepper({ total, activeStep }: WelcomeTopStepperProps)
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                bgcolor: done ? "text.primary" : current ? "background.paper" : "grey.300",
-                color: "background.paper",
-                border: current ? 2 : 0,
+                bgcolor: done
+                  ? WELCOME_COLORS.stepDoneFill
+                  : current
+                    ? "background.paper"
+                    : "grey.300",
+                // Check is always dark for contrast on the soft-blue node.
+                color: WELCOME_COLORS.stepCheck,
+                border: done || current ? 2 : 0,
                 borderColor: "text.primary",
               }}
             >
