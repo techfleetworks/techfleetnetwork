@@ -1,7 +1,14 @@
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import MuiTextField from "@mui/material/TextField";
-import { Autocomplete, RHFTextField, SaveStatus, Skeleton, Stack, Text } from "@/design-system";
+import {
+  Autocomplete,
+  RHFTextField,
+  SaveStatus,
+  Skeleton,
+  Stack,
+  Text,
+  TextField,
+} from "@/design-system";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAutosave } from "@/hooks/use-autosave";
 import { useUpdateProfileFields } from "@/hooks/use-update-profile-fields";
@@ -111,7 +118,7 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
             getOptionLabel={(o) => o}
             isOptionEqualToValue={(o, val) => o === val}
             renderInput={(params) => (
-              <MuiTextField
+              <TextField
                 {...params}
                 label={c.fields.country}
                 placeholder={c.countryPlaceholder}
@@ -134,7 +141,7 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
               getOptionLabel={(o) => o}
               isOptionEqualToValue={(o, val) => o === val}
               renderInput={(params) => (
-                <MuiTextField
+                <TextField
                   {...params}
                   label={c.fields.state}
                   placeholder={c.statePlaceholder}
