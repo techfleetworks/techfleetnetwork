@@ -104,6 +104,7 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
         control={form.control}
         render={({ field }) => (
           <Autocomplete
+            size="small"
             options={COUNTRY_NAMES}
             value={field.value || null}
             onChange={(_e, v) => {
@@ -120,6 +121,7 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
             renderInput={(params) => (
               <TextField
                 {...params}
+                size="small"
                 label={c.fields.country}
                 placeholder={c.countryPlaceholder}
               />
@@ -134,6 +136,7 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
           control={form.control}
           render={({ field }) => (
             <Autocomplete
+              size="small"
               options={stateOptions}
               value={field.value || null}
               onChange={(_e, v) => field.onChange(v ?? "")}
@@ -143,6 +146,7 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
               renderInput={(params) => (
                 <TextField
                   {...params}
+                  size="small"
                   label={c.fields.state}
                   placeholder={c.statePlaceholder}
                 />
