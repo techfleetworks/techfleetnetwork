@@ -1,6 +1,5 @@
-import { useEffect, useMemo } from "react";
-import { ThemeProvider } from "@mui/material/styles";
-import { Box, Button, createAppTheme } from "@/design-system";
+import { useEffect } from "react";
+import { Box, Button, ThemeModeProvider } from "@/design-system";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
 import { WelcomeTopStepper } from "./WelcomeTopStepper";
 import { canGoBack, isLastStep, WELCOME_STEP_HEADING_ID } from "./navigation";
@@ -62,7 +61,6 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
   const total = steps.length;
   const active = steps[step];
   const ActiveComponent = active?.Component;
-  const lightTheme = useMemo(() => createAppTheme("light"), []);
   const last = isLastStep(step, total);
 
   // Move focus to the step heading on every step change (and on mount). Only one step
@@ -77,7 +75,7 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
   const announce = `Step ${step + 1} of ${total}: ${active.title}`;
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <ThemeModeProvider mode="light">
       <Box
         sx={{
           minHeight: "100dvh",
@@ -187,6 +185,6 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
           </Box>
         </Box>
       </Box>
-    </ThemeProvider>
+    </ThemeModeProvider>
   );
 }
