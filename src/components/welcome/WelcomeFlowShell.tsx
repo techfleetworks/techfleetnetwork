@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { Box, Button, ThemeModeProvider } from "@/design-system";
+import { Box, Button } from "@/design-system";
 import techFleetLogo from "@/assets/tech-fleet-logo.svg";
+import { WELCOME_COLORS } from "./welcome-colors";
 import { WelcomeTopStepper } from "./WelcomeTopStepper";
 import { canGoBack, isLastStep, WELCOME_STEP_HEADING_ID } from "./navigation";
 import { WELCOME_NAV } from "./content";
@@ -42,15 +43,15 @@ function NavArrow({ dir }: { dir: "left" | "right" }) {
 
 /**
  * The un-skippable, full-screen Welcome Flow shell, rebuilt to the Figma prototype
- * ("Welcome Flow" page, 8770:8597). A light-gray branding panel on the left carries only
+ * ("Welcome Flow" page, 8770:8597). A soft-blue branding panel on the left carries only
  * the Tech Fleet logo; the right column holds a check-style top stepper, the active step,
  * and a footer with "Back" / "Next" arrow links. There is NO Skip or close affordance —
  * the only way out is finishing the flow (§4.2 FR-N2).
  *
- * The whole flow is pinned to the design system's LIGHT theme regardless of the member's
- * app theme: the prototype is a light branded moment and the unDraw line-art illustrations
- * (black strokes, transparent light areas) are only legible on a light surface. Contrast
- * stays WCAG AA because the light theme's tokens are AA by construction.
+ * The flow FOLLOWS the member's light/dark theme (ADR 20261115b): surfaces and text come
+ * from DS tokens, the panel from WELCOME_COLORS. The unDraw line-art is black strokes on
+ * transparent, so on a dark surface the illustrations are inverted (WelcomeArt) to stay
+ * legible. Contrast is AA in both modes.
  *
  * Accessibility (§12.2/§12.3): on every step change focus moves to the step heading so
  * keyboard and screen-reader users land on the new content (WCAG 2.4.3), and a polite
@@ -75,10 +76,14 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
   const announce = `Step ${step + 1} of ${total}: ${active.title}`;
 
   return (
-    <ThemeModeProvider mode="light">
       <Box
         sx={{
-          minHeight: "100dvh",
+          // Lock the flow to exactly the viewport height so the footer nav is always on
+          // screen and the page itself never scrolls. 100dvh tracks the *dynamic* viewport
+          // (mobile URL bar show/hide); fall back to 100vh where dvh is unsupported.
+          height: "100vh",
+          "@supports (height: 100dvh)": { height: "100dvh" },
+          overflow: "hidden",
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
           bgcolor: "background.paper",
@@ -87,11 +92,14 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
           pb: "env(safe-area-inset-bottom)",
         }}
       >
-        {/* Left branding panel — light gray, Tech Fleet logo only (prototype 8873:1343). */}
+        {/* Left branding panel — soft-blue (brand), Tech Fleet logo only (prototype 8873:1343).
+            Follows the theme: #C2E1FF in light, a deep slate-blue in dark (WELCOME_COLORS). */}
         <Box
           sx={{
             flex: { xs: "0 0 auto", md: "0 0 33%" },
-            bgcolor: "grey.100",
+            flexShrink: 0,
+            bgcolor: (theme) =>
+              theme.palette.mode === "dark" ? WELCOME_COLORS.panel.dark : WELCOME_COLORS.panel.light,
             px: { xs: 3, md: 5 },
             py: { xs: 3, md: 5 },
             display: "flex",
@@ -112,6 +120,10 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
           sx={{
             flex: 1,
             minWidth: 0,
+            // Let this column's flex children shrink and own their own overflow, so the
+            // footer stays pinned instead of being pushed below the fold.
+            minHeight: 0,
+            overflow: "hidden",
             display: "flex",
             flexDirection: "column",
             px: { xs: 3, md: 8 },
@@ -139,10 +151,24 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
             {announce}
           </Box>
 
-          <WelcomeTopStepper total={total} activeStep={step} />
+          <Box sx={{ flexShrink: 0 }}>
+            <WelcomeTopStepper total={total} activeStep={step} />
+          </Box>
 
-          {/* Active step content. */}
-          <Box sx={{ flex: 1, display: "flex", flexDirection: "column", pt: { xs: 3, md: 5 } }}>
+          {/* Active step content — the ONLY scrollable region, so the footer below never
+              leaves the viewport. On normal device sizes nothing scrolls (the illustration
+              scales to the available height, §WelcomeStepColumns); on very short screens only
+              this area scrolls, never the footer. */}
+          <Box
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              pt: { xs: 3, md: 5 },
+            }}
+          >
             <ActiveComponent />
           </Box>
 
@@ -153,8 +179,10 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              pt: { xs: 3, md: 4 },
+              pt: { xs: 2, md: 4 },
               minHeight: 44,
+              // Pinned: the footer never shrinks or scrolls, so Back/Next are always visible.
+              flexShrink: 0,
             }}
           >
             <Button
@@ -185,6 +213,5 @@ export function WelcomeFlowShell({ steps, step, onNext, onBack }: WelcomeFlowShe
           </Box>
         </Box>
       </Box>
-    </ThemeModeProvider>
   );
 }

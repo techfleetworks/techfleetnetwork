@@ -6,7 +6,6 @@
 
 // Provider
 export { DesignSystemProvider } from "./provider/DesignSystemProvider";
-export { ThemeModeProvider } from "./provider/ThemeModeProvider";
 
 // Layout — 4px grid + 12-column responsive system
 export { Grid } from "./components/layout/Grid";

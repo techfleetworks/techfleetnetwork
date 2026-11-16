@@ -14,7 +14,7 @@ export function WelcomeStep() {
   const art = WELCOME_ASSETS.welcome;
 
   return (
-    <Stack spacing={{ xs: 3, md: 4 }}>
+    <Stack spacing={{ xs: 4, md: 6 }}>
       <Text brand="display" id={WELCOME_STEP_HEADING_ID} tabIndex={-1} sx={{ outline: "none" }}>
         {heading}
       </Text>

@@ -15,14 +15,17 @@ export function WhyItsHelpfulStep() {
   const art = WELCOME_ASSETS.whyItsHelpful;
 
   return (
-    <Stack spacing={{ xs: 3, md: 4 }}>
+    <Stack spacing={{ xs: 4, md: 6 }}>
       <Text brand="display" id={WELCOME_STEP_HEADING_ID} tabIndex={-1} sx={{ outline: "none" }}>
         {heading}
       </Text>
       <WelcomeStepColumns
         main={
           <Stack spacing={2}>
-            <Text brand="label">{listHeading}</Text>
+            {/* Same size as the list items (body), bold to read as a sub-label. */}
+            <Text brand="body" sx={{ fontWeight: 700 }}>
+              {listHeading}
+            </Text>
             <Stack component="ul" spacing={1.5} sx={{ listStyle: "none", m: 0, pl: 0 }}>
               {items.map((item) => (
                 <Box
@@ -35,7 +38,13 @@ export function WhyItsHelpfulStep() {
                     src={WELCOME_SPIRAL_BULLET}
                     alt=""
                     aria-hidden
-                    sx={{ width: 32, height: 32, flex: "0 0 auto" }}
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      flex: "0 0 auto",
+                      filter: (theme) =>
+                        theme.palette.mode === "dark" ? "invert(1)" : "none",
+                    }}
                   />
                   <Text brand="body">{item}</Text>
                 </Box>
