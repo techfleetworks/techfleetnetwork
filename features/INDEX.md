@@ -46,6 +46,7 @@ no audience mapping fails `check-bdd-runner`):
 |---|---|---|---|---|
 | executable | 5 / 5 | _shared | [html-to-text](../supabase/functions/_shared/html-to-text.feature) | authenticated, internal |
 | pending | 0 / 3 | _shared | [announcement-reach](../supabase/functions/_shared/email/announcement-reach.feature) | admin, internal |
+| pending | 0 / 3 | _shared | [announcement-batch-enqueue](../supabase/functions/_shared/email/announcement-batch-enqueue.feature) | admin, internal |
 | partial | 3 / 4 | _shared | [prompt-injection](../supabase/functions/_shared/prompt-injection.feature) | authenticated, internal |
 | pending | 0 / 3 | _shared | [session-revocation](../supabase/functions/_shared/session-revocation.feature) | authenticated, admin |
 | pending | 0 / 9 | _shared | [figma-extract](../supabase/functions/_shared/figma-extract.feature) | authenticated, partner |
