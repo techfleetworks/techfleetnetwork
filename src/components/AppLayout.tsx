@@ -302,6 +302,31 @@ export function AppLayout({ children }: AppLayoutProps) {
     );
   }
 
+  // Welcome Flow — full-screen takeover: the mandatory onboarding gate owns the whole
+  // viewport, with NO sidebar/header/footer/banners/chat and no competing onboarding
+  // dialog (ProfileSetupDialog), so there is no escape hatch out of the flow (§4.2 FR-N2).
+  // Security guards (MFA enforcement, admin 2FA grace) and the a11y announcer are kept so
+  // the takeover never weakens security or accessibility. The flow renders its own chrome.
+  const isWelcomeFullscreen = !!user && location.pathname === "/welcome";
+
+  if (isWelcomeFullscreen) {
+    return (
+      <PageHeaderProvider>
+        <div className="min-h-dvh bg-background text-foreground">
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
+          <main id="main-content" role="main" tabIndex={-1}>
+            {children}
+          </main>
+          <MfaEnforcementGuard />
+          <AdminTwoFactorGraceDialog />
+          <LiveAnnouncer />
+        </div>
+      </PageHeaderProvider>
+    );
+  }
+
   // Public pages (no sidebar)
   const isPublicPage =
     !user ||

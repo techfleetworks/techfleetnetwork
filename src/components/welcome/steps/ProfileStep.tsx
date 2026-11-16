@@ -1,10 +1,20 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RHFTextField, SaveStatus, Skeleton, Stack, Text } from "@/design-system";
+import {
+  Autocomplete,
+  RHFTextField,
+  SaveStatus,
+  Skeleton,
+  Stack,
+  Text,
+  TextField,
+} from "@/design-system";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAutosave } from "@/hooks/use-autosave";
 import { useUpdateProfileFields } from "@/hooks/use-update-profile-fields";
 import type { Profile } from "@/services/profile.service";
+import { COUNTRIES } from "@/lib/countries";
+import { regionsForCountryName, countryHasRegions } from "@/lib/regions";
 import {
   welcomeProfileSchema,
   type WelcomeProfileForm,
@@ -12,13 +22,16 @@ import {
 import { WELCOME_CONTENT } from "../content";
 import { WELCOME_STEP_HEADING_ID } from "../navigation";
 
+const COUNTRY_NAMES = COUNTRIES.map((c) => c.name);
+
 /**
- * Step (f) — Fill out your profile (§4.8). Renders the member's EXISTING Basic-Information
- * fields, prefilled from their profile (Redundant Entry, WCAG 3.3.7, FR-f5), all OPTIONAL
- * to advance (P11). Edits persist through the single owner (ProfileService.updateFields,
- * allow-listed + sanitized) via autosave, so data survives a refresh (FR-N3) and the write
- * reaches the shared profile (bidirectional with the edit page, FR-f3). Adds no column
- * ("State" is not collected, P11).
+ * Step (f) — Fill out your profile (Figma 8873:1442). Renders the member's EXISTING
+ * profile fields, prefilled (Redundant Entry, WCAG 3.3.7, FR-f5), all OPTIONAL to advance
+ * (P11). Country and State are searchable selects over the shared COUNTRIES / regions
+ * lists — the same data as the profile editor, writing the same `profiles` columns
+ * (country, state) through the single owner (ProfileService.updateFields) via autosave, so
+ * edits survive a refresh (FR-N3) and reach the shared profile (FR-f3). State appears only
+ * for countries that have a region list and clears when the country changes.
  *
  * Gated on `profileLoaded` so the form initializes from real values; the heading renders in
  * both states so the shell's focus target always exists.
@@ -53,6 +66,7 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
       first_name: profile?.first_name ?? "",
       last_name: profile?.last_name ?? "",
       country: profile?.country ?? "",
+      state: profile?.state ?? "",
       portfolio_url: profile?.portfolio_url ?? "",
       linkedin_url: profile?.linkedin_url ?? "",
     },
@@ -60,6 +74,8 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
 
   const values = form.watch();
   const hasErrors = Object.keys(form.formState.errors).length > 0;
+  const stateOptions = regionsForCountryName(values.country).map((r) => r.name);
+  const showState = countryHasRegions(values.country);
 
   const autosave = useAutosave<WelcomeProfileForm>({
     value: values,
@@ -82,7 +98,60 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
 
       <RHFTextField name="first_name" control={form.control} label={c.fields.first_name} />
       <RHFTextField name="last_name" control={form.control} label={c.fields.last_name} />
-      <RHFTextField name="country" control={form.control} label={c.fields.country} />
+
+      <Controller
+        name="country"
+        control={form.control}
+        render={({ field }) => (
+          <Autocomplete
+            options={COUNTRY_NAMES}
+            value={field.value || null}
+            onChange={(_e, v) => {
+              field.onChange(v ?? "");
+              // Clear a now-invalid state when the country changes.
+              const nextRegions = regionsForCountryName(v).map((r) => r.name);
+              if (!nextRegions.includes(form.getValues("state"))) {
+                form.setValue("state", "", { shouldDirty: true });
+              }
+            }}
+            onBlur={field.onBlur}
+            getOptionLabel={(o) => o}
+            isOptionEqualToValue={(o, val) => o === val}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={c.fields.country}
+                placeholder={c.countryPlaceholder}
+              />
+            )}
+          />
+        )}
+      />
+
+      {showState ? (
+        <Controller
+          name="state"
+          control={form.control}
+          render={({ field }) => (
+            <Autocomplete
+              options={stateOptions}
+              value={field.value || null}
+              onChange={(_e, v) => field.onChange(v ?? "")}
+              onBlur={field.onBlur}
+              getOptionLabel={(o) => o}
+              isOptionEqualToValue={(o, val) => o === val}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={c.fields.state}
+                  placeholder={c.statePlaceholder}
+                />
+              )}
+            />
+          )}
+        />
+      ) : null}
+
       <RHFTextField
         name="portfolio_url"
         control={form.control}

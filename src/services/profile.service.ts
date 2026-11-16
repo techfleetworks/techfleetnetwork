@@ -14,6 +14,8 @@ export interface Profile {
   last_name: string;
   email: string;
   country: string;
+  /** Optional state/province/region within `country`. ADR 20261115-welcome-flow-prototype-fidelity. */
+  state: string | null;
   timezone: string;
   discord_username: string;
   discord_user_id: string;
@@ -58,7 +60,7 @@ export const ProfileService = {
         retryPostgrest(() =>
           supabase
             .from("profiles")
-            .select("first_name, last_name, email, country, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, scheduling_url, experience_areas, professional_goals, notify_training_opportunities, notify_announcements, education_background, has_discord_account, discord_invite_url, membership_tier, is_founding_member, membership_billing_period, membership_sku, membership_gumroad_sale_id, membership_updated_at, preferred_language, welcome_flow_completed_at")
+            .select("first_name, last_name, email, country, state, timezone, discord_username, discord_user_id, display_name, avatar_url, profile_completed, interests, portfolio_url, linkedin_url, scheduling_url, experience_areas, professional_goals, notify_training_opportunities, notify_announcements, education_background, has_discord_account, discord_invite_url, membership_tier, is_founding_member, membership_billing_period, membership_sku, membership_gumroad_sale_id, membership_updated_at, preferred_language, welcome_flow_completed_at")
             .eq("user_id", userId)
             .maybeSingle(),
         ),
@@ -171,6 +173,7 @@ export const ProfileService = {
       "last_name",
       "display_name",
       "country",
+      "state",
       "timezone",
       "bio",
       "professional_background",
