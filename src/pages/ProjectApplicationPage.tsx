@@ -775,10 +775,12 @@ export default function ProjectApplicationPage() {
                         <ExternalLink className="h-3 w-3 inline ml-1" />
                       </a>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <User className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{client.primary_contact}</span>
-                    </div>
+                    {client.primary_contact && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <User className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{client.primary_contact}</span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {coordinatorName && (

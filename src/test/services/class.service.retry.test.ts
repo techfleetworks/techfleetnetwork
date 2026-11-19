@@ -18,6 +18,7 @@ vi.mock("@/integrations/supabase/client", () => {
 vi.mock("../../services/class-emails", () => ({ sendClassStatusEmails: vi.fn() }));
 
 import { ClassService } from "@/services/class.service";
+import { emptyClassFormValues } from "@/lib/forms/class-form-values";
 
 function buildChain(result: { data: unknown; error: unknown }) {
   return {
@@ -27,20 +28,13 @@ function buildChain(result: { data: unknown; error: unknown }) {
   };
 }
 
+// Derive from the single source of truth for create-mode defaults so a new
+// required ClassFormValues field can never leave this mock stale (which is what
+// broke the typecheck when short_description/deliverables became required).
 const validValues = {
+  ...emptyClassFormValues,
   title: "AI Enabled Systems design",
-  summary: "",
-  description: "",
   track: "advanced_training" as const,
-  hero_image_url: "",
-  skills: [],
-  outcomes: "",
-  why_take: "",
-  audiences: "",
-  prerequisites: [],
-  curriculum: "",
-  reading_assignments: "",
-  class_expectations: "",
 };
 
 beforeEach(() => {

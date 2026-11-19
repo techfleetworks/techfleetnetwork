@@ -8,13 +8,13 @@
     "internal"
   ],
   "totals": {
-    "features": 13,
-    "scenarios": 109,
+    "features": 15,
+    "scenarios": 133,
     "executable": 8,
-    "pending": 101,
+    "pending": 125,
     "byStatus": {
       "excluded-auth": 1,
-      "pending": 10,
+      "pending": 12,
       "executable": 1,
       "partial": 1
     }
@@ -208,6 +208,43 @@
         "@pending"
       ],
       "audiences": [
+        "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/public-class-detail/public-class-detail.feature",
+      "domain": "public-class-detail",
+      "title": "Public class detail gateway (D-A)",
+      "scenarios": {
+        "total": 16,
+        "executable": 0,
+        "pending": 16
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "anonymous",
+        "admin",
+        "authenticated"
+      ]
+    },
+    {
+      "path": "supabase/functions/public-courses/public-courses.feature",
+      "domain": "public-courses",
+      "title": "Public courses outline gateway (A8, System A)",
+      "scenarios": {
+        "total": 8,
+        "executable": 0,
+        "pending": 8
+      },
+      "status": "pending",
+      "featureTags": [
+        "@pending"
+      ],
+      "audiences": [
+        "anonymous",
         "authenticated"
       ]
     },

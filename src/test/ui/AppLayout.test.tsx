@@ -39,8 +39,29 @@ describe("AppLayout / Navigation UI (BDD 22.1–22.4)", () => {
     expect(screen.getByLabelText(/toggle theme/i)).toBeInTheDocument();
   });
 
-  it("22.2: Connect button visible when logged out", () => {
-    expect(screen.getByText("Connect")).toBeInTheDocument();
+  it("22.2 (B8): Sign In + Join Platform CTAs visible when logged out", () => {
+    expect(screen.getByRole("button", { name: "Sign In" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Platform" })).toBeInTheDocument();
+    // The old single "Connect" CTA is gone.
+    expect(screen.queryByText("Connect")).not.toBeInTheDocument();
+  });
+
+  it("B8: the logged-out nav shows the public items (Home, Courses, Project Openings)", () => {
+    expect(screen.getByRole("link", { name: /courses/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /project openings/i })).toBeInTheDocument();
+  });
+
+  it("B8 @security: authed-only nav items are NOT rendered for an anonymous visitor", () => {
+    // These belong to the authenticated sidebar (Community / Training / Admin) and
+    // must never appear in the logged-out shell.
+    for (const authedOnly of [/announcements/i, /my journey/i, /applications/i, /recruiting center/i, /user admin/i]) {
+      expect(screen.queryByRole("link", { name: authedOnly })).not.toBeInTheDocument();
+    }
+  });
+
+  it("B8: Sign In carries a redirect-back to the current page", () => {
+    const signIn = screen.getByRole("button", { name: "Sign In" }).closest("a");
+    expect(signIn?.getAttribute("href")).toContain("/login?redirect=");
   });
 
   it("22.3: footer renders copyright text", () => {

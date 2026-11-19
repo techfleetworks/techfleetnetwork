@@ -96,6 +96,8 @@ const ProjectTrainingPage = lazy(() => import("./pages/ProjectTrainingPage"));
 const VolunteerTeamsPage = lazy(() => import("./pages/VolunteerTeamsPage"));
 const DiscordCoursePage = lazy(() => import("./pages/DiscordCoursePage"));
 const TrainingPage = lazy(() => import("./pages/TrainingPage"));
+const CoursesRoute = lazy(() => import("./pages/CoursesRoute"));
+const PublicClassDetailPage = lazy(() => import("./pages/PublicClassDetailPage"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
 
 const ChatPage = lazy(() => import("./pages/ChatPage"));
@@ -293,14 +295,11 @@ const App = () => (
                         }
                       />
 
-                      <Route
-                        path="/courses"
-                        element={
-                          <ProtectedRoute>
-                            <TrainingPage />
-                          </ProtectedRoute>
-                        }
-                      />
+                      {/* Public-access B10: /courses serves the public catalog to
+                          anonymous visitors and the member TrainingPage to signed-in
+                          users (auth branch in CoursesRoute) — same URL, no ProtectedRoute. */}
+                      <Route path="/courses" element={<CoursesRoute />} />
+                      <Route path="/classes/:slug" element={<PublicClassDetailPage />} />
                       <Route
                         path="/curriculum"
                         element={

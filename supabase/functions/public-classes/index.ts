@@ -1,9 +1,11 @@
 // @edge-cron
-// Public, unauthenticated read-only feed of published classes for the
-// Tech Fleet marketing site (Framer). Uses the public RLS policies on
-// `classes` + `cohorts` and serves with CORS + edge cache headers.
+// Public, unauthenticated read-only LIST feed of published classes + their open
+// cohorts (public-access A6). Runs under the SERVICE ROLE — anon has no table
+// grants after the REVOKE — and serves the §6 anon field set (validated by the A7
+// allowlist guard), with CORS + edge cache headers. Groundwork for the platform's
+// own public classes list (Framer is being retired).
 
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { getAdminClient } from "../_shared/admin-client.ts";
 
 import { withAuditWrapper } from "../_shared/audit.ts";
 const ALLOWED_ORIGINS = new Set([
@@ -43,19 +45,18 @@ Deno.serve(withAuditWrapper("public-classes", async (req) => {
     const validTracks = new Set(['basic_training', 'advanced_training'])
     const track = trackParam && validTracks.has(trackParam) ? trackParam : null
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const supabase = createClient(supabaseUrl, anonKey)
+    // Service-role client (anon has no grants after the A6 REVOKE). §6-compliant
+    // anon select: no owner_user_id, and cohorts reduced to label/dates/
+    // registration_url (status/capacity/timezone are authed-only, not in an anon
+    // feed). The A7 guard validates these columns are within the anon allowlist.
+    const supabase = getAdminClient()
 
     let q = supabase
       .from('classes')
       .select(`
         id, slug, title, summary, description, track, hero_image_url,
         outcomes, skills, prerequisites, published_at,
-        cohorts:cohorts!inner(
-          id, label, start_date, end_date, timezone, capacity,
-          registration_url, status, published_at
-        )
+        cohorts:cohorts!inner(id, label, start_date, end_date, registration_url)
       `)
       .eq('status', 'published')
       .eq('cohorts.status', 'published')

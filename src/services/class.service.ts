@@ -16,9 +16,11 @@ export type ClassRow = {
   track: "basic_training" | "advanced_training";
   status: "draft" | "pending_review" | "published" | "archived";
   summary: string;
+  short_description: string;
   description: string | null;
   hero_image_url: string | null;
   skills: string[];
+  deliverables: string[];
   outcomes: string;
   why_take: string;
   audiences: string;
@@ -89,10 +91,12 @@ export const ClassService = {
           owner_user_id: ownerId,
           title: values.title,
           summary: values.summary,
+          short_description: values.short_description ?? "",
           description: values.description ?? null,
           track: values.track,
           hero_image_url: values.hero_image_url || null,
           skills: values.skills,
+          deliverables: values.deliverables ?? [],
           outcomes: values.outcomes,
           why_take: values.why_take,
           audiences: values.audiences,

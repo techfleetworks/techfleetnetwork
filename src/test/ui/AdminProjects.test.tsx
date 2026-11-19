@@ -200,6 +200,12 @@ describe("Admin Projects (BDD PROJECT-001..007)", () => {
     expect(screen.getByText(/Marketing Site/)).toBeInTheDocument();
   });
 
+  // 30s cap (2x the global 15s): this is the only test that imports the full
+  // ClientsPage, so it pays the one-time module-transform of that page's graph
+  // INSIDE its own timer. The redirect itself is instant; the honest cost is
+  // ~7s locally and tips past the global cap only under parallel CI-shard load.
+  // The generous cap removes that borderline flip without masking a real failure
+  // (a broken guard still rejects at ~1s via findByTestId, long before 30s).
   it("PROJECT-007: Non-admin visiting /admin/clients is redirected to /access-denied", async () => {
     mockUseAdmin.mockReturnValue({ isAdmin: false, loading: false });
     const { AdminRoute } = await import("@/components/AdminRoute");
@@ -220,5 +226,5 @@ describe("Admin Projects (BDD PROJECT-001..007)", () => {
 
     expect(await screen.findByTestId("access-denied-page")).toBeInTheDocument();
     expect(screen.queryByText(/Clients & Projects/i)).not.toBeInTheDocument();
-  });
+  }, 30_000);
 });

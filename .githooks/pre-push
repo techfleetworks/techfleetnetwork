@@ -1,0 +1,16 @@
+#!/bin/sh
+# Fork-free git pre-push hook (committed; git core.hooksPath -> .githooks).
+#
+# Runs the locally-runnable CI gates BEFORE a push leaves the machine, so a
+# green-local / red-CI round-trip on them cannot happen: typecheck + arch gate in
+# full, then eslint/stylelint/vitest scoped to the branch's CHANGED files (the
+# whole-repo forms flake or flag untracked junk on a dev box — see the runner).
+# See scripts/ci/run-pre-push.mjs for the full scope + rationale.
+#
+# Fork-free (same reason as pre-commit): uses no sh fork, just exec's node
+# (native Windows CreateProcess), which handles all further child spawning —
+# MSYS2/Cygwin fork() dies with STATUS_DLL_INIT_FAILED (0xC0000142) under
+# DLL-rebase pressure, which silently killed husky-style hooks before any check.
+#
+# Emergency bypass: git push --no-verify (CI remains the authoritative gate).
+exec node scripts/ci/run-pre-push.mjs

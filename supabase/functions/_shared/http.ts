@@ -34,6 +34,24 @@ export function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+/**
+ * Like jsonResponse, but for PUBLIC, cacheable GET gateways (the anon feed
+ * endpoints: public-classes / public-class-detail / public-courses / public-
+ * project-*). The caller supplies a Cache-Control (e.g. a CDN
+ * `public, s-maxage, stale-while-revalidate`) that REPLACES the default
+ * `no-store`; the legacy `Pragma: no-cache` is dropped so it cannot fight the
+ * public cache. CORS + `X-Content-Type-Options` + `Vary: Origin` still apply, so
+ * these handlers get the shared headers instead of hand-rolling a Response.
+ */
+export function cachedJsonResponse(body: unknown, cacheControl: string, status = 200): Response {
+  const safeStatus = status >= 100 && status <= 599 ? status : 500;
+  const { Pragma: _pragma, ...rest } = jsonHeaders;
+  return new Response(JSON.stringify(body), {
+    status: safeStatus,
+    headers: { ...rest, "Cache-Control": cacheControl },
+  });
+}
+
 export function methodNotAllowed(): Response {
   return jsonResponse({ error: "Method not allowed" }, 405);
 }

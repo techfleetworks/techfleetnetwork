@@ -53,6 +53,55 @@ describe("classFormSchema — new optional rich-text fields", () => {
     expect(out.success).toBe(false);
   });
 
+  it("defaults short_description to an empty string", () => {
+    expect(classFormSchema.parse(BASE).short_description).toBe("");
+  });
+
+  it("accepts a short_description at the 140-character cap", () => {
+    const out = classFormSchema.safeParse({ ...BASE, short_description: "x".repeat(140) });
+    expect(out.success).toBe(true);
+  });
+
+  it("rejects a short_description above 140 characters", () => {
+    const out = classFormSchema.safeParse({ ...BASE, short_description: "x".repeat(141) });
+    expect(out.success).toBe(false);
+  });
+
+  it("rejects an XSS payload in short_description", () => {
+    const out = classFormSchema.safeParse({ ...BASE, short_description: "<script>alert(1)</script>" });
+    expect(out.success).toBe(false);
+  });
+
+  it("defaults deliverables to an empty array", () => {
+    expect(classFormSchema.parse(BASE).deliverables).toEqual([]);
+  });
+
+  it("accepts a deliverables array of plain strings", () => {
+    const out = classFormSchema.safeParse({
+      ...BASE,
+      deliverables: ["Portfolio case study", "Deployed demo"],
+    });
+    expect(out.success).toBe(true);
+  });
+
+  it("rejects more than 30 deliverables", () => {
+    const out = classFormSchema.safeParse({
+      ...BASE,
+      deliverables: Array.from({ length: 31 }, (_, i) => `d${i}`),
+    });
+    expect(out.success).toBe(false);
+  });
+
+  it("rejects a deliverable above the 200-character item cap", () => {
+    const out = classFormSchema.safeParse({ ...BASE, deliverables: ["x".repeat(201)] });
+    expect(out.success).toBe(false);
+  });
+
+  it("rejects an XSS payload in a deliverable", () => {
+    const out = classFormSchema.safeParse({ ...BASE, deliverables: ["<script>alert(1)</script>"] });
+    expect(out.success).toBe(false);
+  });
+
   it("still requires title (existing behavior preserved)", () => {
     const out = classFormSchema.safeParse({ track: "basic_training" });
     expect(out.success).toBe(false);

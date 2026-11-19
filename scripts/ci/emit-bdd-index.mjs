@@ -62,6 +62,8 @@ export const FEATURE_AUDIENCES = {
   "supabase/functions/resend-webhook/resend-webhook.feature": ["api-consumer", "internal"],
   "supabase/functions/techfleet-chat/fleety-modes.feature": ["authenticated"],
   "src/features/auth/auth-redirect.feature": ["anonymous", "authenticated"],
+  "supabase/functions/public-class-detail/public-class-detail.feature": ["anonymous", "admin", "authenticated"],
+  "supabase/functions/public-courses/public-courses.feature": ["anonymous", "authenticated"],
 };
 
 /** Recursively collect `*.feature` files under `dir` (missing dir → []). */

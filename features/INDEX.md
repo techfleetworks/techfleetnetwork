@@ -57,8 +57,10 @@ no audience mapping fails `check-bdd-runner`):
 | pending | 0 / 10 | resend-webhook | [resend-webhook](../supabase/functions/resend-webhook/resend-webhook.feature) | api-consumer, internal |
 | pending | 0 / 13 | techfleet-chat | [fleety-modes](../supabase/functions/techfleet-chat/fleety-modes.feature) | authenticated |
 | excluded-auth | 0 / 3 | auth | [auth-redirect](../src/features/auth/auth-redirect.feature) | anonymous, authenticated |
+| pending | 0 / 16 | public-class-detail | [public-class-detail](../supabase/functions/public-class-detail/public-class-detail.feature) | anonymous, admin, authenticated |
+| pending | 0 / 8 | public-courses | [public-courses](../supabase/functions/public-courses/public-courses.feature) | anonymous, authenticated |
 
-**Totals: 12 features, 106 scenario definitions — 8 executable, 98 pending/excluded.**
+**Totals: 15 features, 133 scenario definitions — 8 executable, 125 pending/excluded.**
 
 > Scenario-definition counts: a `Scenario Outline` counts as one definition here but the strict
 > runner expands it per `Examples` row, so `prompt-injection` (3 executable definitions) runs as 10
@@ -66,7 +68,7 @@ no audience mapping fails `check-bdd-runner`):
 
 ## Pending backlog (tracked, not dropped)
 
-The 98 pending scenarios are real committed specs awaiting step definitions. They need the Deno /
+The 125 pending scenarios are real committed specs awaiting step definitions. They need the Deno /
 Supabase / live-upstream surface the pure `_shared` modules do not, so they are implemented behind
 their own harness as the edge-function test surface grows. `npm run test:bdd:all` surfaces their
 undefined steps on demand. Scenario-level pending today:
