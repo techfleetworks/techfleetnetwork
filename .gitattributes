@@ -12,3 +12,8 @@ src/generated/edge-functions.manifest.json text eol=lf
 # Windows core.autocrlf=true cannot turn the working copy into CRLF and trip the
 # guard with a spurious "datastore is stale" drift. (ADR 20261110.)
 features/bdd-index.json text eol=lf
+
+# Git-run hook scripts: git executes these via its bundled sh, and a CRLF shebang
+# line (#!/bin/sh\r) fails with "bad interpreter" on Windows. Pin to LF so
+# core.autocrlf=true can never break the hooks on checkout.
+.githooks/* text eol=lf

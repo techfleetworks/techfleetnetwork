@@ -42,6 +42,7 @@
     "check:public-field-allowlist": "node scripts/ci/check-public-field-allowlist.mjs",
     "check:architecture": "node scripts/ci/arch-gate.mjs --changed",
     "check:architecture:all": "node scripts/ci/arch-gate.mjs",
+    "verify:prepush": "node scripts/ci/run-pre-push.mjs",
     "prepare": "node scripts/ci/setup-git-hooks.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
