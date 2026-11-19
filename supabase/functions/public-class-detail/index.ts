@@ -69,11 +69,23 @@ Deno.serve(withAuditWrapper("public-class-detail", async (req) => {
     // Derive instructor display name; never expose owner_user_id.
     let instructorName: string | null = null;
     if (cls.owner_user_id) {
-      const { data: prof } = await supabase
+      const { data: prof, error: profErr } = await supabase
         .from("profiles")
         .select("display_name, first_name, last_name")
         .eq("user_id", cls.owner_user_id)
         .maybeSingle();
+      // Report + recover (prime directive #4): the instructor name is cosmetic, so
+      // a profiles RLS/schema/transient fault must NOT blank the whole class page.
+      // Surface it to the edge logs (so SRE sees it) and degrade to no name — never
+      // silently drop the error (no-dropped-supabase-error).
+      if (profErr) {
+        console.warn(JSON.stringify({
+          level: "warn",
+          fn: "public-class-detail",
+          action: "instructor_lookup_failed",
+          reason: profErr.message?.slice(0, 120),
+        }));
+      }
       instructorName = deriveInstructorName(prof);
     }
 
