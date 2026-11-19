@@ -109,6 +109,62 @@ export function scrubJson(body: unknown, allow: DlpAllowList = {}): string {
   return scrub(raw, allow);
 }
 
+/** A value is only preserved if it actually looks like an http(s) URL — so free
+ * text, an email, or a `mailto:` pasted into a url-named field is still scrubbed
+ * (preservation is key- AND value-shape-gated, never key alone). */
+const URL_SHAPE = /^https?:\/\/\S+$/i;
+
+/**
+ * Keys whose string values are URLs / storage paths and must NOT be regex-scrubbed:
+ * a long hex (storage hash) or a UUID inside the path would be corrupted to
+ * `[redacted-*]`, breaking the image or link. These are trusted, write-validated,
+ * §6-allowlisted public fields, so they are preserved verbatim.
+ */
+export const URL_VALUE_KEYS = new Set<string>([
+  "hero_image_url",
+  "logo_url",
+  "website",
+  "website_url",
+  "registration_url",
+  "application_url",
+  "cite_url",
+  "url",
+]);
+
+/**
+ * Structured DLP for public payloads that carry URLs. Walks `value` and scrubs
+ * every string LEAF with `scrub`, EXCEPT leaves whose key is in `preserveKeys`
+ * (URL/path fields regex-scrubbing would corrupt). Legit ids/emails still pass
+ * via `allow`. Prefer this over `scrubJson` whenever the payload includes a
+ * hero_image_url / logo_url / registration_url, which whole-string scrubbing
+ * silently mangles. Returns a scrubbed deep copy; the original is not mutated.
+ */
+export function scrubTree<T>(
+  value: T,
+  allow: DlpAllowList = {},
+  preserveKeys: Set<string> = URL_VALUE_KEYS,
+): T {
+  const walk = (v: unknown, key: string | undefined): unknown => {
+    if (typeof v === "string") {
+      // Preserve ONLY when the key is a URL field AND the value is URL-shaped,
+      // so a non-URL value (email, mailto:, prose) in a url-named key still gets
+      // scrubbed — no DLP bypass by key name alone.
+      if (key !== undefined && preserveKeys.has(key) && URL_SHAPE.test(v)) return v;
+      return scrub(v, allow);
+    }
+    if (Array.isArray(v)) return v.map((item) => walk(item, key));
+    if (v && typeof v === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        out[k] = walk(val, k);
+      }
+      return out;
+    }
+    return v;
+  };
+  return walk(value, undefined) as T;
+}
+
 /** Returns true if the input contains any pattern that would be redacted.
  *
  * T-F: the module-level regexes carry the `g` flag, so calling `.test()` on them

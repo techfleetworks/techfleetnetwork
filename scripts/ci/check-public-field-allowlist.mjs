@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// ci-lane: critical
 /**
  * CI gate (public-access A7): no `public-*` edge function may select a §6-resource
  * column outside the ANON allowlist.

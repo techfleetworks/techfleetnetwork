@@ -20,18 +20,15 @@ import { scrubTree } from "../_shared/dlp.ts";
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
 import { fieldsFor, resolveAuthState } from "../_shared/public-visibility.ts";
+import { handleCors, jsonResponse, cachedJsonResponse, errorResponse } from "../_shared/http.ts";
 import { deriveInstructorName, toPublicClass, toPublicCohort } from "./lib.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Public feed CDN cache: 60s edge cache, serve stale for a day while revalidating.
+const PUBLIC_FEED_CACHE = "public, max-age=60, s-maxage=60, stale-while-revalidate=86400";
 
 Deno.serve(withAuditWrapper("public-class-detail", async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const pre = handleCors(req);
+  if (pre) return pre;
 
   // WAF: rate-limit / size / scanner / SQLi / path-traversal protection.
   // Public unauthenticated endpoint — prime target for enumeration/abuse.
@@ -44,10 +41,7 @@ Deno.serve(withAuditWrapper("public-class-detail", async (req) => {
 
     // Slugs are server-generated lowercase kebab-case; validate tightly.
     if (!slug || !/^[a-z0-9][a-z0-9-]{0,99}$/.test(slug)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or missing slug" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return jsonResponse({ error: "Invalid or missing slug" }, 400);
     }
 
     const supabase = getAdminClient();
@@ -69,10 +63,7 @@ Deno.serve(withAuditWrapper("public-class-detail", async (req) => {
       | (Record<string, unknown> & { id: string; owner_user_id: string | null })
       | null;
     if (!cls) {
-      return new Response(
-        JSON.stringify({ error: "Class not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return jsonResponse({ error: "Class not found" }, 404);
     }
 
     // Derive instructor display name; never expose owner_user_id.
@@ -110,23 +101,11 @@ Deno.serve(withAuditWrapper("public-class-detail", async (req) => {
     // into teacher-authored prose). URL/path leaves (hero_image_url,
     // registration_url) are preserved by key so storage hashes aren't corrupted,
     // and the legit class + cohort ids pass via the allowlist.
-    const body = JSON.stringify(
-      scrubTree(payload, { uuids: [cls.id, ...cohorts.map((c) => c.id)] }),
-    );
+    const scrubbed = scrubTree(payload, { uuids: [cls.id, ...cohorts.map((c) => c.id)] });
 
-    return new Response(body, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=86400",
-      },
-    });
+    return cachedJsonResponse(scrubbed, PUBLIC_FEED_CACHE);
   } catch (err) {
     console.error("public-class-detail error:", err);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return errorResponse(err, "Internal server error");
   }
 }));

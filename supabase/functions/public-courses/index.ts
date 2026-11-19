@@ -30,13 +30,16 @@ import { applyWaf } from "../_shared/waf.ts";
 import { scrubTree } from "../_shared/dlp.ts";
 import { getAdminClient } from "../_shared/admin-client.ts";
 import { withAuditWrapper } from "../_shared/audit.ts";
+import {
+  handleCors,
+  methodNotAllowed,
+  jsonResponse,
+  cachedJsonResponse,
+  errorResponse,
+} from "../_shared/http.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Public feed CDN cache: 60s edge cache, serve stale for a day while revalidating.
+const PUBLIC_FEED_CACHE = "public, max-age=60, s-maxage=60, stale-while-revalidate=86400";
 
 interface LessonRow {
   lesson_id: string;
@@ -54,13 +57,9 @@ interface CourseRow {
 }
 
 Deno.serve(withAuditWrapper("public-courses", async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "GET") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  const pre = handleCors(req);
+  if (pre) return pre;
+  if (req.method !== "GET") return methodNotAllowed();
 
   // WAF: rate-limit / size / scanner / SQLi / path-traversal. Public anon endpoint.
   const blocked = await applyWaf(req, "public-courses");
@@ -92,10 +91,7 @@ Deno.serve(withAuditWrapper("public-courses", async (req) => {
 
     if (error) {
       console.error("public-courses query error:", error);
-      return new Response(JSON.stringify({ error: "Failed to load courses" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Failed to load courses" }, 500);
     }
 
     const courses = ((data ?? []) as CourseRow[]).map((c) => ({
@@ -114,21 +110,9 @@ Deno.serve(withAuditWrapper("public-courses", async (req) => {
     // DLP: scrub every free-text leaf (display_label is admin-authored prose; a
     // stray email/token would be redacted). The outline carries no URL keys and no
     // UUIDs (course_key/lesson_id are kebab-case slugs), so no allowlist is needed.
-    const body = JSON.stringify(scrubTree(payload));
-
-    return new Response(body, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=86400",
-      },
-    });
+    return cachedJsonResponse(scrubTree(payload), PUBLIC_FEED_CACHE);
   } catch (err) {
     console.error("public-courses unexpected:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(err, "Internal server error");
   }
 }));

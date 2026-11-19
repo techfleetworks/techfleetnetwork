@@ -42,12 +42,14 @@ import { showFormErrors, scrollToFirstError } from "@/lib/form-validation";
  * "was restored" banner showed over an empty form is structurally gone.
  */
 
-type ClassWorking = { form: ClassFormValues; prereqText: string };
+type ClassWorking = { form: ClassFormValues; prereqText: string; deliverablesText: string };
 
 const CLASS_FIELD_LABELS: Record<string, string> = {
   title: "Title",
+  short_description: "Short description",
   summary: "Summary",
   description: "Description",
+  deliverables: "Deliverables",
   track: "Track",
   hero_image_url: "Hero image",
   skills: "Skills",
@@ -80,11 +82,13 @@ export default function ClassFormPage() {
   const defaults = useMemo<ClassFormValues>(
     () => ({
       title: "",
+      short_description: "",
       summary: "",
       description: "",
       track: "basic_training",
       hero_image_url: "",
       skills: [],
+      deliverables: [],
       outcomes: "",
       why_take: "",
       audiences: "",
@@ -101,22 +105,31 @@ export default function ClassFormPage() {
   const draft = useServerDraft<ClassWorking>({
     draftKey: "class:new",
     schemaVersion: 1,
-    initialValue: { form: defaults, prereqText: "" },
+    initialValue: { form: defaults, prereqText: "", deliverablesText: "" },
     enabled: !isEdit,
     label: "class-form",
   });
 
   // Edit-mode working state, seeded once from the fetched row.
-  const [editState, setEditState] = useState<ClassWorking>({ form: defaults, prereqText: "" });
+  const [editState, setEditState] = useState<ClassWorking>({
+    form: defaults,
+    prereqText: "",
+    deliverablesText: "",
+  });
 
   // One owner per mode. Create → the draft buffer; edit → local state.
   const working = isEdit ? editState : draft.value;
   const form = working.form;
   const prereqText = working.prereqText;
+  // Backward-compatible: a draft saved before deliverables existed (schemaVersion 1,
+  // shaped { form, prereqText }) restores without this key — treat a missing value
+  // as empty so csvToList never splits undefined.
+  const deliverablesText = working.deliverablesText ?? "";
   const setWorking = isEdit ? setEditState : draft.setValue;
   const setForm = (updater: (f: ClassFormValues) => ClassFormValues) =>
     setWorking((w) => ({ ...w, form: updater(w.form) }));
   const setPrereqText = (v: string) => setWorking((w) => ({ ...w, prereqText: v }));
+  const setDeliverablesText = (v: string) => setWorking((w) => ({ ...w, deliverablesText: v }));
 
   // Hydrate the working state from the existing row (edit mode).
   useEffect(() => {
@@ -127,11 +140,13 @@ export default function ClassFormPage() {
     setEditState({
       form: {
         title: existing.title,
+        short_description: existing.short_description ?? "",
         summary: existing.summary,
         description: existing.description ?? "",
         track: existing.track,
         hero_image_url: existing.hero_image_url ?? "",
         skills: existing.skills ?? [],
+        deliverables: existing.deliverables ?? [],
         outcomes: existing.outcomes ?? "",
         why_take: existing.why_take ?? "",
         audiences: existing.audiences ?? "",
@@ -142,6 +157,7 @@ export default function ClassFormPage() {
         class_expectations: (existing as { class_expectations?: string }).class_expectations ?? "",
       },
       prereqText: (existing.prerequisites ?? []).join("\n"),
+      deliverablesText: (existing.deliverables ?? []).join("\n"),
     });
   }, [existing]);
 
@@ -156,8 +172,12 @@ export default function ClassFormPage() {
   // Prerequisites are edited as free text; the persisted value is derived from
   // that buffer at save time — one source of truth, both here and on submit.
   const autosaveValue = useMemo<ClassFormValues>(
-    () => ({ ...form, prerequisites: csvToList(prereqText) }),
-    [form, prereqText]
+    () => ({
+      ...form,
+      prerequisites: csvToList(prereqText),
+      deliverables: csvToList(deliverablesText),
+    }),
+    [form, prereqText, deliverablesText]
   );
   const autosave = useAutosave({
     value: autosaveValue,
@@ -171,7 +191,11 @@ export default function ClassFormPage() {
 
   const onSubmit = async () => {
     if (!user) return;
-    const candidate: ClassFormValues = { ...form, prerequisites: csvToList(prereqText) };
+    const candidate: ClassFormValues = {
+      ...form,
+      prerequisites: csvToList(prereqText),
+      deliverables: csvToList(deliverablesText),
+    };
     const parsed = classFormSchema.safeParse(candidate);
     if (!parsed.success) {
       const fieldErrors: Partial<Record<keyof ClassFormValues, string>> = {};
@@ -235,7 +259,7 @@ export default function ClassFormPage() {
             restoredAt={draft.restoredAt}
             onDiscard={async () => {
               await draft.clearDraft();
-              draft.setValue({ form: defaults, prereqText: "" });
+              draft.setValue({ form: defaults, prereqText: "", deliverablesText: "" });
             }}
             noun="class draft"
           />
@@ -258,6 +282,31 @@ export default function ClassFormPage() {
             aria-invalid={!!errors.title}
           />
           {errors.title && <p className="text-xs text-destructive mt-1">{errors.title}</p>}
+        </div>
+
+        <div>
+          <Label htmlFor="short_description">Short description</Label>
+          <Textarea
+            id="short_description"
+            rows={2}
+            maxLength={140}
+            placeholder="A one or two line blurb for the class card…"
+            value={form.short_description ?? ""}
+            onChange={(e) => setForm((f) => ({ ...f, short_description: e.target.value }))}
+            aria-invalid={!!errors.short_description}
+          />
+          <div className="flex justify-between gap-2 mt-1">
+            {errors.short_description ? (
+              <p className="text-xs text-destructive">{errors.short_description}</p>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                Shown on the class card. Summary and description stay on the detail page.
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground shrink-0">
+              {(form.short_description ?? "").length}/140
+            </span>
+          </div>
         </div>
 
         <div>
@@ -367,6 +416,16 @@ export default function ClassFormPage() {
             rows={3}
             value={prereqText}
             onChange={(e) => setPrereqText(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="deliverables">Deliverables (one per line)</Label>
+          <Textarea
+            id="deliverables"
+            rows={3}
+            value={deliverablesText}
+            onChange={(e) => setDeliverablesText(e.target.value)}
           />
         </div>
 

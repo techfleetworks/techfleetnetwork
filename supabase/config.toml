@@ -69,6 +69,8 @@ project_id = "pzvqxdgoztbfikfuifix"
     verify_jwt = false
   [functions.promote-to-admin]
     verify_jwt = false
+  [functions.public-class-detail]
+    verify_jwt = false
   [functions.public-project-detail]
     verify_jwt = false
   [functions.public-project-openings]
@@ -96,6 +98,11 @@ project_id = "pzvqxdgoztbfikfuifix"
   [functions.confirm-teacher-role]
     verify_jwt = false
   [functions.public-classes]
+    verify_jwt = false
+  [functions.public-courses]
+    # Public-access A8: anon read-only outline of the free Core courses
+    # (System A). Service-role gateway; anon has no table grants after the A8
+    # REVOKE. verify_jwt stays false so logged-out visitors are served.
     verify_jwt = false
   [functions.fleety-embed]
     verify_jwt = false

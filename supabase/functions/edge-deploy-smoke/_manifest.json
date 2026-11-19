@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-09T01:33:25.197Z",
+  "generated_at": "2026-11-19T07:16:52.813Z",
   "functions": [
     {
       "name": "admin-purge-auth-user",
@@ -527,9 +527,23 @@
       "declared": true
     },
     {
+      "name": "public-class-detail",
+      "verify_jwt": false,
+      "kind": "cron",
+      "critical": false,
+      "declared": true
+    },
+    {
       "name": "public-classes",
       "verify_jwt": false,
       "kind": "cron",
+      "critical": false,
+      "declared": true
+    },
+    {
+      "name": "public-courses",
+      "verify_jwt": false,
+      "kind": "public",
       "critical": false,
       "declared": true
     },
