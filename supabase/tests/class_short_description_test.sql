@@ -25,6 +25,9 @@ SELECT lives_ok(
 );
 
 -- 141 characters violates classes_short_description_len (SQLSTATE 23514).
+-- 4-arg form: errcode '23514', errmsg NULL (don't assert the wording), then the
+-- test description. The 3-arg form would treat the description as the EXPECTED
+-- message and compare it to Postgres's real text, failing on a wording mismatch.
 SELECT throws_ok(
   $$INSERT INTO public.classes (id, owner_user_id, track, title, slug, summary, short_description, status)
     VALUES ('a1000000-0000-0000-0000-000000000002',
@@ -32,6 +35,7 @@ SELECT throws_ok(
             'Short desc too long', 'sd-bad-a1-test', repeat('s', 30),
             repeat('x', 141), 'draft')$$,
   '23514',
+  NULL,
   'short_description over 140 chars is rejected by the CHECK'
 );
 

@@ -14,6 +14,13 @@ ALTER TABLE public.classes
 ALTER TABLE public.classes
   DROP CONSTRAINT IF EXISTS classes_short_description_len;
 
+-- Add the CHECK as NOT VALID (no full-table validation lock on existing rows),
+-- then VALIDATE in a separate step — the expand/contract pattern for a constraint
+-- (decisions.md §7). This column is brand-new with DEFAULT '', so every existing
+-- row already satisfies char_length <= 140; VALIDATE finds nothing to reject.
 ALTER TABLE public.classes
   ADD CONSTRAINT classes_short_description_len
-  CHECK (char_length(short_description) <= 140);
+  CHECK (char_length(short_description) <= 140) NOT VALID;
+
+ALTER TABLE public.classes
+  VALIDATE CONSTRAINT classes_short_description_len;

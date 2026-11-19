@@ -1,6 +1,8 @@
 // B10: PublicCoursesPage — the logged-out catalog at /courses.
 // The edge-fn hooks are mocked; the behavior under test is "renders the right
 // tiles with auth-aware CTAs and empty states".
+// Module under test: src/pages/PublicCoursesPage.tsx
+// Feature spec: src/pages/public-classes.feature
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent } from "@testing-library/react";
 import { renderWithRouter } from "./test-utils";

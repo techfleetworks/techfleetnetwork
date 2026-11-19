@@ -12,6 +12,7 @@
 # DB row + e2e spec in Phase B, when the public pages exist (per the repo's
 # ratchet: a scenario is registered `implemented` only once a real test backs it).
 
+@pending
 Feature: Public class detail gateway (D-A)
 
   The public-class-detail edge function is the single server-side gatekeeper for

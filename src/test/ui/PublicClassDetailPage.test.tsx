@@ -1,6 +1,7 @@
 // B10: PublicClassDetailPage — the public class detail at /classes/:slug.
 // The detail hook and auth are mocked; the behavior under test is "renders the
 // class + schedule, with the correct auth-aware cohort CTA, and a not-found page".
+// Module under test: src/pages/PublicClassDetailPage.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";

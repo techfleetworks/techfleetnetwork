@@ -1,5 +1,7 @@
-#!/usr/bin/env node
 // ci-lane: critical
+// (No shebang: this guard is always run as `node scripts/ci/check-public-field-allowlist.mjs`,
+// and a shebang breaks vite's SSR transform when the guard is imported by its own self-test —
+// the transform relocates line 1 below its preamble, and `#!` is only legal on line 1.)
 /**
  * CI gate (public-access A7): no `public-*` edge function may select a §6-resource
  * column outside the ANON allowlist.
@@ -18,6 +20,9 @@
  * (supabase/functions/_shared/public-visibility.ts → ANON_FIELDS), so there is no
  * second copy to drift. Core logic is exported for the discriminating self-test
  * (src/test/ci/check-public-field-allowlist.test.ts), per verifiable-quality-gates.
+ *
+ * ci-guard-integrity: bespoke-dir-reader — enumerates the public-* function dirs and
+ * cross-references a separate policy source (ANON_FIELDS), not a single-root content scan.
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -149,7 +154,10 @@ function isWholePolicyCall(arg) {
 /** All `.from("table").select(arg)` on a §6 resource. dynamic=true for policy calls. */
 export function extractResourceSelects(source) {
   const results = [];
-  const fromRe = /\.from\(\s*["'`]([a-z_]+)["'`]\s*\)/g;
+  // \x60 is a literal backtick: identical match to ["'`], but a literal backtick
+  // inside a regex breaks vitest's module transform when the guard is imported by
+  // its self-test (node's CLI parses it fine; the transform does not).
+  const fromRe = /\.from\(\s*["'\x60]([a-z_]+)["'\x60]\s*\)/g;
   let m;
   while ((m = fromRe.exec(source))) {
     const table = m[1];
@@ -172,8 +180,8 @@ export function extractResourceSelects(source) {
       continue;
     }
     // literal string or template (no interpolation)
-    const lit = trimmed.match(/^(["'`])([\s\S]*)\1$/);
-    if (lit && !(lit[1] === "`" && lit[2].includes("${"))) {
+    const lit = trimmed.match(/^(["'\x60])([\s\S]*)\1$/);
+    if (lit && !(lit[1] === "\x60" && lit[2].includes("${"))) {
       results.push({ table, dynamic: false, literal: lit[2] });
     } else {
       results.push({ table, dynamic: false, literal: null, unparseable: true });

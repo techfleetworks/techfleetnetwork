@@ -1016,7 +1016,10 @@ jobs:
             supabase/functions/eo-contact-status/ \
             supabase/functions/auth-email-hook/confirmation-url.test.ts \
             supabase/functions/_shared/observability/braintrust.test.ts \
-            supabase/functions/_shared/dlp.test.ts
+            supabase/functions/_shared/dlp.test.ts \
+            supabase/functions/_shared/public-visibility.test.ts \
+            supabase/functions/_shared/public-feed-contract.test.ts \
+            supabase/functions/public-class-detail/lib.test.ts
 
   dependency-review:
     runs-on: ubuntu-latest

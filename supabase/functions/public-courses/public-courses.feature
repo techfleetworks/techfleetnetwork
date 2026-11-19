@@ -19,6 +19,7 @@
 # when the public courses page exists (the repo's ratchet: a scenario is registered
 # `implemented` only once a real test backs it).
 
+@pending
 Feature: Public courses outline gateway (A8, System A)
 
   The public-courses edge function is the single server-side path that shows the

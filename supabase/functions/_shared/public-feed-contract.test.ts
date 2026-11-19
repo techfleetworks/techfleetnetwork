@@ -9,6 +9,10 @@
 //   2. Canary: a denylist of fields that must NEVER reach anon (and, for secrets/
 //      PII, never reach any public caller). If one ever lands in a public set the
 //      canary goes red (@security).
+//
+// Contract canary for the public-feed gateways that select through this policy:
+//   supabase/functions/public-classes/index.ts, supabase/functions/public-courses/index.ts,
+//   supabase/functions/public-class-detail/index.ts.
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { fieldsFor, type PublicResource } from "./public-visibility.ts";
 import contract from "./public-feed-contract.v1.json" with { type: "json" };
