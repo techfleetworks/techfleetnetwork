@@ -57,7 +57,7 @@ export interface ContentCardStatus {
   tone?: ContentCardTone;
 }
 
-interface ContentCardBaseProps {
+export interface ContentCardBaseProps {
   title: string;
   /** When set, the title becomes a link to the same target as "view details". */
   titleHref?: string;
@@ -80,7 +80,7 @@ interface ContentCardBaseProps {
 
 // Alt text is compiler-REQUIRED whenever an image is supplied (WCAG 1.1.1): a
 // caller cannot ship an informative cover image with no alt. No image → no alt.
-type ContentCardImage =
+export type ContentCardImage =
   | { imageUrl: string; imageAlt: string }
   | { imageUrl?: undefined; imageAlt?: never };
 

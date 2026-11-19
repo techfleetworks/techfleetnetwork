@@ -21,7 +21,7 @@ import {
   ResponsiveTabsContent,
   type TabItem,
 } from "@/components/ui/responsive-tabs";
-import { ContentCard } from "@/components/ContentCard";
+import { ContentCard, type ContentCardImage } from "@/components/ContentCard";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
 import { stripHtml } from "@/lib/strip-html";
 import {
@@ -53,14 +53,18 @@ function ClassCardTile({ cls }: { cls: PublicClassListItem }) {
   const detailPath = `/classes/${cls.slug}`;
   const firstCohort = cls.cohorts[0];
   const start = formatStart(firstCohort?.start_date);
+  // Typed as the discriminated union so an image forces its alt. An inline
+  // `{...(cond ? {imageUrl,imageAlt} : {})}` spread widens imageUrl to an
+  // optional string that matches NEITHER arm (TS2322) — bind it instead.
+  const image: ContentCardImage = cls.hero_image_url
+    ? { imageUrl: cls.hero_image_url, imageAlt: `${cls.title} cover` }
+    : {};
   return (
     <ContentCard
       data-card="public-class"
       title={cls.title}
       titleHref={detailPath}
-      {...(cls.hero_image_url
-        ? { imageUrl: cls.hero_image_url, imageAlt: `${cls.title} cover` }
-        : {})}
+      {...image}
       status={{ label: "Registration open", tone: "success" }}
       meta={start ? `Starts ${start}` : undefined}
       chips={[TRACK_LABEL[cls.track] ?? cls.track]}

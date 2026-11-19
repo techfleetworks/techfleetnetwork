@@ -3,11 +3,13 @@
 // context: the behavior under test is "renders its props and emits its actions".
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { ContentCard, type ContentCardProps } from "@/components/ContentCard";
+import { ContentCard, type ContentCardBaseProps } from "@/components/ContentCard";
 
 // Base props carry NO image (the image props are a discriminated union: an image
-// forces an alt). Image tests add imageUrl + imageAlt at the JSX call site.
-function baseProps(overrides: Partial<ContentCardProps> = {}): ContentCardProps {
+// forces an alt). Typing the factory as the image-less base props keeps
+// `...overrides` from widening imageUrl to an optional that matches neither union
+// arm (TS2322). Image tests add imageUrl + imageAlt at the JSX call site.
+function baseProps(overrides: Partial<ContentCardBaseProps> = {}): ContentCardBaseProps {
   return {
     title: "Agile Foundations",
     status: { label: "Registration open", tone: "success" },
