@@ -8,15 +8,19 @@ import {
 } from "@/lib/visibility/public-nav-policy";
 
 describe("public-nav-policy (A5)", () => {
-  it("marks /courses and /project-openings public, others not", () => {
+  it("surfaces only /courses in the nav; /project-openings is viewable but not surfaced yet", () => {
+    // /project-openings is a VIEWABLE public path (detail gateway is live) but its
+    // list is not surfaced in the anon nav until the public openings list ships
+    // (owner decision 2026-11-19) — so it is NOT a public nav href, while its
+    // detail subpath stays publicly viewable (next test).
     expect(isPublicNavHref("/courses")).toBe(true);
-    expect(isPublicNavHref("/project-openings")).toBe(true);
+    expect(isPublicNavHref("/project-openings")).toBe(false);
     expect(isPublicNavHref("/dashboard")).toBe(false);
     expect(isPublicNavHref("/applications")).toBe(false);
     expect(isPublicNavHref("/my-journey")).toBe(false);
   });
 
-  it("treats detail subpaths and home as public", () => {
+  it("treats detail subpaths and home as public (project-openings detail stays viewable)", () => {
     expect(isPublicPath("/courses/intro-to-ai")).toBe(true);
     expect(isPublicPath("/project-openings/abc-123")).toBe(true);
     expect(isPublicPath("/")).toBe(true);
@@ -42,6 +46,8 @@ describe("public-nav-policy (A5)", () => {
     ];
     expect(filterNavForAuth(items, true)).toHaveLength(5);
     const anon = filterNavForAuth(items, false);
-    expect(anon.map((i) => i.href)).toEqual(["/courses", "/project-openings"]);
+    // /project-openings is not a surfaced nav href yet (see above), so anon sees
+    // only /courses even when the item is present in the source list.
+    expect(anon.map((i) => i.href)).toEqual(["/courses"]);
   });
 });

@@ -201,19 +201,31 @@ if (base) {
         "leaving that to CI's sharded run (it reliably passes there, flakes single-process here).",
     );
   } else {
+    // --no-file-parallelism: run the changed files SERIALLY. In parallel on a
+    // contended dev box the files starve each other, and a UI test's internal
+    // findBy* wait (its own ~1s timeout, independent of --test-timeout) expires
+    // → a false failure. Serial is a touch slower but deterministic, which is the
+    // whole point of a blocking gate.
     run(`vitest (changed vs ${base.slice(0, 9)})`, "npx", [
       "vitest",
       "run",
       "--changed",
       base,
       "--test-timeout=60000",
+      "--no-file-parallelism",
     ]);
   }
 } else {
   // No upstream ref locally (rare: fresh branch, no fetch). The deterministic
   // gates above still ran in full; scope the rest to the working tree.
   console.log("[pre-push] no upstream base ref found — scoping lint/tests to the working tree");
-  run("vitest (changed, working tree)", "npx", ["vitest", "run", "--changed", "--test-timeout=60000"]);
+  run("vitest (changed, working tree)", "npx", [
+    "vitest",
+    "run",
+    "--changed",
+    "--test-timeout=60000",
+    "--no-file-parallelism",
+  ]);
 }
 
 console.log("\n[pre-push] ✓ local gates passed — pushing. (Full lint / full suite / coverage / mutation run in CI.)");

@@ -52,7 +52,7 @@ beforeEach(() => {
 describe("PublicCoursesPage (B10)", () => {
   it("renders the heading and the three catalog tabs", () => {
     renderWithRouter(<PublicCoursesPage />);
-    expect(screen.getByRole("heading", { name: /Courses & Classes/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Courses" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Onboarding Courses/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Basic Training/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Advanced Training/i })).toBeInTheDocument();

@@ -7,21 +7,31 @@
 // consume one policy instead of scattering `if (user)` checks.
 
 /**
- * Routes a logged-out visitor may see in the nav and open directly (§6.4). Detail
- * subpaths (e.g. /courses/:slug, /project-openings/:id) are covered by isPublicPath.
- * Everything else in the platform nav is authed-only and absent for anon.
+ * Path roots a logged-out visitor may VIEW directly — the route and its detail
+ * subpaths (e.g. /courses/:slug, /project-openings/:id). Distinct from what the
+ * nav SURFACES (PUBLIC_NAV_HREFS): a path can be publicly viewable by link
+ * without yet appearing in the logged-out nav.
  */
-export const PUBLIC_NAV_HREFS = new Set<string>(["/courses", "/project-openings"]);
+export const PUBLIC_PATH_ROOTS = new Set<string>(["/courses", "/project-openings"]);
 
-/** Is this exact nav href part of the logged-out surface? */
+/**
+ * Routes SURFACED in the logged-out nav (§6.4). A subset of PUBLIC_PATH_ROOTS:
+ * /project-openings is viewable (its anon detail gateway is live) but the openings
+ * LIST view is not built for anon yet, so it is intentionally NOT surfaced in the
+ * nav (owner decision 2026-11-19). Re-add it here AND in PublicNavItems when the
+ * public openings list ships — see docs/public-access/BUILD-PLAN.md.
+ */
+export const PUBLIC_NAV_HREFS = new Set<string>(["/courses"]);
+
+/** Is this exact href SURFACED in the logged-out nav? */
 export function isPublicNavHref(href: string): boolean {
   return PUBLIC_NAV_HREFS.has(href);
 }
 
-/** May a logged-out visitor view this path (a public nav href or its detail subpath)? */
+/** May a logged-out visitor view this path (a public path root or its detail subpath)? */
 export function isPublicPath(path: string): boolean {
-  for (const href of PUBLIC_NAV_HREFS) {
-    if (path === href || path.startsWith(href + "/")) return true;
+  for (const root of PUBLIC_PATH_ROOTS) {
+    if (path === root || path.startsWith(root + "/")) return true;
   }
   return path === "/" || path === "/home";
 }
