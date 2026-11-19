@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "note": "Frozen ANON select contract for the public gateways (public-access A7). Pins which columns each §6 resource exposes to a logged-out visitor. Changing public-visibility.ts ANON_FIELDS must bump this fixture (a deliberate contract change) or the contract test fails. Not the output shape (owner_user_id is selected then dropped to a derived instructor_name).",
+  "anon": {
+    "class": ["id", "slug", "track", "status", "title", "summary", "description", "outcomes", "skills", "prerequisites", "hero_image_url", "short_description", "deliverables", "curriculum", "published_at", "owner_user_id"],
+    "cohort": ["id", "label", "start_date", "end_date", "registration_url"],
+    "project": ["id", "client_id", "project_type", "project_status", "team_hats", "current_phase_milestones", "created_at", "timezone_range", "anticipated_start_date", "anticipated_end_date", "coordinator_id", "friendly_name", "description"],
+    "client": ["id", "name", "website", "mission", "project_summary", "logo_url"],
+    "course": ["course_key", "display_label", "display_order", "phase", "tier"],
+    "lesson": ["lesson_id", "course_key", "display_order", "required"]
+  }
+}

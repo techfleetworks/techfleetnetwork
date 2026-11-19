@@ -1099,6 +1099,8 @@ export type Database = {
           published_at: string | null
           reading_assignments: string
           skills: string[]
+          deliverables: string[]
+          short_description: string
           slug: string
           status: Database["public"]["Enums"]["class_status"]
           submitted_at: string | null
@@ -1124,6 +1126,8 @@ export type Database = {
           published_at?: string | null
           reading_assignments?: string
           skills?: string[]
+          deliverables?: string[]
+          short_description?: string
           slug: string
           status?: Database["public"]["Enums"]["class_status"]
           submitted_at?: string | null
@@ -1149,6 +1153,8 @@ export type Database = {
           published_at?: string | null
           reading_assignments?: string
           skills?: string[]
+          deliverables?: string[]
+          short_description?: string
           slug?: string
           status?: Database["public"]["Enums"]["class_status"]
           submitted_at?: string | null

@@ -1,0 +1,94 @@
+// B10: PublicCoursesPage — the logged-out catalog at /courses.
+// The edge-fn hooks are mocked; the behavior under test is "renders the right
+// tiles with auth-aware CTAs and empty states".
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { screen, fireEvent } from "@testing-library/react";
+import { renderWithRouter } from "./test-utils";
+import PublicCoursesPage from "@/pages/PublicCoursesPage";
+import { usePublicCourses, usePublicClasses } from "@/hooks/use-public-catalog";
+
+vi.mock("@/hooks/use-public-catalog", () => ({
+  usePublicCourses: vi.fn(),
+  usePublicClasses: vi.fn(),
+}));
+
+const ok = <T,>(data: T) => ({ data, isLoading: false, isError: false }) as any;
+
+const course = {
+  course_key: "agile-mindset",
+  display_label: "Build an Agile Mindset",
+  display_order: 1,
+  phase: null,
+  tier: "core",
+  lessons: [{ lesson_id: "l1", course_key: "agile-mindset", display_order: 1, required: true }],
+};
+
+const basicClass = {
+  id: "c1",
+  slug: "design-foundations",
+  title: "Design Foundations",
+  summary: "Learn the basics of product design.",
+  description: null,
+  track: "basic_training" as const,
+  hero_image_url: null,
+  outcomes: null,
+  skills: null,
+  prerequisites: null,
+  published_at: null,
+  cohorts: [
+    { id: "co1", label: "Winter", start_date: "2026-03-03", end_date: "2026-04-03", registration_url: "https://gum.co/x" },
+  ],
+};
+
+beforeEach(() => {
+  vi.mocked(usePublicCourses).mockReturnValue(ok([course]));
+  vi.mocked(usePublicClasses).mockImplementation((track?: string) =>
+    track === "basic_training" ? ok([basicClass]) : ok([]),
+  );
+});
+
+describe("PublicCoursesPage (B10)", () => {
+  it("renders the heading and the three catalog tabs", () => {
+    renderWithRouter(<PublicCoursesPage />);
+    expect(screen.getByRole("heading", { name: /Courses & Classes/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Onboarding Courses/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Basic Training/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Advanced Training/i })).toBeInTheDocument();
+  });
+
+  it("shows a free course tile with a Join Platform redirect-back to /courses", () => {
+    renderWithRouter(<PublicCoursesPage />);
+    expect(screen.getByText("Build an Agile Mindset")).toBeInTheDocument();
+    const links = screen.getAllByRole("link");
+    expect(links.some((a) => a.getAttribute("href") === "/login?redirect=%2Fcourses")).toBe(true);
+  });
+
+  it("shows a class tile with View details and a Join Platform redirect-back to the class", () => {
+    renderWithRouter(<PublicCoursesPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /Basic Training/i }));
+    expect(screen.getByText("Design Foundations")).toBeInTheDocument();
+    const viewDetails = screen.getByRole("link", { name: /View details for Design Foundations/i });
+    expect(viewDetails).toHaveAttribute("href", "/classes/design-foundations");
+    const links = screen.getAllByRole("link");
+    expect(
+      links.some((a) => a.getAttribute("href") === "/login?redirect=%2Fclasses%2Fdesign-foundations"),
+    ).toBe(true);
+  });
+
+  it("shows an empty state with a Join Platform CTA for a tab with no classes", () => {
+    renderWithRouter(<PublicCoursesPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /Advanced Training/i }));
+    expect(screen.getByText(/Nothing here yet/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Join Platform/i })).toBeInTheDocument();
+  });
+
+  it("DISCRIMINATING: a class tile's Join target is the class, not the generic /courses", () => {
+    // Guards that the redirect-back is the specific class, not a copy-paste of the
+    // course tile's /courses target.
+    renderWithRouter(<PublicCoursesPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /Basic Training/i }));
+    const links = screen.getAllByRole("link");
+    expect(links.some((a) => a.getAttribute("href") === "/login?redirect=%2Fclasses%2Fdesign-foundations")).toBe(true);
+    expect(links.every((a) => a.getAttribute("href") !== "/login?redirect=%2Fcourses%2Fdesign-foundations")).toBe(true);
+  });
+});
