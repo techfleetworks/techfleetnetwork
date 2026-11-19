@@ -480,7 +480,12 @@ export function AppLayout({ children }: AppLayoutProps) {
               style={{ minHeight: "3rem" }}
             >
               <div className="flex items-center gap-2 pl-2 lg:pl-9">
-                <SidebarTrigger />
+                {/* Below lg (<1024px) the sidebar is an off-canvas sheet and this is
+                    its opener. At lg+ the sidebar is pinned with its own collapse
+                    trigger, so this one is redundant (the stray "minimize" in the
+                    header) — hide it there. 1024px = the sidebar's mobile breakpoint
+                    (useIsMobile / use-mobile.tsx), so the threshold must match. */}
+                <SidebarTrigger className="lg:hidden" />
               </div>
               <div className="flex items-center gap-2 lg:gap-3 shrink-0 px-2 lg:px-9 py-3" data-no-card>
                 <ThemeToggle />

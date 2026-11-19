@@ -173,12 +173,12 @@ export default function PublicCoursesPage() {
   return (
     <div className="container-app py-8 sm:py-12">
       <SEO
-        title="Courses & Classes"
+        title="Courses"
         description="Explore Tech Fleet's free onboarding courses and cohort-based training classes. Join the platform to start learning and register."
         canonicalPath="/courses"
       />
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Courses &amp; Classes</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Courses</h1>
         <p className="text-muted-foreground mt-1">
           Free onboarding courses and cohort-based training. Join the platform to start.
         </p>

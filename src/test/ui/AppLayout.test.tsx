@@ -46,9 +46,12 @@ describe("AppLayout / Navigation UI (BDD 22.1–22.4)", () => {
     expect(screen.queryByText("Connect")).not.toBeInTheDocument();
   });
 
-  it("B8: the logged-out nav shows the public items (Home, Courses, Project Openings)", () => {
+  it("B8: the logged-out nav shows the public items (Home, Courses)", () => {
     expect(screen.getByRole("link", { name: /courses/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /project openings/i })).toBeInTheDocument();
+    // Project Openings is intentionally NOT surfaced for anon yet (owner decision
+    // 2026-11-19): the list page is still authed-only, so advertising it bounced
+    // anon to login. It returns when the public openings list ships (BUILD-PLAN.md).
+    expect(screen.queryByRole("link", { name: /project openings/i })).not.toBeInTheDocument();
   });
 
   it("B8 @security: authed-only nav items are NOT rendered for an anonymous visitor", () => {
