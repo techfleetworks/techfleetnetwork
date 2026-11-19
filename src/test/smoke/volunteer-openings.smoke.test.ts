@@ -53,11 +53,16 @@ describe("Volunteer Openings (smoke)", () => {
   });
 
   it("HACKATHON-001: Hackathons tab surfaces Shipathons via getOpeningCategory + is_shipathon", () => {
-    // The openings page has a Hackathons tab and partitions via the shared categorizer, and the
-    // openings edge function exposes is_shipathon so the client can route Shipathons to it.
+    // The openings page has a Hackathons tab and partitions via the shared categorizer.
+    // The openings edge fn exposes project fields through the shared A5 policy
+    // (projectCardFields), whose anon card set includes is_shipathon — so an anonymous
+    // visitor still receives it and the client can route Shipathons to the tab.
     expect(openingsPage).toMatch(/Hackathons/);
     expect(openingsPage).toMatch(/getOpeningCategory/);
     expect(openingsPage).toMatch(/hackathon/);
-    expect(publicOpeningsFn).toMatch(/is_shipathon/);
+    expect(publicOpeningsFn).toMatch(/projectCardFields/);
+    const policy = read("supabase/functions/_shared/public-visibility.ts");
+    const cardAnon = policy.match(/const PROJECT_CARD_ANON\s*=\s*\n?\s*"([^"]+)"/);
+    expect(cardAnon?.[1]).toMatch(/\bis_shipathon\b/);
   });
 });

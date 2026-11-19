@@ -74,7 +74,7 @@ export function fieldsFor(resource: PublicResource, authState: AuthState): strin
 // "authed-only" decision stays single-sourced and the drift guard in the tests
 // fails CI if a card extra ever stops being an authed-only field.
 const PROJECT_CARD_ANON =
-  "id, client_id, project_type, project_status, team_hats, current_phase_milestones, friendly_name, description, created_at";
+  "id, client_id, project_type, project_status, team_hats, current_phase_milestones, friendly_name, description, is_shipathon, created_at";
 const CLIENT_CARD_ANON = "id, name, logo_url";
 
 /** Project fields for a listing card. Anon = card subset; authed also gets phase. */
