@@ -83,11 +83,12 @@ Feature: Public classes pages (B10)
     When the detail page renders
     Then a not-found message and a link back to the catalog are shown
 
-  @audience:anonymous @usecase:detail-no-raw-html @category:adverse @quality:security @severity:high @status:planned
-  Scenario: Teacher-authored free text never renders as raw HTML
-    Given a class whose description contains markup
+  @audience:anonymous @usecase:detail-rich-text-sanitized @category:adverse @quality:security @severity:high @status:proven
+  Scenario: Teacher rich-text renders as sanitized HTML, with active markup stripped
+    Given a class whose summary contains headings, lists, and a script/onerror payload
     When the detail page renders
-    Then the markup is shown as text, not injected into the DOM
+    Then the headings and lists render as structured HTML (ADR 20261120-public-rich-text)
+    And the script and event-handler markup are stripped, never executed
 
   @audience:anonymous @usecase:catalog-a11y @category:happy @quality:accessibility @severity:high @status:planned
   Scenario: The catalog and detail pages have no automated a11y violations
