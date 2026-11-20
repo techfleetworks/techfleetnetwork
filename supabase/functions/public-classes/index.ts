@@ -35,8 +35,9 @@ Deno.serve(withAuditWrapper("public-classes", async (req) => {
 
     // Service-role client (anon has no grants after the A6 REVOKE). §6-compliant
     // anon select: no owner_user_id, and cohorts reduced to label/dates/
-    // registration_url (status/capacity/timezone are authed-only, not in an anon
-    // feed). The A7 guard validates these columns are within the anon allowlist.
+    // registration_url/registration_status (the public enrollment phase);
+    // cohort_status/capacity/timezone are authed-only, not in an anon feed. The A7
+    // guard validates these columns are within the anon allowlist.
     const supabase = getAdminClient();
 
     // LEFT join on cohorts (not `!inner`): the public catalog shows EVERY

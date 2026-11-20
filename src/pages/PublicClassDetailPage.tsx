@@ -5,10 +5,11 @@
 // cohort status/capacity/timezone). The "schedule" is the cohort itself (dates,
 // and timezone for members) — there is no separate schedule field (owner, 2026-11-18).
 //
-// The ONE auth-aware decision on this page is the cohort CTA: an anonymous visitor
-// is sent to Join Platform (open-redirect-safe return path, B8) because the class
-// readiness path is "join, then register"; a signed-in member gets the external
-// Register-on-Gumroad link.
+// The cohort CTA is driven by the cohort's registration_status, NOT by auth: a
+// registerable cohort (register_now/live) shows "Register" linking straight to
+// Gumroad for EVERYONE (a logged-out buyer is held pending_user and claims access
+// on verified signup — ADR 20261120-public-register-cta); a coming_soon cohort
+// shows "Opening soon" + a Join Platform fallback. Auth only adds the timezone line.
 //
 // Teacher-authored rich text (summary/description/outcomes/curriculum) is rendered
 // as SANITIZED HTML via `sanitizeHtml` (DOMPurify allowlist — the same control the
@@ -125,7 +126,7 @@ function CohortCard({
     ? { label: "Registration open", className: "bg-success text-primary-foreground" }
     : comingSoon
       ? { label: "Opening soon", className: "bg-muted text-foreground" }
-      : { label: "Registration closed", className: "bg-muted text-muted-foreground" };
+      : { label: "Registration closed", className: "bg-muted text-foreground" };
   return (
     <div className="rounded-lg border bg-card p-6 space-y-4">
       <Badge className={`${badge.className} border-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide`}>

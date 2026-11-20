@@ -24,8 +24,9 @@ export interface RawCohort {
 export type PublicCohort = RawCohort;
 
 /**
- * Map a cohort row to its public shape. Anon emits exactly the 5 §6 fields; a
- * signed-in member also gets status/capacity/timezone (the authed-only extras).
+ * Map a cohort row to its public shape. Anon emits exactly the 6 §6 fields
+ * (incl. registration_status); a signed-in member also gets status/capacity/
+ * timezone (the authed-only extras).
  * Explicitly re-emits only allowlisted keys, so no extra column can leak even if
  * the select widens.
  */

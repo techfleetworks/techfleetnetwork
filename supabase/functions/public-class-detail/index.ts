@@ -89,10 +89,11 @@ Deno.serve(withAuditWrapper("public-class-detail", async (req) => {
       instructorName = deriveInstructorName(prof);
     }
 
-    // Cohorts — only published, not-yet-ended ones are shown (so a returned cohort
-    // is open for registration). Anon gets id/label/dates/registration_url; a
-    // signed-in member also gets status/capacity/timezone (§6 authed-only).
-    // meeting_url and plumbing are never selected.
+    // Cohorts — only published, not-yet-ended ones are shown; the client reads
+    // registration_status to tell "register now" from "opening soon". Anon gets
+    // id/label/dates/registration_url/registration_status; a signed-in member also
+    // gets cohort_status/capacity/timezone (§6 authed-only). meeting_url and
+    // plumbing are never selected.
     const today = new Date().toISOString().slice(0, 10);
     const { data: cohortRows, error: cohortErr } = await supabase
       .from("cohorts")
