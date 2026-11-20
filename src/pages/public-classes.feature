@@ -38,9 +38,16 @@ Feature: Public classes pages (B10)
     When a Core course tile renders
     Then it shows the course and a Join Platform action
 
+  @audience:anonymous @usecase:catalog-class-no-cohort @category:boundary @quality:functional @severity:high @status:proven
+  Scenario: A published class with no open cohort is still listed, honestly
+    Given a logged-out visitor on a training tab with a published class that has no open cohort
+    When the tile renders
+    Then the class is shown (same visibility as the authenticated list)
+    And its status reads "Enrollment not open", not "Registration open"
+
   @audience:anonymous @usecase:catalog-empty @category:boundary @quality:functional @severity:medium @status:proven
   Scenario: An empty tab shows a join CTA, not a dead end
-    Given a training tab with no open classes
+    Given a training tab with no published classes
     When it renders
     Then an empty-state message and a Join Platform action are shown
 

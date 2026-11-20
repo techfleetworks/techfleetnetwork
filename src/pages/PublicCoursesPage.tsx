@@ -53,6 +53,15 @@ function ClassCardTile({ cls }: { cls: PublicClassListItem }) {
   const detailPath = `/classes/${cls.slug}`;
   const firstCohort = cls.cohorts[0];
   const start = formatStart(firstCohort?.start_date);
+  // A published class is listed even with no open cohort (matches the
+  // authenticated list; ADR 20261119-public-classes-visibility). The status must
+  // tell the truth: "Registration open" only when there IS an open cohort, else
+  // a neutral "Enrollment not open" — never a misleading success badge over a
+  // class a visitor cannot yet register for.
+  const hasOpenCohort = cls.cohorts.length > 0;
+  const status = hasOpenCohort
+    ? ({ label: "Registration open", tone: "success" } as const)
+    : ({ label: "Enrollment not open", tone: "neutral" } as const);
   // Typed as the discriminated union so an image forces its alt. An inline
   // `{...(cond ? {imageUrl,imageAlt} : {})}` spread widens imageUrl to an
   // optional string that matches NEITHER arm (TS2322) — bind it instead.
@@ -65,7 +74,7 @@ function ClassCardTile({ cls }: { cls: PublicClassListItem }) {
       title={cls.title}
       titleHref={detailPath}
       {...image}
-      status={{ label: "Registration open", tone: "success" }}
+      status={status}
       meta={start ? `Starts ${start}` : undefined}
       chips={[TRACK_LABEL[cls.track] ?? cls.track]}
       blurb={blurbFromSummary(cls.summary)}
@@ -207,7 +216,7 @@ export default function PublicCoursesPage() {
             loading={basic.isLoading}
             error={basic.isError}
             empty={(basic.data ?? []).length === 0}
-            emptyText="There are no basic training classes open right now. Check back soon."
+            emptyText="There are no basic training classes yet. Check back soon."
           >
             <div className={GRID}>
               {(basic.data ?? []).map((c) => (
@@ -222,7 +231,7 @@ export default function PublicCoursesPage() {
             loading={advanced.isLoading}
             error={advanced.isError}
             empty={(advanced.data ?? []).length === 0}
-            emptyText="There are no advanced training classes open right now. Check back soon."
+            emptyText="There are no advanced training classes yet. Check back soon."
           >
             <div className={GRID}>
               {(advanced.data ?? []).map((c) => (
