@@ -29,7 +29,6 @@
     "preview-transactional-email",
     "process-notification-fanout",
     "promote-to-admin",
-    "public-classes",
     "public-project-detail",
     "public-project-openings",
     "push-config",
