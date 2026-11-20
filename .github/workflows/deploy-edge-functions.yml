@@ -250,3 +250,28 @@ jobs:
             exit 1
           fi
           echo "Post-deploy smoke OK (HTTP $status)"
+
+      - name: Set up Node (for the public-catalog contract check)
+        # Pin Node so the contract check below doesn't depend on ubuntu-latest's
+        # ambient Node (which must be >=18 for global fetch). SHA matches the rest
+        # of the repo's workflows (OWASP CI/CD supply-chain integrity).
+        if: steps.select.outputs.count != '0'
+        # actions/setup-node@v5.0.0 — pinned SHA, runs on Node.js 24 (has global fetch)
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 20
+
+      - name: Post-deploy public-catalog contract (logged-out visitors can load /courses)
+        # PUB-SMOKE-001. The gateway-up check above only proves the runtime isn't
+        # 503 — it never caught that the public catalog's CORS preflight rejected
+        # the browser's `apikey` header, or that the feed came back empty/malformed
+        # from the LIVE function. This asserts the live contract so a public-catalog
+        # regression fails the deploy loudly instead of surfacing as a user report.
+        # Runs whenever anything deployed (a _shared change fans out and can break
+        # every public gateway), not only when a public-* function changed. The
+        # check retries transient cold-start 5xx/timeouts, so only a persistent
+        # break fails the deploy.
+        if: steps.select.outputs.count != '0'
+        env:
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node scripts/ci/smoke-public-catalog.mjs "https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1"
