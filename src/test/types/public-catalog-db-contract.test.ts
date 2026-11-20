@@ -20,6 +20,11 @@ import { describe, it, expect } from "vitest";
 import type { Database } from "@/integrations/supabase/types";
 import type { PublicClassDetail, PublicClassListItem } from "@/hooks/use-public-catalog";
 
+// This locks the client type to the DB Row. It is faithful because the gateway
+// (public-class-detail / public-classes) is a pass-through column projection
+// (fieldsFor allowlist + DLP scrub), not a reshaper — so Row shape == wire shape.
+// If a future edge function reshaped one of these fields server-side, this lock
+// would need to target that contract instead.
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
 
 // Invariant type-equality (fails on any structural difference), and a constraint

@@ -39,6 +39,13 @@ function ListSection({ title, items }: { title: string; items: string[] | null |
   // as string[]) would otherwise reach `.map` on a non-array and crash the whole
   // page via the error boundary. A render helper must never be the thing that
   // white-screens the page on a shape surprise.
+  if (items != null && !Array.isArray(items)) {
+    // Recover (render nothing) AND report: a non-array here means a public field's
+    // type disagrees with its real shape at runtime — the compile-time lock
+    // (public-catalog-db-contract) catches type drift, but a gateway that reshaped
+    // the wire payload could still surprise us. Surface it instead of failing silently.
+    console.warn(`ListSection: "${title}" expected string[] but got ${typeof items} — coercing to empty.`);
+  }
   const list = Array.isArray(items) ? items.filter((i) => typeof i === "string") : [];
   if (list.length === 0) return null;
   return (
