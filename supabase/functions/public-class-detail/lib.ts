@@ -12,6 +12,8 @@ export interface RawCohort {
   start_date: string;
   end_date: string;
   registration_url: string;
+  // Public enrollment phase (coming_soon|register_now|live|finished) — §6 anon.
+  registration_status: string;
   // Authed-only extras — present only when the gateway selected them (authState
   // "authenticated"); undefined for anon.
   status?: string;
@@ -34,6 +36,7 @@ export function toPublicCohort(c: RawCohort, authState: AuthState): PublicCohort
     start_date: c.start_date,
     end_date: c.end_date,
     registration_url: c.registration_url,
+    registration_status: c.registration_status,
   };
   if (authState === "authenticated") {
     out.status = c.status;

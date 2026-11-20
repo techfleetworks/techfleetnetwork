@@ -33,21 +33,27 @@ const rawCohort = {
   start_date: "2026-04-01",
   end_date: "2026-06-01",
   registration_url: "https://gum.co/x",
+  registration_status: "register_now",
   // extras that must only surface for authed callers
   status: "published",
   capacity: 20,
   timezone: "America/New_York",
 };
 
-Deno.test("anon cohort exposes ONLY the 5 §6 fields — no status/capacity/timezone", () => {
+Deno.test("anon cohort exposes ONLY the 6 §6 fields — no status/capacity/timezone", () => {
   const out = toPublicCohort(rawCohort, "anon");
   assertEquals(Object.keys(out).sort(), [
     "end_date",
     "id",
     "label",
+    "registration_status",
     "registration_url",
     "start_date",
   ]);
+  // registration_status (the public enrollment phase) IS exposed to anon...
+  assertEquals(out.registration_status, "register_now");
+  // ...but cohort_status (draft/published lifecycle) is NOT.
+  assert(!("status" in out));
 });
 
 Deno.test("authed cohort adds status/capacity/timezone", () => {

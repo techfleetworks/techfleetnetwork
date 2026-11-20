@@ -53,7 +53,7 @@ Deno.serve(withAuditWrapper("public-classes", async (req) => {
       .select(`
         id, slug, title, summary, description, track, hero_image_url,
         outcomes, skills, prerequisites, published_at,
-        cohorts:cohorts(id, label, start_date, end_date, registration_url)
+        cohorts:cohorts(id, label, start_date, end_date, registration_url, registration_status)
       `)
       .eq("status", "published")
       .eq("cohorts.status", "published")

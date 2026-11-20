@@ -16,16 +16,42 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 export type ClassTrack = "basic_training" | "advanced_training";
 
+/** The cohort's public enrollment phase (DB enum cohort_registration_status). */
+export type CohortRegistrationStatus = "coming_soon" | "register_now" | "live" | "finished";
+
 export interface PublicCohort {
   id: string;
   label: string;
   start_date: string;
   end_date: string;
   registration_url: string;
+  // Public enrollment phase — drives the "open to register" vs "opening soon" UI.
+  registration_status: CohortRegistrationStatus;
   // Authed-only extras (present only for a signed-in member).
   status?: string;
   capacity?: number | null;
   timezone?: string;
+}
+
+/** A class's enrollment state, derived from its (already published, future) cohorts. */
+export type EnrollmentState = "open" | "coming_soon" | "none";
+
+/** True when a cohort can be registered for right now. `live` = running but still joinable. */
+export function isRegisterable(c: Pick<PublicCohort, "registration_status">): boolean {
+  return c.registration_status === "register_now" || c.registration_status === "live";
+}
+
+/**
+ * Classify a class by its cohorts: `open` (at least one registerable cohort),
+ * else `coming_soon` (a published upcoming cohort not yet open), else `none`.
+ * The gateway has already filtered to published, not-yet-ended cohorts, so a
+ * `coming_soon` here is a real upcoming offering, not a draft.
+ */
+export function enrollmentStateOf(cohorts: readonly PublicCohort[] | null | undefined): EnrollmentState {
+  const list = cohorts ?? [];
+  if (list.some(isRegisterable)) return "open";
+  if (list.some((c) => c.registration_status === "coming_soon")) return "coming_soon";
+  return "none";
 }
 
 export interface PublicClassListItem {
