@@ -25,7 +25,9 @@ const detail = {
     title: "Design Foundations",
     summary: "Learn product design.",
     description: "A full description.",
-    outcomes: ["Build a portfolio"],
+    // outcomes is a single rich-text STRING (classes.outcomes is a text column),
+    // not an array — the old array mock hid the prod crash.
+    outcomes: "<p>Build a portfolio</p>",
     skills: ["Figma"],
     prerequisites: null,
     hero_image_url: null,
@@ -97,6 +99,37 @@ describe("PublicClassDetailPage (B10)", () => {
     renderAt({ id: "u1" });
     expect(screen.queryByRole("link", { name: /Register on Gumroad/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Registration link unavailable/i)).toBeInTheDocument();
+  });
+
+  it("REGRESSION: renders a class whose outcomes is a rich-text string (no crash)", () => {
+    // Prod shape that crashed /classes/ai-enabled-product-strategy-learning-lab:
+    // outcomes is an HTML string, skills is an array, no cohorts. The page must
+    // render it as prose, not call .map on a string.
+    vi.mocked(usePublicClassDetail).mockReturnValue(
+      res({
+        data: {
+          class: { ...detail.class, outcomes: "<p>Size a market and ship a strategy</p>", skills: ["Strategy"] },
+          cohorts: [],
+        },
+      }),
+    );
+    renderAt(null);
+    expect(screen.getByRole("heading", { level: 1, name: "Design Foundations" })).toBeInTheDocument();
+    expect(screen.getByText("Size a market and ship a strategy")).toBeInTheDocument(); // prose, stripped of HTML
+    expect(screen.getByRole("heading", { name: "What you'll learn" })).toBeInTheDocument();
+  });
+
+  it("DEFENSE IN DEPTH: a malformed non-array list field does not white-screen the page", () => {
+    // Even if a future field's hand-written type disagrees with the DB and a
+    // non-array reaches ListSection, the page must still render (coerced to empty),
+    // not crash into the error boundary.
+    vi.mocked(usePublicClassDetail).mockReturnValue(
+      res({ data: { class: { ...detail.class, skills: "Figma" as unknown as string[] }, cohorts: [] } }),
+    );
+    renderAt(null);
+    expect(screen.getByRole("heading", { level: 1, name: "Design Foundations" })).toBeInTheDocument();
+    // The malformed Skills section is dropped rather than throwing.
+    expect(screen.queryByRole("heading", { name: "Skills" })).not.toBeInTheDocument();
   });
 
   it("shows a not-found page for an unknown or unpublished class", () => {
