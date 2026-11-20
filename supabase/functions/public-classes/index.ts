@@ -39,12 +39,21 @@ Deno.serve(withAuditWrapper("public-classes", async (req) => {
     // feed). The A7 guard validates these columns are within the anon allowlist.
     const supabase = getAdminClient();
 
+    // LEFT join on cohorts (not `!inner`): the public catalog shows EVERY
+    // published class in the track — same visibility rule as the authenticated
+    // list (ClassService.listPublishedByTrack: status=published + track) — so the two
+    // never diverge (ADR 20261119-public-classes-visibility). The embedded
+    // cohort filters still scope the array to open (published, future-dated)
+    // cohorts; a class with none comes back with `cohorts: []`, and the card
+    // shows "Enrollment not open" rather than being dropped. An `!inner` here
+    // would hide a published class that has no open cohort from logged-out
+    // visitors while a signed-in member still saw it.
     let q = supabase
       .from("classes")
       .select(`
         id, slug, title, summary, description, track, hero_image_url,
         outcomes, skills, prerequisites, published_at,
-        cohorts:cohorts!inner(id, label, start_date, end_date, registration_url)
+        cohorts:cohorts(id, label, start_date, end_date, registration_url)
       `)
       .eq("status", "published")
       .eq("cohorts.status", "published")

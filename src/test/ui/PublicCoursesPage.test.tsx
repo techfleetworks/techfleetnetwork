@@ -84,6 +84,33 @@ describe("PublicCoursesPage (B10)", () => {
     expect(screen.getByRole("link", { name: /Join Platform/i })).toBeInTheDocument();
   });
 
+  it("lists a published class with NO open cohort, shown as 'Enrollment not open'", () => {
+    // ADR 20261119: the public catalog matches the authenticated list — a
+    // published class appears even with no open cohort (cohorts: []). The badge
+    // must then tell the truth (not a misleading "Registration open").
+    const noCohort = { ...basicClass, id: "c2", slug: "no-cohort", title: "No Cohort Class", cohorts: [] };
+    vi.mocked(usePublicClasses).mockImplementation((track?: string) =>
+      track === "basic_training" ? ok([noCohort]) : ok([]),
+    );
+    renderWithRouter(<PublicCoursesPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /Basic Training/i }));
+    // The tile renders (not dropped, not the empty state)...
+    expect(screen.getByText("No Cohort Class")).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing here yet/i)).not.toBeInTheDocument();
+    // ...with an honest status, NOT "Registration open".
+    expect(screen.getByText(/Enrollment not open/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Registration open/i)).not.toBeInTheDocument();
+  });
+
+  it("shows 'Registration open' for a class that HAS an open cohort", () => {
+    // Discriminates the status from the no-cohort case above: with a cohort, the
+    // success badge is correct and "Enrollment not open" must be absent.
+    renderWithRouter(<PublicCoursesPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /Basic Training/i }));
+    expect(screen.getByText(/Registration open/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Enrollment not open/i)).not.toBeInTheDocument();
+  });
+
   it("DISCRIMINATING: a class tile's Join target is the class, not the generic /courses", () => {
     // Guards that the redirect-back is the specific class, not a copy-paste of the
     // course tile's /courses target.
