@@ -36,7 +36,12 @@ export interface PublicClassListItem {
   description: string | null;
   track: ClassTrack;
   hero_image_url: string | null;
-  outcomes: string[] | null;
+  // `outcomes` is a single rich-text/HTML string in the DB (classes.outcomes is a
+  // text column, edited via the rich-text field in ClassFormPage), NOT an array —
+  // unlike skills/prerequisites/deliverables which are text[]. Typing it as an
+  // array and rendering it through a list caller crashed the detail page
+  // (string.map is not a function). Locked by src/test/types/public-catalog-db-contract.test.ts.
+  outcomes: string | null;
   skills: string[] | null;
   prerequisites: string[] | null;
   published_at: string | null;
@@ -51,7 +56,9 @@ export interface PublicClassDetail {
   title: string;
   summary: string | null;
   description: string | null;
-  outcomes: string[] | null;
+  // `outcomes` is a single rich-text/HTML string (text column), NOT an array —
+  // see the note on PublicClassListItem. Rendered as prose, like description.
+  outcomes: string | null;
   skills: string[] | null;
   prerequisites: string[] | null;
   hero_image_url: string | null;

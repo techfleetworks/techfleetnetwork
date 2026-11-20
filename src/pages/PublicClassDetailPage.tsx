@@ -34,12 +34,18 @@ function formatDate(dateIso: string | undefined): string | null {
 }
 
 function ListSection({ title, items }: { title: string; items: string[] | null | undefined }) {
-  if (!items || items.length === 0) return null;
+  // Defense in depth: coerce to an array before iterating. A public field whose
+  // hand-written type disagrees with the real DB column (e.g. a text column typed
+  // as string[]) would otherwise reach `.map` on a non-array and crash the whole
+  // page via the error boundary. A render helper must never be the thing that
+  // white-screens the page on a shape surprise.
+  const list = Array.isArray(items) ? items.filter((i) => typeof i === "string") : [];
+  if (list.length === 0) return null;
   return (
     <section className="space-y-2">
       <h2 className="text-xl font-bold text-foreground">{title}</h2>
       <ul className="list-disc space-y-1 pl-5">
-        {items.map((item) => (
+        {list.map((item) => (
           <li key={item} className="text-base text-foreground">
             {item}
           </li>
@@ -149,6 +155,10 @@ export default function PublicClassDetailPage() {
   const cohorts = data.cohorts ?? [];
   const summaryText = stripHtml(cls.summary ?? "");
   const descriptionText = stripHtml(cls.description ?? "");
+  // `outcomes` is a single rich-text string (not a list) — render it as prose via
+  // stripHtml, the same way description/curriculum are (teacher free-text is shown
+  // as plain text on this public page, never injected as raw HTML).
+  const outcomesText = stripHtml(cls.outcomes ?? "");
   const curriculumText = stripHtml(cls.curriculum ?? "");
 
   return (
@@ -202,7 +212,13 @@ export default function PublicClassDetailPage() {
             </section>
           )}
 
-          <ListSection title="What you'll learn" items={cls.outcomes} />
+          {outcomesText && (
+            <section className="space-y-2">
+              <h2 className="text-xl font-bold text-foreground">What you'll learn</h2>
+              <p className="whitespace-pre-line text-base text-foreground">{outcomesText}</p>
+            </section>
+          )}
+
           <ListSection title="Skills" items={cls.skills} />
           <ListSection title="Prerequisites" items={cls.prerequisites} />
           <ListSection title="Deliverables" items={cls.deliverables} />
