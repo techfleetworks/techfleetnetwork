@@ -60,12 +60,16 @@ beforeEach(() => {
 });
 
 describe("PublicClassDetailPage (B10)", () => {
-  it("renders the class, instructor and the cohort schedule", () => {
+  it("renders the class, instructor byline and the cohort schedule (no 'Schedule' header)", () => {
     renderAt(null);
     expect(screen.getByRole("heading", { level: 1, name: "Design Foundations" })).toBeInTheDocument();
-    expect(screen.getByText(/Taught by Jane Doe/)).toBeInTheDocument();
+    // Instructor is a styled byline (a <p>, not a heading) so it doesn't skip a
+    // heading level between the h1 and the authored h2s.
+    const byline = screen.getByText(/Taught by Jane Doe/);
+    expect(byline.tagName).toBe("P");
     expect(screen.getByText("Learn product design.")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Schedule" })).toBeInTheDocument();
+    // The schedule card is self-describing — no "Schedule" heading.
+    expect(screen.queryByRole("heading", { name: "Schedule" })).not.toBeInTheDocument();
     expect(screen.getByText("Winter cohort")).toBeInTheDocument();
   });
 
@@ -130,6 +134,89 @@ describe("PublicClassDetailPage (B10)", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Design Foundations" })).toBeInTheDocument();
     // The malformed Skills section is dropped rather than throwing.
     expect(screen.queryByRole("heading", { name: "Skills" })).not.toBeInTheDocument();
+  });
+
+  it("renders teacher rich-text as structured HTML (authored headings + lists), not a flat blob", () => {
+    // The core fix: summary/curriculum are authored HTML. Rendering them preserves
+    // the "Overview" heading and the ordered curriculum weeks, instead of stripping
+    // tags into one run-on paragraph.
+    vi.mocked(usePublicClassDetail).mockReturnValue(
+      res({
+        data: {
+          class: {
+            ...detail.class,
+            summary: "<h2>Overview</h2><p>Research is at the heart of product.</p>",
+            curriculum: "<h3>Week 1 - Experiment Design</h3><ol><li>Scientific Method</li></ol>",
+          },
+          cohorts: [],
+        },
+      }),
+    );
+    renderAt(null);
+    // The authored "Overview" heading renders as a heading (not jammed into text).
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByText("Research is at the heart of product.")).toBeInTheDocument();
+    // Curriculum keeps its week heading and the lesson as a real list item.
+    expect(screen.getByRole("heading", { name: /Week 1 - Experiment Design/ })).toBeInTheDocument();
+    const lesson = screen.getByText("Scientific Method");
+    expect(lesson.tagName).toBe("LI");
+  });
+
+  it("SECURITY: active markup in teacher rich-text is sanitized out of the DOM", () => {
+    // Rich text is rendered via dangerouslySetInnerHTML, so sanitizeHtml is the
+    // control. Proof is that the dangerous NODES never reach the DOM: with the
+    // sanitizer removed, raw innerHTML would parse the <script> and <img onerror>
+    // into the container, so these queries are what fails-closed. (A <script>
+    // injected via innerHTML never executes and jsdom doesn't fetch img src, so a
+    // runtime window-flag check would be vacuous — the node assertions are the real
+    // test.)
+    vi.mocked(usePublicClassDetail).mockReturnValue(
+      res({
+        data: {
+          class: {
+            ...detail.class,
+            summary: '<p>Safe copy.</p><script>const x=1</script><img src=x onerror="document.title=1">',
+          },
+          cohorts: [],
+        },
+      }),
+    );
+    const { container } = renderAt(null);
+    expect(screen.getByText("Safe copy.")).toBeInTheDocument(); // the allowed <p> survives
+    expect(container.querySelector("script")).toBeNull(); // script node stripped
+    expect(container.querySelector("img")).toBeNull(); // img (and its onerror) stripped
+    expect(container.querySelector("[onerror]")).toBeNull(); // no event-handler attr survives
+  });
+
+  it("renders Skills as pills and Prerequisites as a joined paragraph (not bullets)", () => {
+    vi.mocked(usePublicClassDetail).mockReturnValue(
+      res({
+        data: {
+          class: {
+            ...detail.class,
+            skills: ["Experiment Design", "Statistics"],
+            // Stored as sentence fragments; must read as one paragraph, not bullets.
+            prerequisites: ["There are no previous activities.", "Bring your own research if you have it."],
+          },
+          cohorts: [],
+        },
+      }),
+    );
+    renderAt(null);
+    // Skills are chips, not list items.
+    expect(screen.getByText("Experiment Design")).toBeInTheDocument();
+    expect(screen.getByText("Statistics")).toBeInTheDocument();
+    // Prerequisites are one paragraph (fragments joined with a space), no <li>.
+    expect(
+      screen.getByText("There are no previous activities. Bring your own research if you have it."),
+    ).toBeInTheDocument();
+  });
+
+  it("renders How to join as a numbered step sequence", () => {
+    renderAt(null);
+    expect(screen.getByRole("heading", { name: "How to join" })).toBeInTheDocument();
+    expect(screen.getByText("Join the platform")).toBeInTheDocument();
+    expect(screen.getByText("Start your class modules")).toBeInTheDocument();
   });
 
   it("shows a not-found page for an unknown or unpublished class", () => {

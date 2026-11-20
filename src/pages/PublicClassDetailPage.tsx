@@ -8,8 +8,15 @@
 // The ONE auth-aware decision on this page is the cohort CTA: an anonymous visitor
 // is sent to Join Platform (open-redirect-safe return path, B8) because the class
 // readiness path is "join, then register"; a signed-in member gets the external
-// Register-on-Gumroad link. Free-text is rendered as plain text (never raw HTML)
-// to avoid injecting teacher-authored markup.
+// Register-on-Gumroad link.
+//
+// Teacher-authored rich text (summary/description/outcomes/curriculum) is rendered
+// as SANITIZED HTML via `sanitizeHtml` (DOMPurify allowlist — the same control the
+// authenticated ClassDetailPage uses), NOT stripped to plain text. Stripping
+// flattened the authored headings/paragraphs/lists into one run-on blob (the
+// "Overview…Project" jam, the curriculum wall-of-text); sanitized HTML preserves
+// that structure, which is also far more scannable by crawlers. This reverses the
+// original "plain text only" stance — see ADR 20261120-public-rich-text.
 import { useParams, Link } from "react-router-dom";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { SEO } from "@/components/SEO";
@@ -17,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
-import { safeHref } from "@/lib/security";
+import { safeHref, sanitizeHtml } from "@/lib/security";
 import { stripHtml } from "@/lib/strip-html";
 import { usePublicClassDetail, type PublicCohort } from "@/hooks/use-public-catalog";
 
@@ -26,6 +33,19 @@ const TRACK_LABEL: Record<string, string> = {
   advanced_training: "Advanced Training",
 };
 
+// Section headings are H1-scale (prominent + consistent, per owner). They stay
+// <h2> for a correct document outline — one semantic <h1> (the class title) is
+// what crawlers reward; eight real <h1>s would hurt the very scannability we want.
+const SECTION_HEADING = "text-2xl font-bold text-foreground";
+
+const JOIN_STEPS = [
+  "Join the platform",
+  "Register for the class",
+  "Onboard to the community",
+  "Finish the free agile courses",
+  "Start your class modules",
+];
+
 function formatDate(dateIso: string | undefined): string | null {
   if (!dateIso) return null;
   const d = new Date(`${dateIso}T00:00:00`);
@@ -33,24 +53,44 @@ function formatDate(dateIso: string | undefined): string | null {
   return d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
 }
 
-function ListSection({ title, items }: { title: string; items: string[] | null | undefined }) {
-  // Defense in depth: coerce to an array before iterating. A public field whose
-  // hand-written type disagrees with the real DB column (e.g. a text column typed
-  // as string[]) would otherwise reach `.map` on a non-array and crash the whole
-  // page via the error boundary. A render helper must never be the thing that
-  // white-screens the page on a shape surprise.
+/** Coerce a public list field to a clean string[] (never crashes on a shape surprise). */
+function toStringList(items: string[] | null | undefined): string[] {
   if (items != null && !Array.isArray(items)) {
-    // Recover (render nothing) AND report: a non-array here means a public field's
-    // type disagrees with its real shape at runtime — the compile-time lock
-    // (public-catalog-db-contract) catches type drift, but a gateway that reshaped
-    // the wire payload could still surprise us. Surface it instead of failing silently.
-    console.warn(`ListSection: "${title}" expected string[] but got ${typeof items} — coercing to empty.`);
+    // Compile-time lock (public-catalog-db-contract) catches type drift; this
+    // surfaces a runtime wire-shape surprise instead of failing silently.
+    console.warn(`toStringList: expected string[] but got ${typeof items} — coercing to empty.`);
   }
-  const list = Array.isArray(items) ? items.filter((i) => typeof i === "string") : [];
+  return Array.isArray(items) ? items.filter((i): i is string => typeof i === "string") : [];
+}
+
+/**
+ * A section that renders teacher-authored rich text as sanitized HTML (with an
+ * optional heading), or nothing when the field is empty. Sanitization happens here,
+ * once, at the single `dangerouslySetInnerHTML` sink: `sanitizeHtml` is a DOMPurify
+ * allowlist (p/h2/h3/ul/ol/li/strong/em/a only; scripts, event handlers, iframes and
+ * non-http(s) URLs stripped, rel=noopener forced on links) — the same control the
+ * authenticated class page uses, so active markup cannot be injected.
+ */
+function RichSection({ title, html }: { title?: string; html: string | null | undefined }) {
+  const clean = sanitizeHtml(html ?? "");
+  if (!clean) return null;
+  return (
+    <section className="space-y-3">
+      {title && <h2 className={SECTION_HEADING}>{title}</h2>}
+      <div
+        className="prose prose-invert max-w-none text-base text-foreground prose-headings:text-foreground prose-h2:text-2xl prose-h2:font-bold prose-h3:text-xl prose-h3:font-bold prose-p:text-foreground prose-li:text-foreground prose-a:text-primary prose-strong:text-foreground"
+        dangerouslySetInnerHTML={{ __html: clean }}
+      />
+    </section>
+  );
+}
+
+function ListSection({ title, items }: { title: string; items: string[] | null | undefined }) {
+  const list = toStringList(items);
   if (list.length === 0) return null;
   return (
-    <section className="space-y-2">
-      <h2 className="text-xl font-bold text-foreground">{title}</h2>
+    <section className="space-y-3">
+      <h2 className={SECTION_HEADING}>{title}</h2>
       <ul className="list-disc space-y-1 pl-5">
         {list.map((item) => (
           <li key={item} className="text-base text-foreground">
@@ -160,19 +200,18 @@ export default function PublicClassDetailPage() {
 
   const cls = data.class;
   const cohorts = data.cohorts ?? [];
-  const summaryText = stripHtml(cls.summary ?? "");
-  const descriptionText = stripHtml(cls.description ?? "");
-  // `outcomes` is a single rich-text string (not a list) — render it as prose via
-  // stripHtml, the same way description/curriculum are (teacher free-text is shown
-  // as plain text on this public page, never injected as raw HTML).
-  const outcomesText = stripHtml(cls.outcomes ?? "");
-  const curriculumText = stripHtml(cls.curriculum ?? "");
+  // Plain-text summary is for the SEO <meta> description only (never for display).
+  const summaryMeta = stripHtml(cls.summary ?? "");
+  const skills = toStringList(cls.skills);
+  // Prerequisites are stored as a string[] of sentence fragments, but read as one
+  // paragraph — join them rather than bulleting the fragments.
+  const prerequisitesText = toStringList(cls.prerequisites).join(" ").trim();
 
   return (
     <div className="container-app py-8 sm:py-12">
       <SEO
         title={cls.title}
-        description={summaryText || `A Tech Fleet ${TRACK_LABEL[cls.track] ?? "training"} class.`}
+        description={summaryMeta || `A Tech Fleet ${TRACK_LABEL[cls.track] ?? "training"} class.`}
         canonicalPath={`/classes/${cls.slug}`}
         ogType="article"
       />
@@ -183,7 +222,8 @@ export default function PublicClassDetailPage() {
         </Link>
       </Button>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      {/* More column gap on lg so the main text doesn't crowd the schedule card. */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
         {/* Main column */}
         <div className="space-y-8 lg:col-span-2">
           <header className="space-y-3">
@@ -207,51 +247,62 @@ export default function PublicClassDetailPage() {
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{cls.title}</h1>
             {cls.instructor_name && (
-              <p className="text-base text-muted-foreground">Taught by {cls.instructor_name}</p>
+              // Byline, not a section heading — a styled <p>, so it stays larger
+              // than body text without inserting an h4 between the h1 and the
+              // authored h2s (which would skip a heading level / fail a11y).
+              <p className="text-lg font-semibold text-foreground">Taught by {cls.instructor_name}</p>
             )}
-            {summaryText && <p className="text-base text-foreground">{summaryText}</p>}
           </header>
 
-          {descriptionText && (
-            <section className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">About this class</h2>
-              <p className="whitespace-pre-line text-base text-foreground">{descriptionText}</p>
+          {/* Summary carries its own authored "Overview"/"Project" headings. */}
+          <RichSection html={cls.summary} />
+          <RichSection title="About this class" html={cls.description} />
+          <RichSection title="What you'll learn" html={cls.outcomes} />
+
+          {skills.length > 0 && (
+            <section className="space-y-3">
+              <h2 className={SECTION_HEADING}>Skills</h2>
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill) => (
+                  <Badge key={skill} variant="secondary" className="rounded-full px-3 py-1 text-sm font-medium">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
             </section>
           )}
 
-          {outcomesText && (
-            <section className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">What you'll learn</h2>
-              <p className="whitespace-pre-line text-base text-foreground">{outcomesText}</p>
+          {prerequisitesText && (
+            <section className="space-y-3">
+              <h2 className={SECTION_HEADING}>Prerequisites</h2>
+              <p className="text-base text-foreground">{prerequisitesText}</p>
             </section>
           )}
 
-          <ListSection title="Skills" items={cls.skills} />
-          <ListSection title="Prerequisites" items={cls.prerequisites} />
           <ListSection title="Deliverables" items={cls.deliverables} />
 
-          {curriculumText && (
-            <section className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">Curriculum</h2>
-              <p className="whitespace-pre-line text-base text-foreground">{curriculumText}</p>
-            </section>
-          )}
+          <RichSection title="Curriculum" html={cls.curriculum} />
 
-          <section className="space-y-2">
-            <h2 className="text-xl font-bold text-foreground">How to join</h2>
-            <ol className="list-decimal space-y-1 pl-5 text-base text-foreground">
-              <li>Join the platform</li>
-              <li>Register for the class</li>
-              <li>Onboard to the community</li>
-              <li>Finish the free agile courses</li>
-              <li>Start your class modules</li>
+          <section className="space-y-4">
+            <h2 className={SECTION_HEADING}>How to join</h2>
+            <ol className="space-y-4">
+              {JOIN_STEPS.map((step, i) => (
+                <li key={step} className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+                  >
+                    {i + 1}
+                  </span>
+                  <p className="pt-1 text-base text-foreground">{step}</p>
+                </li>
+              ))}
             </ol>
           </section>
         </div>
 
-        {/* Schedule / cohort column */}
+        {/* Schedule / cohort column — the card is self-describing, no header needed. */}
         <aside className="space-y-4">
-          <h2 className="text-xl font-bold text-foreground">Schedule</h2>
           {cohorts.length > 0 ? (
             cohorts.map((c) => (
               <CohortCard key={c.id} cohort={c} slug={cls.slug} isAuthed={!!user} />
