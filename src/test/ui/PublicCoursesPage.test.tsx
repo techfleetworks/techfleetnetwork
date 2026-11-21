@@ -9,7 +9,8 @@ import { renderWithRouter } from "./test-utils";
 import PublicCoursesPage from "@/pages/PublicCoursesPage";
 import { usePublicCourses, usePublicClasses } from "@/hooks/use-public-catalog";
 
-vi.mock("@/hooks/use-public-catalog", () => ({
+vi.mock("@/hooks/use-public-catalog", async (importActual) => ({
+  ...(await importActual<typeof import("@/hooks/use-public-catalog")>()),
   usePublicCourses: vi.fn(),
   usePublicClasses: vi.fn(),
 }));
@@ -38,7 +39,14 @@ const basicClass = {
   prerequisites: null,
   published_at: null,
   cohorts: [
-    { id: "co1", label: "Winter", start_date: "2026-03-03", end_date: "2026-04-03", registration_url: "https://gum.co/x" },
+    {
+      id: "co1",
+      label: "Winter",
+      start_date: "2026-03-03",
+      end_date: "2026-04-03",
+      registration_url: "https://gum.co/x",
+      registration_status: "register_now" as const,
+    },
   ],
 };
 
@@ -102,12 +110,33 @@ describe("PublicCoursesPage (B10)", () => {
     expect(screen.queryByText(/Registration open/i)).not.toBeInTheDocument();
   });
 
-  it("shows 'Registration open' for a class that HAS an open cohort", () => {
-    // Discriminates the status from the no-cohort case above: with a cohort, the
-    // success badge is correct and "Enrollment not open" must be absent.
+  it("shows 'Registration open' for a class with a register_now cohort", () => {
+    // Discriminates the status from the no-cohort case above: with a registerable
+    // cohort, the success badge is correct and "Enrollment not open" must be absent.
     renderWithRouter(<PublicCoursesPage />);
     fireEvent.click(screen.getByRole("tab", { name: /Basic Training/i }));
     expect(screen.getByText(/Registration open/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Enrollment not open/i)).not.toBeInTheDocument();
+  });
+
+  it("shows 'Opening soon' for a class whose only cohort is coming_soon", () => {
+    // The real prod state (Jan-2027 cohorts, registration_status=coming_soon): the
+    // badge reflects the enrollment phase, not a misleading "open" or "not open".
+    const soon = {
+      ...basicClass,
+      id: "c3",
+      slug: "soon",
+      title: "Soon Class",
+      cohorts: [{ ...basicClass.cohorts[0], registration_status: "coming_soon" as const }],
+    };
+    vi.mocked(usePublicClasses).mockImplementation((track?: string) =>
+      track === "basic_training" ? ok([soon]) : ok([]),
+    );
+    renderWithRouter(<PublicCoursesPage />);
+    fireEvent.click(screen.getByRole("tab", { name: /Basic Training/i }));
+    expect(screen.getByText("Soon Class")).toBeInTheDocument();
+    expect(screen.getByText(/Opening soon/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Registration open/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Enrollment not open/i)).not.toBeInTheDocument();
   });
 

@@ -28,7 +28,11 @@ const ANON_FIELDS = {
   // owner_user_id is fetched only to derive instructor_name and dropped before output.
   class:
     "id, slug, track, status, title, summary, description, outcomes, skills, prerequisites, hero_image_url, short_description, deliverables, curriculum, published_at, owner_user_id",
-  cohort: "id, label, start_date, end_date, registration_url",
+  // registration_status (coming_soon|register_now|live|finished) is the PUBLIC
+  // enrollment phase — anon needs it to show "open to register" vs "opening soon".
+  // cohort_status (draft|published|…) stays authed-only below; anon never sees a
+  // draft cohort because the gateways filter status='published' server-side.
+  cohort: "id, label, start_date, end_date, registration_url, registration_status",
   // coordinator_id → derived name; client_id is the join key (not displayed).
   project:
     "id, client_id, project_type, project_status, team_hats, current_phase_milestones, created_at, timezone_range, anticipated_start_date, anticipated_end_date, coordinator_id, friendly_name, description",

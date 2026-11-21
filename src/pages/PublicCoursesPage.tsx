@@ -27,6 +27,7 @@ import { stripHtml } from "@/lib/strip-html";
 import {
   usePublicClasses,
   usePublicCourses,
+  enrollmentStateOf,
   type PublicClassListItem,
   type PublicCourse,
 } from "@/hooks/use-public-catalog";
@@ -53,15 +54,17 @@ function ClassCardTile({ cls }: { cls: PublicClassListItem }) {
   const detailPath = `/classes/${cls.slug}`;
   const firstCohort = cls.cohorts[0];
   const start = formatStart(firstCohort?.start_date);
-  // A published class is listed even with no open cohort (matches the
-  // authenticated list; ADR 20261119-public-classes-visibility). The status must
-  // tell the truth: "Registration open" only when there IS an open cohort, else
-  // a neutral "Enrollment not open" — never a misleading success badge over a
-  // class a visitor cannot yet register for.
-  const hasOpenCohort = cls.cohorts.length > 0;
-  const status = hasOpenCohort
-    ? ({ label: "Registration open", tone: "success" } as const)
-    : ({ label: "Enrollment not open", tone: "neutral" } as const);
+  // The badge reflects the real enrollment phase (registration_status), not just
+  // "has a cohort": `register_now`/`live` → open; a published upcoming cohort not
+  // yet open → "Opening soon"; otherwise "Enrollment not open". A draft cohort is
+  // never here (the gateway only returns published ones).
+  const enrollment = enrollmentStateOf(cls.cohorts);
+  const status =
+    enrollment === "open"
+      ? ({ label: "Registration open", tone: "success" } as const)
+      : enrollment === "coming_soon"
+        ? ({ label: "Opening soon", tone: "neutral" } as const)
+        : ({ label: "Enrollment not open", tone: "neutral" } as const);
   // Typed as the discriminated union so an image forces its alt. An inline
   // `{...(cond ? {imageUrl,imageAlt} : {})}` spread widens imageUrl to an
   // optional string that matches NEITHER arm (TS2322) — bind it instead.

@@ -5,10 +5,11 @@
 // cohort status/capacity/timezone). The "schedule" is the cohort itself (dates,
 // and timezone for members) — there is no separate schedule field (owner, 2026-11-18).
 //
-// The ONE auth-aware decision on this page is the cohort CTA: an anonymous visitor
-// is sent to Join Platform (open-redirect-safe return path, B8) because the class
-// readiness path is "join, then register"; a signed-in member gets the external
-// Register-on-Gumroad link.
+// The cohort CTA is driven by the cohort's registration_status, NOT by auth: a
+// registerable cohort (register_now/live) shows "Register" linking straight to
+// Gumroad for EVERYONE (a logged-out buyer is held pending_user and claims access
+// on verified signup — ADR 20261120-public-register-cta); a coming_soon cohort
+// shows "Opening soon" + a Join Platform fallback. Auth only adds the timezone line.
 //
 // Teacher-authored rich text (summary/description/outcomes/curriculum) is rendered
 // as SANITIZED HTML via `sanitizeHtml` (DOMPurify allowlist — the same control the
@@ -26,7 +27,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
 import { safeHref, sanitizeHtml } from "@/lib/security";
 import { stripHtml } from "@/lib/strip-html";
-import { usePublicClassDetail, type PublicCohort } from "@/hooks/use-public-catalog";
+import { usePublicClassDetail, isRegisterable, type PublicCohort } from "@/hooks/use-public-catalog";
 
 const TRACK_LABEL: Record<string, string> = {
   basic_training: "Basic Training",
@@ -119,10 +120,17 @@ function CohortCard({
   // undefined, so a malicious URL can never execute (defense in depth — the client
   // zod requires https:// on write, but there is no DB CHECK on the column).
   const safeRegistration = safeHref(cohort.registration_url);
+  const registerable = isRegisterable(cohort);
+  const comingSoon = cohort.registration_status === "coming_soon";
+  const badge = registerable
+    ? { label: "Registration open", className: "bg-success text-primary-foreground" }
+    : comingSoon
+      ? { label: "Opening soon", className: "bg-muted text-foreground" }
+      : { label: "Registration closed", className: "bg-muted text-foreground" };
   return (
     <div className="rounded-lg border bg-card p-6 space-y-4">
-      <Badge className="bg-success text-primary-foreground border-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide">
-        Registration open
+      <Badge className={`${badge.className} border-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide`}>
+        {badge.label}
       </Badge>
       <div>
         <p className="text-lg font-bold text-foreground">{cohort.label}</p>
@@ -137,11 +145,15 @@ function CohortCard({
           <p className="text-base text-muted-foreground mt-1">Time zone: {cohort.timezone}</p>
         )}
       </div>
-      {isAuthed ? (
+      {registerable ? (
+        // Register goes straight to Gumroad for EVERYONE — logged-out included. A
+        // buyer with no platform account is held as `pending_user` and claims
+        // access after signing up with the same verified email (no-account
+        // architecture, ticket §6.7 / ADR 20261120-public-register-cta).
         safeRegistration ? (
           <Button asChild className="w-full">
             <a href={safeRegistration} target="_blank" rel="noopener noreferrer nofollow">
-              Register on Gumroad
+              Register
             </a>
           </Button>
         ) : (
@@ -149,10 +161,15 @@ function CohortCard({
             Registration link unavailable
           </Button>
         )
+      ) : comingSoon ? (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">Registration opens soon.</p>
+          <Button asChild variant="outline" className="w-full">
+            <a href={loginRedirectHref(`/classes/${slug}`)}>Join Platform</a>
+          </Button>
+        </div>
       ) : (
-        <Button asChild className="w-full">
-          <a href={loginRedirectHref(`/classes/${slug}`)}>Join Platform to register</a>
-        </Button>
+        <p className="text-sm text-muted-foreground">Registration is closed.</p>
       )}
     </div>
   );

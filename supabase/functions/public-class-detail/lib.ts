@@ -12,6 +12,8 @@ export interface RawCohort {
   start_date: string;
   end_date: string;
   registration_url: string;
+  // Public enrollment phase (coming_soon|register_now|live|finished) — §6 anon.
+  registration_status: string;
   // Authed-only extras — present only when the gateway selected them (authState
   // "authenticated"); undefined for anon.
   status?: string;
@@ -22,8 +24,9 @@ export interface RawCohort {
 export type PublicCohort = RawCohort;
 
 /**
- * Map a cohort row to its public shape. Anon emits exactly the 5 §6 fields; a
- * signed-in member also gets status/capacity/timezone (the authed-only extras).
+ * Map a cohort row to its public shape. Anon emits exactly the 6 §6 fields
+ * (incl. registration_status); a signed-in member also gets status/capacity/
+ * timezone (the authed-only extras).
  * Explicitly re-emits only allowlisted keys, so no extra column can leak even if
  * the select widens.
  */
@@ -34,6 +37,7 @@ export function toPublicCohort(c: RawCohort, authState: AuthState): PublicCohort
     start_date: c.start_date,
     end_date: c.end_date,
     registration_url: c.registration_url,
+    registration_status: c.registration_status,
   };
   if (authState === "authenticated") {
     out.status = c.status;

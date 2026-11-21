@@ -65,17 +65,25 @@ Feature: Public classes pages (B10)
     When the page renders
     Then the title, summary and the cohort schedule (label + dates) are shown
 
-  @audience:anonymous @usecase:detail-anon-cta @category:happy @quality:security @severity:high @status:proven
-  Scenario: An anonymous visitor is sent to Join Platform to register
-    Given a logged-out visitor on a class detail with an open cohort
+  @audience:anonymous @usecase:detail-register-cta @category:happy @quality:functional @severity:high @status:proven
+  Scenario: An open cohort sends a logged-out visitor straight to Register on Gumroad
+    Given a logged-out visitor on a class detail with a register_now cohort
     When the cohort card renders
-    Then the CTA is Join Platform with a return path back to the class
+    Then the CTA is Register, linking to the cohort's Gumroad URL in a new tab
+    And it is not the old "Join Platform to register" (ADR 20261120-public-register-cta)
 
   @audience:authenticated @usecase:detail-member-cta @category:happy @quality:functional @severity:high @status:proven
-  Scenario: A signed-in member registers on Gumroad
-    Given a signed-in member on a class detail with an open cohort
+  Scenario: A signed-in member gets the same Register-on-Gumroad link
+    Given a signed-in member on a class detail with a register_now cohort
     When the cohort card renders
-    Then the CTA is Register on Gumroad, linking to the cohort registration URL
+    Then the CTA is Register, linking to the cohort registration URL
+
+  @audience:anonymous @usecase:detail-coming-soon @category:boundary @quality:functional @severity:medium @status:proven
+  Scenario: A coming_soon cohort shows "Opening soon" and no Register button
+    Given a logged-out visitor on a class detail whose cohort is coming_soon
+    When the cohort card renders
+    Then the badge reads "Opening soon" and there is no Register link
+    And the enrollment pill is not "Registration open"
 
   @audience:anonymous @usecase:detail-not-found @category:negative @quality:functional @severity:medium @status:proven
   Scenario: An unknown or unpublished class shows a not-found page
