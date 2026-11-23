@@ -98,6 +98,7 @@ const DiscordCoursePage = lazy(() => import("./pages/DiscordCoursePage"));
 const TrainingPage = lazy(() => import("./pages/TrainingPage"));
 const CoursesRoute = lazy(() => import("./pages/CoursesRoute"));
 const PublicClassDetailPage = lazy(() => import("./pages/PublicClassDetailPage"));
+const CourseDetailRoute = lazy(() => import("./pages/CourseDetailRoute"));
 const ResourcesPage = lazy(() => import("./pages/ResourcesPage"));
 
 const ChatPage = lazy(() => import("./pages/ChatPage"));
@@ -300,6 +301,10 @@ const App = () => (
                           users (auth branch in CoursesRoute) — same URL, no ProtectedRoute. */}
                       <Route path="/courses" element={<CoursesRoute />} />
                       <Route path="/classes/:slug" element={<PublicClassDetailPage />} />
+                      {/* Public-access B12: a free Core-course detail. Singular
+                          /course/:courseKey avoids colliding with the per-course
+                          authed /courses/<slug> routes below; auth-branched. */}
+                      <Route path="/course/:courseKey" element={<CourseDetailRoute />} />
                       <Route
                         path="/curriculum"
                         element={

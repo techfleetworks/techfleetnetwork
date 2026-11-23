@@ -97,15 +97,22 @@ function ClassCardTile({ cls }: { cls: PublicClassListItem }) {
   );
 }
 
-/** A free Core-course tile: outline only; Join Platform to access (content is B12). */
+/** A free Core-course tile: View details (public course page, B12) + Join Platform. */
 function CourseCardTile({ course }: { course: PublicCourse }) {
   const count = course.lessons.length;
+  const detailPath = `/course/${course.course_key}`;
   return (
     <ContentCard
       data-card="public-course"
       title={course.display_label}
+      titleHref={detailPath}
       status={{ label: "Free course", tone: "primary" }}
       meta={count > 0 ? `${count} ${count === 1 ? "lesson" : "lessons"}` : undefined}
+      secondaryAction={{
+        label: "View details",
+        href: detailPath,
+        ariaLabel: `View details for ${course.display_label}`,
+      }}
       primaryAction={{
         label: "Join Platform",
         href: loginRedirectHref("/courses"),
