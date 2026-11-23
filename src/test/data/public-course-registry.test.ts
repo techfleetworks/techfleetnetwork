@@ -4,8 +4,10 @@ import { describe, it, expect } from "vitest";
 import {
   publicCourseModules,
   courseVideoIds,
+  CORE_COURSE_KEYS,
   type PublicModuleOutline,
 } from "@/data/public-course-registry";
+import { MEMBER_COURSE_PATH } from "@/pages/CourseDetailRoute";
 
 const CORE_KEYS = [
   "agile-mindset",
@@ -37,6 +39,18 @@ describe("publicCourseModules", () => {
     const mods = publicCourseModules("agile-mindset")!;
     const anyVideo = mods.some((m) => m.lessons.some((l) => !!l.youtubeId));
     expect(anyVideo).toBe(true);
+  });
+});
+
+describe("MEMBER_COURSE_PATH (member redirect) stays in sync with the registry", () => {
+  it("covers exactly the Core course keys (no missing key → no accidental /courses fallback)", () => {
+    expect(Object.keys(MEMBER_COURSE_PATH).sort()).toEqual([...CORE_COURSE_KEYS].sort());
+  });
+
+  it("every member path points under /courses/", () => {
+    for (const path of Object.values(MEMBER_COURSE_PATH)) {
+      expect(path.startsWith("/courses/")).toBe(true);
+    }
   });
 });
 

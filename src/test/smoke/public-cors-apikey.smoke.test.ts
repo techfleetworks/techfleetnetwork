@@ -19,11 +19,15 @@ import { join } from "node:path";
 
 const FUNCS = join(process.cwd(), "supabase", "functions");
 
+// Extra browser-raw-fetched gateways NOT named `public-*` but still called with an
+// `apikey` header from the client (so their preflight must admit apikey too).
+const EXTRA_BROWSER_GATEWAYS = ["youtube-durations"];
+
 function publicGateways(): string[] {
-  return readdirSync(FUNCS, { withFileTypes: true })
+  const named = readdirSync(FUNCS, { withFileTypes: true })
     .filter((e) => e.isDirectory() && e.name.startsWith("public-"))
-    .map((e) => e.name)
-    .filter((n) => existsSync(join(FUNCS, n, "index.ts")));
+    .map((e) => e.name);
+  return [...named, ...EXTRA_BROWSER_GATEWAYS].filter((n) => existsSync(join(FUNCS, n, "index.ts")));
 }
 
 /** True when the function's CORS allows the `apikey` request header. */

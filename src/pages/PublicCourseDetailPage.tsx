@@ -92,9 +92,9 @@ export default function PublicCourseDetailPage() {
             </Badge>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{course.display_label}</h1>
             <p className="text-base text-muted-foreground">
-              {modules.length} {modules.length === 1 ? "module" : "modules"} · {lessonCount}{" "}
-              {lessonCount === 1 ? "lesson" : "lessons"}
-              {videoCount > 0 ? ` · ${videoCount} ${videoCount === 1 ? "video" : "videos"}` : ""}
+              {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"} across {modules.length}{" "}
+              {modules.length === 1 ? "module" : "modules"}
+              {videoCount > 0 ? `, including ${videoCount} ${videoCount === 1 ? "video" : "videos"}` : ""}
             </p>
           </header>
 

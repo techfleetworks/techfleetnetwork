@@ -40,6 +40,9 @@ const CORE_COURSE_SECTIONS: Record<string, CourseSection[]> = {
   "agile-teamwork": TEAMWORK_COURSE_SECTIONS as CourseSection[],
 };
 
+/** The known public Core course keys (must match course_catalog.course_key, tier=core). */
+export const CORE_COURSE_KEYS = Object.keys(CORE_COURSE_SECTIONS);
+
 /** The modules for a core course, or null if the key is not a known public course. */
 export function publicCourseModules(courseKey: string | undefined): PublicModuleOutline[] | null {
   if (!courseKey) return null;

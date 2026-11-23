@@ -7,7 +7,9 @@ import { Navigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicCourseDetailPage from "./PublicCourseDetailPage";
 
-const MEMBER_COURSE_PATH: Record<string, string> = {
+// Exported so a test can assert it covers exactly the registry's Core keys (a
+// missing key would silently fall a member back to /courses; a wrong value 404s).
+export const MEMBER_COURSE_PATH: Record<string, string> = {
   "agile-mindset": "/courses/agile-mindset",
   "observer-course": "/courses/observer",
   "project-training": "/courses/project-training",
