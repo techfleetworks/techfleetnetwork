@@ -23,6 +23,13 @@ Feature: Public free-course detail page (B12)
     And each lesson shows its title and whether it is a Video or a Reading
     And a Join Platform action is offered
 
+  @audience:anonymous @usecase:course-detail-summary @category:happy @quality:functional @severity:medium @status:proven
+  Scenario: The course page shows a big-picture "This course teaches you" summary
+    Given a public Core course with an authored summary
+    When the page renders
+    Then a one-line "This course teaches you ..." summary is shown above the lessons
+    And every Core course has such a summary
+
   @audience:anonymous @usecase:course-detail-takeaway @category:happy @quality:functional @severity:medium @status:proven
   Scenario: Each lesson shows a one-sentence takeaway of its key point
     Given a public Core course whose lessons have authored takeaways

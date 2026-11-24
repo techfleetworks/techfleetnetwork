@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
 import { usePublicCourses } from "@/hooks/use-public-catalog";
-import { publicCourseModules } from "@/data/public-course-registry";
+import { publicCourseModules, publicCourseSummary } from "@/data/public-course-registry";
 
 export default function PublicCourseDetailPage() {
   const { courseKey } = useParams<{ courseKey: string }>();
@@ -64,12 +64,17 @@ export default function PublicCourseDetailPage() {
   }
 
   const lessonCount = modules.reduce((n, m) => n + m.lessons.length, 0);
+  const summary = publicCourseSummary(course.course_key);
 
   return (
     <div className="container-app py-8 sm:py-12">
       <SEO
         title={course.display_label}
-        description={`A free Tech Fleet course: ${lessonCount} lessons across ${modules.length} modules. Join the platform to start.`}
+        description={
+          summary
+            ? `This free Tech Fleet course teaches you ${summary} ${lessonCount} lessons across ${modules.length} modules. Join the platform to start.`
+            : `A free Tech Fleet course: ${lessonCount} lessons across ${modules.length} modules. Join the platform to start.`
+        }
         canonicalPath={`/course/${course.course_key}`}
         ogType="article"
       />
@@ -88,6 +93,11 @@ export default function PublicCourseDetailPage() {
               Free course
             </Badge>
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{course.display_label}</h1>
+            {summary && (
+              <p className="text-lg text-foreground">
+                This course teaches you {summary}
+              </p>
+            )}
             <p className="text-base text-muted-foreground">
               {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"} across {modules.length}{" "}
               {modules.length === 1 ? "module" : "modules"}

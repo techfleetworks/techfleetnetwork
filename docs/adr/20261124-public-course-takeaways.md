@@ -68,9 +68,20 @@ from the lesson's own text.
   does not guarantee each sentence is the *best* possible summary — they are authored
   from the lesson text and reviewed, not formally verified against it.
 
+## Addendum (2026-11-24): big-picture course summary
+
+The same page now also shows, above the lessons, a one-line **"This course teaches you
+___"** summary per course — the big-picture framing a visitor reads first. It follows
+the takeaway pattern exactly: authored static content (`COURSE_SUMMARIES` in
+`public-course-takeaways.ts`, keyed by `course_key`), exposed via `publicCourseSummary`
+in the registry (`?? null`), and only formatted by the page (which supplies the leading
+"This course teaches you "). The stored value is just the completion. A test maps
+`COURSE_SUMMARIES` to exactly the Core course keys (no missing, no orphan), and the SEO
+meta description leads with the summary. Same guarantees and limits as the takeaways.
+
 ## Consequences
 
-- New: `src/data/public-course-takeaways.ts` (84 lesson takeaways), a `takeaway` field
+- New: `src/data/public-course-takeaways.ts` (84 lesson takeaways + 6 course summaries), a `takeaway` field
   on `PublicLessonOutline`, registry coverage tests.
 - Removed: `supabase/functions/youtube-durations/**`, `src/hooks/use-youtube-durations.ts`,
   `courseVideoIds`, `src/test/lib/format-duration.test.ts`, the config/CI/smoke wiring,

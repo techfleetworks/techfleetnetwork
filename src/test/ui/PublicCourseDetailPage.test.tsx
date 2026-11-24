@@ -51,6 +51,13 @@ describe("PublicCourseDetailPage (B12)", () => {
     expect(join).toHaveAttribute("href", "/login?redirect=%2Fcourse%2Fagile-mindset");
   });
 
+  it("renders the big-picture 'This course teaches you ___' summary", () => {
+    renderAt("agile-mindset");
+    expect(
+      screen.getByText(/This course teaches you how to build a mindset of agility/i),
+    ).toBeInTheDocument();
+  });
+
   it("shows a Video indicator and the lesson's one-sentence takeaway", () => {
     renderAt("agile-mindset");
     // At least one lesson is a video...

@@ -3,8 +3,8 @@
 // takeaways). Guards that the 6 Core courses resolve, an unknown key does not, and
 // every Core lesson has an authored takeaway sentence.
 import { describe, it, expect } from "vitest";
-import { publicCourseModules, CORE_COURSE_KEYS } from "@/data/public-course-registry";
-import { LESSON_TAKEAWAYS } from "@/data/public-course-takeaways";
+import { publicCourseModules, publicCourseSummary, CORE_COURSE_KEYS } from "@/data/public-course-registry";
+import { LESSON_TAKEAWAYS, COURSE_SUMMARIES } from "@/data/public-course-takeaways";
 import { MEMBER_COURSE_PATH } from "@/pages/CourseDetailRoute";
 
 /** Every lesson id across all Core courses (the universe the takeaways map against). */
@@ -77,6 +77,27 @@ describe("publicCourseModules", () => {
     // registry's `?? null` path actually fires for it) — this fails if the map were
     // to somehow cover arbitrary ids.
     expect(LESSON_TAKEAWAYS["definitely-not-a-lesson-id"]).toBeUndefined();
+  });
+});
+
+describe("publicCourseSummary (big-picture 'This course teaches you ___')", () => {
+  it("returns a non-empty completion for every Core course", () => {
+    for (const key of CORE_COURSE_KEYS) {
+      const s = publicCourseSummary(key);
+      expect(s, key).not.toBeNull();
+      expect((s ?? "").trim().length, key).toBeGreaterThan(0);
+    }
+  });
+
+  it("returns null for an unknown or missing key (page omits the line)", () => {
+    expect(publicCourseSummary("not-a-course")).toBeNull();
+    expect(publicCourseSummary(undefined)).toBeNull();
+  });
+
+  it("maps exactly the Core course keys (no orphan or missing summary)", () => {
+    // Both directions: every Core course has a summary, and no summary is stranded
+    // on a key that is not a Core course.
+    expect(Object.keys(COURSE_SUMMARIES).sort()).toEqual([...CORE_COURSE_KEYS].sort());
   });
 });
 
