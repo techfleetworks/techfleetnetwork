@@ -1,3 +1,4 @@
+// Module under test: src/pages/PublicCourseDetailPage.tsx
 // B12: PublicCourseDetailPage — the public Core-course detail at /course/:courseKey.
 // The catalog feed + duration hooks are mocked; the module/lesson content comes from
 // the REAL course registry (src/data). Behavior: renders modules with Video/Reading

@@ -1,3 +1,4 @@
+// Module under test: src/pages/CourseDetailRoute.tsx (its MEMBER_COURSE_PATH map)
 // B12: the public course content registry (course_key -> modules) and video-id
 // collection. Guards that the 6 Core courses resolve and an unknown key does not.
 import { describe, it, expect } from "vitest";
