@@ -1,31 +1,29 @@
 // Public (logged-out) Core-course detail — public-access B12. Rendered at
 // /course/:courseKey for anonymous visitors (a signed-in member is redirected to
 // their in-platform course page by CourseDetailRoute). Shows the course's modules
-// and, per lesson, the title, whether it's a video or a reading, and the video
-// length — so a visitor can see exactly what the free course covers before joining.
+// and, per lesson, the title, whether it's a video or a reading, and a one-sentence
+// plain-English takeaway — so a visitor can see exactly what the free course covers
+// before joining.
 //
-// Content (module/lesson titles, youtubeId) is read client-side from the course
-// registry (the §6 gateway carries the outline only; lesson copy is bundled and
-// already public). WHICH courses are public + their label stay owned by the
-// public-courses gateway (usePublicCourses) — a key not in that feed is not found.
-// Video lengths come from the youtube-durations gateway (API key server-side); a
-// missing length is simply omitted. See ADR 20261123-public-course-detail.
+// Content (module/lesson titles, youtubeId, takeaway) is read client-side from the
+// course registry (the §6 gateway carries the outline only; lesson copy is bundled
+// and already public). The takeaways are authored sentences (public-course-takeaways)
+// — the earlier live-YouTube-length route was dropped. WHICH courses are public +
+// their label stay owned by the public-courses gateway (usePublicCourses) — a key
+// not in that feed is not found. See ADR 20261124-public-course-takeaways.
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, BookOpen, Clock, GraduationCap, Loader2, Play } from "lucide-react";
+import { ArrowLeft, BookOpen, GraduationCap, Loader2, Play } from "lucide-react";
 import { SEO } from "@/components/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
 import { usePublicCourses } from "@/hooks/use-public-catalog";
-import { useYoutubeDurations, formatDuration } from "@/hooks/use-youtube-durations";
-import { publicCourseModules, courseVideoIds } from "@/data/public-course-registry";
+import { publicCourseModules } from "@/data/public-course-registry";
 
 export default function PublicCourseDetailPage() {
   const { courseKey } = useParams<{ courseKey: string }>();
   const courses = usePublicCourses();
   const modules = publicCourseModules(courseKey);
-  const videoIds = courseVideoIds(modules);
-  const { data: durations } = useYoutubeDurations(videoIds);
 
   const course = (courses.data ?? []).find((c) => c.course_key === courseKey);
 
@@ -66,7 +64,6 @@ export default function PublicCourseDetailPage() {
   }
 
   const lessonCount = modules.reduce((n, m) => n + m.lessons.length, 0);
-  const videoCount = videoIds.length;
 
   return (
     <div className="container-app py-8 sm:py-12">
@@ -94,7 +91,6 @@ export default function PublicCourseDetailPage() {
             <p className="text-base text-muted-foreground">
               {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"} across {modules.length}{" "}
               {modules.length === 1 ? "module" : "modules"}
-              {videoCount > 0 ? `, including ${videoCount} ${videoCount === 1 ? "video" : "videos"}` : ""}
             </p>
           </header>
 
@@ -105,10 +101,9 @@ export default function PublicCourseDetailPage() {
                 <h3 className="text-xl font-bold text-foreground">
                   <span className="text-muted-foreground">Module {mi + 1}:</span> {mod.title}
                 </h3>
-                <ul className="space-y-1">
+                <ul className="space-y-2">
                   {mod.lessons.map((lesson) => {
                     const isVideo = !!lesson.youtubeId;
-                    const length = isVideo ? formatDuration(durations?.[lesson.youtubeId as string]) : undefined;
                     return (
                       <li
                         key={lesson.id}
@@ -117,16 +112,17 @@ export default function PublicCourseDetailPage() {
                         <span className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true">
                           {isVideo ? <Play className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
                         </span>
-                        <span className="flex-1 text-base text-foreground">{lesson.title}</span>
-                        <span className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground">
-                          {isVideo ? "Video" : "Reading"}
-                          {length && (
-                            <>
-                              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                              <span aria-label={`${length} long`}>{length}</span>
-                            </>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="text-base font-medium text-foreground">{lesson.title}</span>
+                            <span className="shrink-0 text-sm text-muted-foreground">
+                              {isVideo ? "Video" : "Reading"}
+                            </span>
+                          </div>
+                          {lesson.takeaway && (
+                            <p className="text-sm text-muted-foreground">{lesson.takeaway}</p>
                           )}
-                        </span>
+                        </div>
                       </li>
                     );
                   })}

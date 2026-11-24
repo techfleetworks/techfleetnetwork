@@ -1,21 +1,18 @@
 // Module under test: src/pages/PublicCourseDetailPage.tsx
 // B12: PublicCourseDetailPage — the public Core-course detail at /course/:courseKey.
-// The catalog feed + duration hooks are mocked; the module/lesson content comes from
-// the REAL course registry (src/data). Behavior: renders modules with Video/Reading
-// + length, a Join CTA, and a not-found page for an unknown course.
+// The catalog feed is mocked; the module/lesson content + takeaways come from the
+// REAL course registry (src/data). Behavior: renders modules with Video/Reading and
+// a one-sentence takeaway per lesson, a Join CTA, and a not-found page for an
+// unknown course.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import PublicCourseDetailPage from "@/pages/PublicCourseDetailPage";
 import { usePublicCourses } from "@/hooks/use-public-catalog";
-import { useYoutubeDurations } from "@/hooks/use-youtube-durations";
+import { LESSON_TAKEAWAYS } from "@/data/public-course-takeaways";
 
 vi.mock("@/hooks/use-public-catalog", () => ({ usePublicCourses: vi.fn() }));
-vi.mock("@/hooks/use-youtube-durations", async (importActual) => ({
-  ...(await importActual<typeof import("@/hooks/use-youtube-durations")>()),
-  useYoutubeDurations: vi.fn(),
-}));
 
 const qres = (over: Record<string, unknown>) =>
   ({ data: undefined, isLoading: false, isError: false, ...over }) as any;
@@ -43,8 +40,6 @@ function renderAt(courseKey: string) {
 
 beforeEach(() => {
   vi.mocked(usePublicCourses).mockReturnValue(qres({ data: [agileCourse] }));
-  // agile-mindset's first video lesson id is iOHQRwqSvyE (src/data/agile-course.ts).
-  vi.mocked(useYoutubeDurations).mockReturnValue(qres({ data: { iOHQRwqSvyE: 510 } }));
 });
 
 describe("PublicCourseDetailPage (B12)", () => {
@@ -56,20 +51,18 @@ describe("PublicCourseDetailPage (B12)", () => {
     expect(join).toHaveAttribute("href", "/login?redirect=%2Fcourse%2Fagile-mindset");
   });
 
-  it("shows a Video indicator and the formatted length for a video lesson", () => {
+  it("shows a Video indicator and the lesson's one-sentence takeaway", () => {
     renderAt("agile-mindset");
     // At least one lesson is a video...
     expect(screen.getAllByText("Video").length).toBeGreaterThan(0);
-    // ...and the mocked duration for iOHQRwqSvyE renders as 8:30.
-    expect(screen.getByText("8:30")).toBeInTheDocument();
+    // ...and the authored takeaway for the first agile lesson renders verbatim.
+    expect(screen.getByText(LESSON_TAKEAWAYS["agile-intro-1"])).toBeInTheDocument();
   });
 
-  it("omits the length when the duration map has no entry (graceful)", () => {
-    vi.mocked(useYoutubeDurations).mockReturnValue(qres({ data: {} }));
+  it("shows no video length anywhere (the YouTube-duration route was dropped)", () => {
     renderAt("agile-mindset");
-    // Video indicator still shows; no "8:30" length.
-    expect(screen.getAllByText("Video").length).toBeGreaterThan(0);
-    expect(screen.queryByText("8:30")).not.toBeInTheDocument();
+    // A mm:ss length string must not appear; the page shows takeaways, not minutes.
+    expect(screen.queryByText(/^\d{1,2}:\d{2}$/)).not.toBeInTheDocument();
   });
 
   it("shows a not-found page for a key not in the public catalog", () => {

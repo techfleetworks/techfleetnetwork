@@ -104,12 +104,6 @@ project_id = "pzvqxdgoztbfikfuifix"
     # (System A). Service-role gateway; anon has no table grants after the A8
     # REVOKE. verify_jwt stays false so logged-out visitors are served.
     verify_jwt = false
-  [functions.youtube-durations]
-    # Public-access B12: server-side YouTube video-length lookup for the public
-    # Core-course pages (YOUTUBE_API_KEY stays a secret, never shipped to the
-    # browser). Anon + public, cached hard; returns empty (never fails the page)
-    # when the key is unset or YouTube errors.
-    verify_jwt = false
   [functions.fleety-embed]
     verify_jwt = false
   [functions.fleety-extract]

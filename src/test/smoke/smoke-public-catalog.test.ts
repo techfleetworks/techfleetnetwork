@@ -9,20 +9,8 @@ import { describe, it, expect } from "vitest";
 import {
   preflightAllowsApikey,
   isWellFormedList,
-  isWellFormedMap,
   checkGateway,
 } from "../../../scripts/ci/smoke-public-catalog.mjs";
-
-describe("isWellFormedMap (PUB-SMOKE-001, youtube-durations {id: seconds})", () => {
-  it("accepts a plain object map, rejects arrays / missing / non-objects", () => {
-    expect(isWellFormedMap({ durations: {} }, "durations")).toBe(true);
-    expect(isWellFormedMap({ durations: { abc: 510 } }, "durations")).toBe(true);
-    expect(isWellFormedMap({ durations: [] }, "durations")).toBe(false); // array, not a map
-    expect(isWellFormedMap({ durations: null }, "durations")).toBe(false);
-    expect(isWellFormedMap({ other: {} }, "durations")).toBe(false);
-    expect(isWellFormedMap(null, "durations")).toBe(false);
-  });
-});
 
 describe("preflightAllowsApikey (PUB-SMOKE-001)", () => {
   it("accepts an allow-headers list that includes apikey", () => {

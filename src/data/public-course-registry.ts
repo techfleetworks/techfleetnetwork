@@ -13,6 +13,7 @@ import { PROJECT_TRAINING_SECTIONS } from "./project-training-course";
 import { VOLUNTEER_TEAMS_SECTIONS } from "./volunteer-teams-course";
 import { DISCORD_COURSE_SECTIONS } from "./discord-course";
 import { TEAMWORK_COURSE_SECTIONS } from "./teamwork-course";
+import { LESSON_TAKEAWAYS } from "./public-course-takeaways";
 
 /** A lesson as the public overview shows it (no body/sourceUrl needed here). */
 export interface PublicLessonOutline {
@@ -20,6 +21,8 @@ export interface PublicLessonOutline {
   title: string;
   /** YouTube id when the lesson is a video; null for a reading. */
   youtubeId: string | null;
+  /** One plain-English sentence on the lesson's key point; null if none authored. */
+  takeaway: string | null;
 }
 
 /** A module (CourseSection) = a titled group of lessons. */
@@ -50,13 +53,11 @@ export function publicCourseModules(courseKey: string | undefined): PublicModule
   if (!sections) return null;
   return sections.map((s) => ({
     title: s.title,
-    lessons: s.lessons.map((l) => ({ id: l.id, title: l.title, youtubeId: l.youtubeId })),
+    lessons: s.lessons.map((l) => ({
+      id: l.id,
+      title: l.title,
+      youtubeId: l.youtubeId,
+      takeaway: LESSON_TAKEAWAYS[l.id] ?? null,
+    })),
   }));
-}
-
-/** Every YouTube id in a course's lessons (for a one-shot duration lookup). */
-export function courseVideoIds(modules: PublicModuleOutline[] | null): string[] {
-  if (!modules) return [];
-  const ids = modules.flatMap((m) => m.lessons.map((l) => l.youtubeId).filter((v): v is string => !!v));
-  return [...new Set(ids)];
 }

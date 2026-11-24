@@ -20,8 +20,9 @@ import { join } from "node:path";
 const FUNCS = join(process.cwd(), "supabase", "functions");
 
 // Extra browser-raw-fetched gateways NOT named `public-*` but still called with an
-// `apikey` header from the client (so their preflight must admit apikey too).
-const EXTRA_BROWSER_GATEWAYS = ["youtube-durations"];
+// `apikey` header from the client (so their preflight must admit apikey too). None
+// today — the public-* gateways cover the anon catalog; add any such gateway here.
+const EXTRA_BROWSER_GATEWAYS: string[] = [];
 
 function publicGateways(): string[] {
   const named = readdirSync(FUNCS, { withFileTypes: true })
