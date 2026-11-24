@@ -7,6 +7,19 @@
 // Keyed by the lesson `id` (matching src/data/*-course.ts). A lesson with no entry
 // simply shows no takeaway — the page degrades to title + type. A coverage test
 // (src/test/data/public-course-registry.test.ts) keeps every Core lesson mapped.
+// One big-picture sentence per Core course, completing "This course teaches you ___",
+// shown at the top of the public course-detail page above the per-lesson takeaways.
+// Keyed by course_key (matching course_catalog / the public-courses gateway). A course
+// with no entry simply shows no summary line; a coverage test keeps all 6 mapped.
+export const COURSE_SUMMARIES: Record<string, string> = {
+  "agile-mindset": "how to build a mindset of agility while making products and services.",
+  "agile-teamwork": "how empowered, peer-led teams share leadership and work together across roles, without bosses or titles.",
+  "observer-course": "how to watch real Agile project teams in action so you are ready to join one.",
+  "project-training": "how to join a real cross-functional team and build experience solving problems with nonprofit clients.",
+  "volunteer-teams": "how to volunteer on Tech Fleet's agile teams and give back while you keep growing.",
+  "discord-learning": "how to set up and use Tech Fleet's Discord safely to find your roles, channels, and teams.",
+};
+
 export const LESSON_TAKEAWAYS: Record<string, string> = {
   // agile-course
   "agile-intro-1": "Real teams often fall short of Agile ideals, but you can lead by example and help your team grow.",

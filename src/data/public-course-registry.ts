@@ -13,7 +13,7 @@ import { PROJECT_TRAINING_SECTIONS } from "./project-training-course";
 import { VOLUNTEER_TEAMS_SECTIONS } from "./volunteer-teams-course";
 import { DISCORD_COURSE_SECTIONS } from "./discord-course";
 import { TEAMWORK_COURSE_SECTIONS } from "./teamwork-course";
-import { LESSON_TAKEAWAYS } from "./public-course-takeaways";
+import { LESSON_TAKEAWAYS, COURSE_SUMMARIES } from "./public-course-takeaways";
 
 /** A lesson as the public overview shows it (no body/sourceUrl needed here). */
 export interface PublicLessonOutline {
@@ -45,6 +45,16 @@ const CORE_COURSE_SECTIONS: Record<string, CourseSection[]> = {
 
 /** The known public Core course keys (must match course_catalog.course_key, tier=core). */
 export const CORE_COURSE_KEYS = Object.keys(CORE_COURSE_SECTIONS);
+
+/**
+ * The big-picture "This course teaches you ___" sentence for a course, or null if
+ * none is authored (the page then omits the line). The leading "This course teaches
+ * you " is added by the view, so the stored value is just the completion.
+ */
+export function publicCourseSummary(courseKey: string | undefined): string | null {
+  if (!courseKey) return null;
+  return COURSE_SUMMARIES[courseKey] ?? null;
+}
 
 /** The modules for a core course, or null if the key is not a known public course. */
 export function publicCourseModules(courseKey: string | undefined): PublicModuleOutline[] | null {
