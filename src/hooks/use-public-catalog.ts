@@ -159,6 +159,60 @@ export function usePublicCourses() {
   });
 }
 
+/** A client shown on a public project opening (anon field set: no kind/status). */
+export interface PublicProjectClient {
+  id: string;
+  name: string;
+  logo_url: string | null;
+}
+
+/**
+ * One visible project opening for a logged-out visitor. The fields are the
+ * server-enforced anon set from the `public-project-openings` gateway
+ * (PROJECT_CARD_ANON in _shared/public-visibility.ts) — there is deliberately NO
+ * `phase`, no application stats, and no client `kind`/`status` here; those are
+ * authed-only. `client` is joined in from the gateway's separate `clients` array.
+ */
+export interface PublicProjectOpening {
+  id: string;
+  client_id: string | null;
+  project_type: string;
+  project_status: string;
+  team_hats: string[] | null;
+  current_phase_milestones: string[] | null;
+  friendly_name: string | null;
+  description: string | null;
+  is_shipathon: boolean | null;
+  created_at: string;
+  client: PublicProjectClient | null;
+}
+
+interface PublicProjectOpeningsResponse {
+  projects: Omit<PublicProjectOpening, "client">[];
+  clients: PublicProjectClient[];
+}
+
+/**
+ * Visible project openings for a logged-out visitor, each joined to its client.
+ * Reads the `public-project-openings` gateway (which owns the anon field set), NOT
+ * the authed project service — anon has no table grants (A6). A distinct query key
+ * from the authed ProjectOpeningsPage's own fetch (`["public-project-openings"]`)
+ * so the two differently-shaped payloads never share a cache entry.
+ */
+export function usePublicProjectOpenings() {
+  return useQuery({
+    queryKey: ["public-project-openings", "catalog"] as const,
+    queryFn: async () => {
+      const data = await getJson<PublicProjectOpeningsResponse>("public-project-openings");
+      const clientById = new Map((data.clients ?? []).map((c) => [c.id, c]));
+      return (data.projects ?? []).map((p) => ({
+        ...p,
+        client: p.client_id ? clientById.get(p.client_id) ?? null : null,
+      }));
+    },
+  });
+}
+
 /** One published class by slug (outline + cohorts). `null` when not found (404). */
 export function usePublicClassDetail(slug: string | undefined) {
   return useQuery({

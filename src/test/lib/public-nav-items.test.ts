@@ -35,16 +35,16 @@ describe("PublicNavItems ↔ public-nav policy (B8)", () => {
     expect(isPublicPath("/dashboard")).toBe(false);
   });
 
-  it("surfaces the decided labels (Home, Courses)", () => {
-    // Project Openings is intentionally not surfaced yet (owner decision 2026-11-19);
-    // it returns here once the public openings list ships (BUILD-PLAN.md).
-    expect(PUBLIC_NAV_ITEMS.map((i) => i.label)).toEqual(["Home", "Courses"]);
+  it("surfaces the decided labels (Home, Courses, Project Openings)", () => {
+    // Project Openings joined the nav in B11 (2026-11-24) when the public openings
+    // list shipped; before that it was viewable-by-link but not surfaced.
+    expect(PUBLIC_NAV_ITEMS.map((i) => i.label)).toEqual(["Home", "Courses", "Project Openings"]);
   });
 
-  it("project-openings detail stays publicly viewable though it is not in the nav", () => {
-    // The reverse-binding above is intentionally one-directional now: a viewable
-    // path need not be surfaced. Prove the detail path is still public.
+  it("project-openings list and detail are both publicly viewable and surfaced (B11)", () => {
+    expect(isPublicPath("/project-openings")).toBe(true);
     expect(isPublicPath("/project-openings/abc-123")).toBe(true);
-    expect(new Set(PUBLIC_NAV_ITEMS.map((i) => i.href)).has("/project-openings")).toBe(false);
+    expect(isPublicNavHref("/project-openings")).toBe(true);
+    expect(new Set(PUBLIC_NAV_ITEMS.map((i) => i.href)).has("/project-openings")).toBe(true);
   });
 });

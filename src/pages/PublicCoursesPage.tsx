@@ -12,9 +12,8 @@
 // carries an open-redirect-safe return path (B8 loginRedirectHref). Empty and
 // error states (FR-8) each offer a join CTA so a visitor is never dead-ended.
 import { useMemo, useState } from "react";
-import { GraduationCap, Rocket, Lightbulb, Loader2 } from "lucide-react";
+import { GraduationCap, Rocket, Lightbulb } from "lucide-react";
 import { SEO } from "@/components/SEO";
-import { Button } from "@/components/ui/button";
 import {
   ResponsiveTabs,
   ResponsiveTabsList,
@@ -22,6 +21,7 @@ import {
   type TabItem,
 } from "@/components/ui/responsive-tabs";
 import { ContentCard, type ContentCardImage } from "@/components/ContentCard";
+import { CatalogState } from "@/components/CatalogState";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
 import { stripHtml } from "@/lib/strip-html";
 import {
@@ -122,54 +122,10 @@ function CourseCardTile({ course }: { course: PublicCourse }) {
   );
 }
 
-function CatalogState({
-  loading,
-  error,
-  empty,
-  emptyText,
-  children,
-}: {
-  loading: boolean;
-  error: boolean;
-  empty: boolean;
-  emptyText: string;
-  children: React.ReactNode;
-}) {
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-label="Loading" />
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div className="rounded-lg border bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-2">We could not load this right now</h2>
-        <p className="text-base text-muted-foreground max-w-md mb-4">
-          Something went wrong fetching the catalog. Please try again in a moment.
-        </p>
-        <Button asChild>
-          <a href={loginRedirectHref("/courses")}>Join Platform</a>
-        </Button>
-      </div>
-    );
-  }
-  if (empty) {
-    return (
-      <div className="rounded-lg border bg-card p-8">
-        <h2 className="text-xl font-bold text-foreground mb-2">Nothing here yet</h2>
-        <p className="text-base text-muted-foreground max-w-md mb-4">{emptyText}</p>
-        <Button asChild>
-          <a href={loginRedirectHref("/courses")}>Join Platform</a>
-        </Button>
-      </div>
-    );
-  }
-  return <>{children}</>;
-}
-
 const GRID = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
+
+/** The sign-in redirect-back target for this surface's FR-8 join CTAs. */
+const COURSES_JOIN_HREF = loginRedirectHref("/courses");
 
 export default function PublicCoursesPage() {
   const [tab, setTab] = useState("onboarding");
@@ -212,6 +168,7 @@ export default function PublicCoursesPage() {
             error={courses.isError}
             empty={sortedCourses.length === 0}
             emptyText="There are no onboarding courses to show yet. Check back soon."
+            joinHref={COURSES_JOIN_HREF}
           >
             <div className={GRID}>
               {sortedCourses.map((c) => (
@@ -227,6 +184,7 @@ export default function PublicCoursesPage() {
             error={basic.isError}
             empty={(basic.data ?? []).length === 0}
             emptyText="There are no basic training classes yet. Check back soon."
+            joinHref={COURSES_JOIN_HREF}
           >
             <div className={GRID}>
               {(basic.data ?? []).map((c) => (
@@ -242,6 +200,7 @@ export default function PublicCoursesPage() {
             error={advanced.isError}
             empty={(advanced.data ?? []).length === 0}
             emptyText="There are no advanced training classes yet. Check back soon."
+            joinHref={COURSES_JOIN_HREF}
           >
             <div className={GRID}>
               {(advanced.data ?? []).map((c) => (

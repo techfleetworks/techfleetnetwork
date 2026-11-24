@@ -15,13 +15,12 @@
 export const PUBLIC_PATH_ROOTS = new Set<string>(["/courses", "/project-openings"]);
 
 /**
- * Routes SURFACED in the logged-out nav (§6.4). A subset of PUBLIC_PATH_ROOTS:
- * /project-openings is viewable (its anon detail gateway is live) but the openings
- * LIST view is not built for anon yet, so it is intentionally NOT surfaced in the
- * nav (owner decision 2026-11-19). Re-add it here AND in PublicNavItems when the
- * public openings list ships — see docs/public-access/BUILD-PLAN.md.
+ * Routes SURFACED in the logged-out nav (§6.4). /project-openings joined the nav
+ * when the public openings LIST shipped (B11, 2026-11-24) — its anon detail gateway
+ * was already live; now the anon listing is too. Kept as a Set so a path can be
+ * publicly viewable (PUBLIC_PATH_ROOTS) without necessarily being surfaced.
  */
-export const PUBLIC_NAV_HREFS = new Set<string>(["/courses"]);
+export const PUBLIC_NAV_HREFS = new Set<string>(["/courses", "/project-openings"]);
 
 /** Is this exact href SURFACED in the logged-out nav? */
 export function isPublicNavHref(href: string): boolean {
