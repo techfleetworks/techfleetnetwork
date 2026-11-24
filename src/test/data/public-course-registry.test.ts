@@ -1,14 +1,22 @@
 // Module under test: src/pages/CourseDetailRoute.tsx (its MEMBER_COURSE_PATH map)
-// B12: the public course content registry (course_key -> modules) and video-id
-// collection. Guards that the 6 Core courses resolve and an unknown key does not.
+// B12: the public course content registry (course_key -> modules with per-lesson
+// takeaways). Guards that the 6 Core courses resolve, an unknown key does not, and
+// every Core lesson has an authored takeaway sentence.
 import { describe, it, expect } from "vitest";
-import {
-  publicCourseModules,
-  courseVideoIds,
-  CORE_COURSE_KEYS,
-  type PublicModuleOutline,
-} from "@/data/public-course-registry";
+import { publicCourseModules, CORE_COURSE_KEYS } from "@/data/public-course-registry";
+import { LESSON_TAKEAWAYS } from "@/data/public-course-takeaways";
 import { MEMBER_COURSE_PATH } from "@/pages/CourseDetailRoute";
+
+/** Every lesson id across all Core courses (the universe the takeaways map against). */
+function allCoreLessonIds(): Set<string> {
+  const ids = new Set<string>();
+  for (const key of CORE_COURSE_KEYS) {
+    for (const mod of publicCourseModules(key) ?? []) {
+      for (const lesson of mod.lessons) ids.add(lesson.id);
+    }
+  }
+  return ids;
+}
 
 const CORE_KEYS = [
   "agile-mindset",
@@ -41,6 +49,35 @@ describe("publicCourseModules", () => {
     const anyVideo = mods.some((m) => m.lessons.some((l) => !!l.youtubeId));
     expect(anyVideo).toBe(true);
   });
+
+  it("every Core lesson has an authored, non-empty one-sentence takeaway", () => {
+    // The takeaway is what the public page shows per lesson (the video-length
+    // route was dropped). A lesson with no authored takeaway would render blank,
+    // so hold full coverage across all 6 Core courses.
+    for (const key of CORE_KEYS) {
+      for (const mod of publicCourseModules(key)!) {
+        for (const lesson of mod.lessons) {
+          expect(typeof lesson.takeaway, `${key}/${lesson.id}`).toBe("string");
+          expect((lesson.takeaway ?? "").trim().length, `${key}/${lesson.id}`).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it("has no orphan takeaway keys (every LESSON_TAKEAWAYS key is a real lesson id)", () => {
+    // The other direction of the bijection: a takeaway whose lesson was renamed or
+    // removed is dead data that would silently never render. Catch it here.
+    const lessonIds = allCoreLessonIds();
+    const orphans = Object.keys(LESSON_TAKEAWAYS).filter((id) => !lessonIds.has(id));
+    expect(orphans, `orphan takeaway keys: ${orphans.join(", ")}`).toEqual([]);
+  });
+
+  it("DISCRIMINATING: an unmapped lesson id resolves to a null takeaway (the ?? null branch)", () => {
+    // Prove the fallback is real: an id NOT in the map must not be present (so the
+    // registry's `?? null` path actually fires for it) — this fails if the map were
+    // to somehow cover arbitrary ids.
+    expect(LESSON_TAKEAWAYS["definitely-not-a-lesson-id"]).toBeUndefined();
+  });
 });
 
 describe("MEMBER_COURSE_PATH (member redirect) stays in sync with the registry", () => {
@@ -52,18 +89,5 @@ describe("MEMBER_COURSE_PATH (member redirect) stays in sync with the registry",
     for (const path of Object.values(MEMBER_COURSE_PATH)) {
       expect(path.startsWith("/courses/")).toBe(true);
     }
-  });
-});
-
-describe("courseVideoIds", () => {
-  const modules: PublicModuleOutline[] = [
-    { title: "A", lessons: [{ id: "1", title: "v", youtubeId: "iOHQRwqSvyE" }, { id: "2", title: "r", youtubeId: null }] },
-    { title: "B", lessons: [{ id: "3", title: "v2", youtubeId: "iOHQRwqSvyE" }] }, // dup
-  ];
-
-  it("collects unique youtubeIds and drops readings (null)", () => {
-    expect(courseVideoIds(modules)).toEqual(["iOHQRwqSvyE"]);
-    expect(courseVideoIds(null)).toEqual([]);
-    expect(courseVideoIds([])).toEqual([]);
   });
 });

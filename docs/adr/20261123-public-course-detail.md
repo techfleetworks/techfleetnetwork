@@ -1,6 +1,14 @@
 # 20261123 — Public free-course detail page (B12), with server-side YouTube durations
 
-- Status: Accepted
+> **Partly superseded by [20261124-public-course-takeaways](20261124-public-course-takeaways.md) (2026-11-24).**
+> The **YouTube video-length route** below (the `youtube-durations` edge function, the
+> `YOUTUBE_API_KEY` secret, the `use-youtube-durations` hook, `courseVideoIds`) was
+> **dropped and removed** — do NOT re-add it or set that key. The rest of this ADR still
+> stands: the public `/course/:courseKey` page, its `CourseDetailRoute` auth-branch, the
+> `public-course-registry` content adapter, and `usePublicCourses` owning which courses
+> are public. Per-lesson, the length is replaced by an authored one-sentence takeaway.
+
+- Status: Superseded in part by 20261124-public-course-takeaways (YouTube-length route only)
 - Date: 2026-11-23
 - Deciders: product owner (mdenner), engineering
 - Ticket: public-access B12 (34c1a3bd…); logged-out review follow-up.
