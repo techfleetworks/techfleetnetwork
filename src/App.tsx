@@ -110,7 +110,7 @@ const ApplicationsPage = lazy(() => import("./pages/ApplicationsPage"));
 const GeneralApplicationPage = lazy(() => import("./pages/GeneralApplicationPage"));
 const MyProjectApplicationsPage = lazy(() => import("./pages/MyProjectApplicationsPage"));
 const ProjectApplicationStatusPage = lazy(() => import("./pages/ProjectApplicationStatusPage"));
-const ProjectOpeningsPage = lazy(() => import("./pages/ProjectOpeningsPage"));
+const ProjectOpeningsRoute = lazy(() => import("./pages/ProjectOpeningsRoute"));
 const UserAdminPage = lazy(() => import("./pages/UserAdminPage"));
 const ConfirmAdminPage = lazy(() => import("./pages/ConfirmAdminPage"));
 const ActivityLogPage = lazy(() => import("./pages/ActivityLogPage"));
@@ -451,14 +451,9 @@ const App = () => (
                           </ProtectedRoute>
                         }
                       />
-                      <Route
-                        path="/project-openings"
-                        element={
-                          <ProtectedRoute>
-                            <ProjectOpeningsPage />
-                          </ProtectedRoute>
-                        }
-                      />
+                      {/* Auth-branched (B11): members get the progress-rich page,
+                          anon gets the public openings catalog — same URL. */}
+                      <Route path="/project-openings" element={<ProjectOpeningsRoute />} />
                       <Route
                         path="/project-openings/:projectId"
                         element={<ProjectOpeningDetailPage />}
