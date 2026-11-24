@@ -48,12 +48,26 @@ export function isWellFormedList(json, key) {
   return !!json && typeof json === "object" && Array.isArray(json[key]);
 }
 
+/** True when `json[key]` is a plain object map (e.g. youtube-durations {id: seconds}). */
+export function isWellFormedMap(json, key) {
+  return (
+    !!json &&
+    typeof json === "object" &&
+    !!json[key] &&
+    typeof json[key] === "object" &&
+    !Array.isArray(json[key])
+  );
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Each public gateway + the response array its feed must carry.
+// Each public gateway + the response field its feed must carry (array, or a map
+// for youtube-durations' {videoId: seconds}). All are browser-raw-fetched with an
+// `apikey` header, so their preflight must admit apikey.
 const GATEWAYS = [
   { path: "public-classes", key: "classes" },
   { path: "public-courses", key: "courses" },
+  { path: "youtube-durations", key: "durations", shape: "map" },
 ];
 
 /**
@@ -91,7 +105,7 @@ async function fetchWithRetry(url, opts, { fetchImpl, attempts, timeoutMs, backo
  * Check one public gateway's LIVE contract. Returns an array of problem strings
  * (empty = healthy). Exported so the deploy-gating logic is itself tested.
  */
-export async function checkGateway(base, { path, key }, opts = {}) {
+export async function checkGateway(base, { path, key, shape = "list" }, opts = {}) {
   const {
     fetchImpl = fetch,
     attempts = 3,
@@ -139,10 +153,12 @@ export async function checkGateway(base, { path, key }, opts = {}) {
   if (res.status !== 200) {
     problems.push(`${path}: GET returned HTTP ${res.status} (expected 200)`);
   }
-  if (!isWellFormedList(body, key)) {
-    problems.push(`${path}: response has no "${key}" array (got keys: ${Object.keys(body ?? {}).join(", ") || "<none>"})`);
+  const wellFormed = shape === "map" ? isWellFormedMap(body, key) : isWellFormedList(body, key);
+  if (!wellFormed) {
+    problems.push(`${path}: response has no well-formed "${key}" ${shape} (got keys: ${Object.keys(body ?? {}).join(", ") || "<none>"})`);
   } else if (problems.length === 0) {
-    log(`  ✓ ${path}: HTTP ${res.status}, preflight admits apikey, ${body[key].length} item(s)`);
+    const n = shape === "map" ? Object.keys(body[key]).length : body[key].length;
+    log(`  ✓ ${path}: HTTP ${res.status}, preflight admits apikey, ${n} item(s)`);
   }
   return problems;
 }

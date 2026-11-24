@@ -9,8 +9,20 @@ import { describe, it, expect } from "vitest";
 import {
   preflightAllowsApikey,
   isWellFormedList,
+  isWellFormedMap,
   checkGateway,
 } from "../../../scripts/ci/smoke-public-catalog.mjs";
+
+describe("isWellFormedMap (PUB-SMOKE-001, youtube-durations {id: seconds})", () => {
+  it("accepts a plain object map, rejects arrays / missing / non-objects", () => {
+    expect(isWellFormedMap({ durations: {} }, "durations")).toBe(true);
+    expect(isWellFormedMap({ durations: { abc: 510 } }, "durations")).toBe(true);
+    expect(isWellFormedMap({ durations: [] }, "durations")).toBe(false); // array, not a map
+    expect(isWellFormedMap({ durations: null }, "durations")).toBe(false);
+    expect(isWellFormedMap({ other: {} }, "durations")).toBe(false);
+    expect(isWellFormedMap(null, "durations")).toBe(false);
+  });
+});
 
 describe("preflightAllowsApikey (PUB-SMOKE-001)", () => {
   it("accepts an allow-headers list that includes apikey", () => {
@@ -106,7 +118,7 @@ describe("checkGateway — deploy-gating composition (PUB-SMOKE-001)", () => {
   it("DISCRIMINATING: malformed body (no array) → problem names the key", async () => {
     const fetchImpl = stubFetch({ gets: [res({ json: { error: "boom" } })] });
     const problems = await checkGateway("https://x", GW, { ...fast, fetchImpl });
-    expect(problems.some((p) => /"classes" array/.test(p))).toBe(true);
+    expect(problems.some((p) => /"classes" list/.test(p))).toBe(true);
   });
 
   it("DISCRIMINATING: unreachable preflight → problem, no crash", async () => {
