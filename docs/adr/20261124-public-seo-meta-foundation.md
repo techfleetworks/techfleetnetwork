@@ -92,3 +92,16 @@ The owner set Phase C's shape this session:
   `dist/<route>/index.html` (static + dynamic) + sitemap extension to classes/courses.
   (C14c): the `public-feed?v=1` aggregated gateway (AC2). Then **C15** readiness +
   declare launched (no flag).
+
+## Post-review (judge-arch fresh context, 2026-11-25)
+
+Two data-ownership duplications caught and fixed so the "single owner" claim is
+actually true:
+- **F1 (title suffix):** the brand suffix existed already in `RouteTitle.tsx`
+  (sets `document.title` synchronously for GA4 before `<SEO>` hydrates). Removed
+  the duplicate literal; `RouteTitle` now calls `formatTitle` from this module, so
+  the synchronous title and the helmet title share one suffix owner.
+- **F2 (production origin):** `BASE_URL` was a second copy of
+  `canonical-origin.ts`'s `PRIMARY_PRODUCTION_ORIGIN`. Exported that const and
+  consume it here — the SEO canonical IS the canonical production origin. The
+  import is window-free at load, so the module stays prerender-safe.
