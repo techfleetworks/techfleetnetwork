@@ -88,3 +88,23 @@ static routes.
   anon can no longer read post-A6, so that wants a migration onto the gateways. The
   `public-feed?v=1` aggregated gateway (AC2) is C14c. Then **C15** readiness + declare
   launched.
+
+## Post-review (judge-arch fresh context, 2026-11-25)
+
+Four runtime↔prerender consistency findings, all addressed:
+- **F1 (strip divergence):** reusing the app's `stripHtml` is NOT possible in Node —
+  `src/lib/strip-html` imports `src/lib/security`, which runs a browser-only
+  `DOMPurify.addHook` at module load and throws in Node (verified). So the local
+  stripper stays but now does a fixpoint tag strip + decodes all numeric entities and
+  the common named ones, matching the runtime decode for realistic rich text; output
+  is escaped at the injection sink.
+- **F2 (fabricated course counts):** the prerender now reads the SAME bundled
+  `public-course-registry` (`publicCourseModules` / `publicCourseSummary`) the detail
+  page uses, so the prerendered course description equals the live one (the registry
+  is Node-safe — pure bundled data, no DOMPurify chain).
+- **F3 (lost site nodes):** `injectRouteHead` now APPENDS the route JSON-LD and keeps
+  the shell's Organization/WebSite block (matching runtime `<SEO>`, which appends), so
+  `@id` refs resolve. Verified: a prerendered route has 2 ld+json blocks.
+- **F4 (silent regex miss):** the script asserts exactly one `og:title` + one canonical
+  per written file and exits non-zero otherwise, so a regex miss breaks the build
+  instead of shipping a degraded head.

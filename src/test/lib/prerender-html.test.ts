@@ -29,8 +29,11 @@ describe("injectRouteHead", () => {
     expect(out).toContain('<link rel="canonical" href="https://techfleet.network/courses">');
     expect(out).toContain('<meta property="og:url" content="https://techfleet.network/courses">');
     expect(out).toContain('<meta property="og:type" content="website">');
-    // JSON-LD replaced with the route's CollectionPage (default Organization gone).
+    // Route JSON-LD is APPENDED; the shell's Organization block is KEPT so the
+    // route's @id references (isPartOf/provider/publisher) still resolve.
     expect(out).toContain('"@type":"CollectionPage"');
+    expect(out).toContain('"@type":"Organization"');
+    expect(out.match(/application\/ld\+json/g)).toHaveLength(2);
     // Body is untouched so the SPA still boots.
     expect(out).toContain('<div id="root"></div>');
     expect(out).toContain('src="/assets/index-abc123.js"');

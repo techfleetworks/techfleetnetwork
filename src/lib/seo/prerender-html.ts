@@ -15,7 +15,6 @@ import {
 } from "./public-route-meta";
 
 const TITLE_RE = /<title>[\s\S]*?<\/title>/i;
-const JSONLD_RE = /<script\s+type=["']application\/ld\+json["']>[\s\S]*?<\/script>/i;
 const HEAD_CLOSE_RE = /<\/head>/i;
 
 /** A `<meta name="X">` matcher (any attribute order, self-closing or not). */
@@ -87,12 +86,14 @@ export function injectRouteHead(templateHtml: string, meta: PageMeta): string {
   }
 
   if (meta.jsonLd) {
+    // APPEND the route's JSON-LD; do NOT replace the shell's Organization/WebSite
+    // block. That keeps the site-level nodes this route's @id references point at
+    // (provider/publisher/isPartOf) present on the page, and matches runtime <SEO>,
+    // which also appends a second ld+json rather than replacing the shell's.
     const block = `<script type="application/ld+json">${jsonLdToString(
       withContext(meta.jsonLd),
     )}</script>`;
-    html = JSONLD_RE.test(html)
-      ? html.replace(JSONLD_RE, block)
-      : html.replace(HEAD_CLOSE_RE, `    ${block}\n  </head>`);
+    html = html.replace(HEAD_CLOSE_RE, `    ${block}\n  </head>`);
   }
 
   return html;
