@@ -14,6 +14,7 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, BookOpen, GraduationCap, Loader2, Play } from "lucide-react";
 import { SEO } from "@/components/SEO";
+import { courseDetailMeta } from "@/lib/seo/public-route-meta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
@@ -69,14 +70,13 @@ export default function PublicCourseDetailPage() {
   return (
     <div className="container-app py-8 sm:py-12">
       <SEO
-        title={course.display_label}
-        description={
-          summary
-            ? `This free Tech Fleet course teaches you ${summary} ${lessonCount} lessons across ${modules.length} modules. Join the platform to start.`
-            : `A free Tech Fleet course: ${lessonCount} lessons across ${modules.length} modules. Join the platform to start.`
-        }
-        canonicalPath={`/course/${course.course_key}`}
-        ogType="article"
+        {...courseDetailMeta({
+          courseKey: course.course_key,
+          displayLabel: course.display_label,
+          summary,
+          lessonCount,
+          moduleCount: modules.length,
+        })}
       />
 
       <Button asChild variant="link" className="mb-4 px-0">
