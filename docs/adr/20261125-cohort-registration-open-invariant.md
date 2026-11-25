@@ -68,7 +68,15 @@ publicly open.
   be *stored* on a cohort the gateways would filter out — the write guard forbids it.
 - **False positive** from drift is unreachable: both public surfaces read the one
   `cohortPublicEnrollment` mapping; they cannot label the same status differently.
-- **Honest limits:** (1) the `end_date` gate is time-based — a cohort set `register_now`
+- **Honest limits:** (0) the guard is **write-time, forward-only** — a `CREATE OR REPLACE`
+  of the RPC. **Pre-existing rows** already holding `register_now`/`live` on an
+  unpublished or ended cohort are **not** backfilled; they persist (the gateways still
+  filter them, so they keep reading "not open") until re-saved. So "impossible" is exact
+  for *new* writes, not for existing data. The user's reported class is likely such a row:
+  the resolution is to **publish that cohort** (then it shows open) — the fix makes that
+  requirement explicit going forward. An optional one-shot cleanup could normalize existing
+  violating rows to `coming_soon`, but it changes owner-set data, so it is left to the owner.
+  (1) the `end_date` gate is time-based — a cohort set `register_now`
   while valid *becomes* ended when its `end_date` passes; the write guard checks at
   write time, and the gateway `end_date>=today` filter then correctly stops showing it
   (so it reads "closed/absent", not a false "open") — moving it to `finished` is a

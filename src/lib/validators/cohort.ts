@@ -56,6 +56,9 @@ export function canOpenRegistration(
   if (publishStatus !== "published") return false;
   if (!endDate) return false;
   // ISO YYYY-MM-DD compares lexically; "today or later" is still open (matches `end_date >= current_date`).
+  // "Today" is UTC here, whereas the DB guard uses `current_date` (DB session tz); at a day boundary
+  // the two can disagree by one day, briefly over/under-disabling the UI option. Harmless: the DB is
+  // the sole enforcement — if the UI wrongly permits, the RPC still rejects with a toast.
   return endDate.slice(0, 10) >= new Date().toISOString().slice(0, 10);
 }
 

@@ -5,7 +5,7 @@
 -- the RPC as each role: owner-teacher, other-teacher, admin, outsider. Runs in a rolled-back txn.
 
 BEGIN;
-SELECT plan(16);
+SELECT plan(17);
 
 -- ── Column shape ───────────────────────────────────────────────────────────────
 SELECT has_column('public', 'cohorts', 'registration_status', 'cohorts.registration_status exists');
@@ -155,6 +155,14 @@ SET LOCAL "request.jwt.claims" = '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
 SELECT lives_ok(
   $$ SELECT public.set_cohort_registration_status('55555555-0000-0000-0000-000000000000', 'register_now') $$,
   'register_now IS allowed on a published, future-dated cohort (the valid open case)');
+RESET ROLE;
+
+-- 17. The guard covers BOTH open states: 'live' on a DRAFT cohort is rejected too (not just register_now).
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated"}';
+SELECT throws_ok(
+  $$ SELECT public.set_cohort_registration_status('66666666-0000-0000-0000-000000000000', 'live') $$,
+  '23514', NULL, 'cannot set LIVE on a draft cohort either (the guard covers both open states)');
 RESET ROLE;
 
 SELECT * FROM finish();

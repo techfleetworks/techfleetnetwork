@@ -39,10 +39,17 @@ export type CohortPublicState = "open" | "coming_soon" | "closed";
 /** A class's enrollment state, derived from its (already published, future) cohorts. */
 export type EnrollmentState = "open" | "coming_soon" | "none";
 
-/* istanbul ignore next -- the default arm is unreachable while the switch is exhaustive;
-   it exists only to turn a FUTURE enum value into a loud failure, not a silent mislabel. */
-function assertNever(x: never): never {
-  throw new Error(`Unhandled cohort registration_status: ${String(x)}`);
+/**
+ * The `switch` default. COMPILE time: `x` is `never` while the switch is exhaustive,
+ * so a new enum value that lacks a case is a type error here — a status can never be
+ * silently unmapped. RUNTIME: this is reached only by deploy skew (a DB enum value
+ * newer than this deployed bundle). It fails SAFE — "closed" (i.e. "not open", never a
+ * false "open") — and reports, rather than throwing in the public render path and
+ * crashing the catalog/detail for every anon visitor.
+ */
+function exhaustiveFallback(x: never, fallback: CohortPublicState): CohortPublicState {
+  console.warn(`Unhandled cohort registration_status: ${String(x)} — treating as "${fallback}".`);
+  return fallback;
 }
 
 /**
@@ -71,7 +78,7 @@ export function cohortPublicEnrollment(
     case "finished":
       return "closed";
     default:
-      return assertNever(c.registration_status);
+      return exhaustiveFallback(c.registration_status, "closed");
   }
 }
 

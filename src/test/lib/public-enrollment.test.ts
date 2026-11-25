@@ -1,7 +1,7 @@
 // PUB-ENROLLMENT-001: the enrollment-state logic that drives the public pill + CTA.
 // register_now/live = registerable (open + "Register"); a published upcoming cohort
 // not yet open = coming_soon ("Opening soon"); nothing = none ("Enrollment not open").
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   cohortPublicEnrollment,
   isRegisterable,
@@ -38,6 +38,18 @@ describe("cohortPublicEnrollment — the single source of the public state", () 
     for (const s of all) {
       expect(["open", "coming_soon", "closed"]).toContain(cohortPublicEnrollment(cohort(s)));
     }
+  });
+
+  it("fails SAFE to 'closed' on an unknown runtime status (deploy skew), never throws", () => {
+    // A DB enum value newer than this bundle would reach the switch default. It must
+    // NOT throw in the public render path — fail closed ("not open", never a false
+    // "open") and warn. Cast past the type to simulate the skew.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const unknown = { registration_status: "waitlist" as PublicCohort["registration_status"] };
+    expect(() => cohortPublicEnrollment(unknown)).not.toThrow();
+    expect(cohortPublicEnrollment(unknown)).toBe("closed");
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it("isRegisterable and the listing both derive from it (cannot diverge)", () => {
