@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
+import { landingMeta } from "@/lib/seo/public-route-meta";
 import { Display, PageTitle, SectionTitle, SubsectionTitle, Lede, Body } from "@/components/ui/typography";
 import { useTheme } from "@/components/ThemeProvider";
 import { PUBLIC_NAV_ITEMS } from "@/components/PublicNavItems";
@@ -67,11 +68,7 @@ export default function LandingPage() {
       : "Illustration of a stylized world map, representing global community";
   return (
     <div>
-      <SEO
-        title="Tech Fleet — Professional Training Platform"
-        description="Develop the skills and mindset for success. Practice with real teams and grow as a leader at Tech Fleet."
-        canonicalPath="/"
-      />
+      <SEO {...landingMeta()} />
       {/* Hero Section */}
       <section className="relative overflow-hidden flex items-center min-h-[calc(100svh-5rem)]" aria-labelledby="hero-heading">
         {resolvedTheme === "dark" && (
