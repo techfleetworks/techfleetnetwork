@@ -28,6 +28,8 @@ describe("CohortRegistrationStatusControl", () => {
         classId="cl1"
         value="live"
         cohortLabel="Spring 2026"
+        cohortStatus="published"
+        cohortEndDate="2099-01-01"
       />
     );
     const trigger = screen.getByLabelText(/set registration status for cohort Spring 2026/i);
@@ -43,6 +45,8 @@ describe("CohortRegistrationStatusControl", () => {
         classId="cl1"
         value="coming_soon"
         cohortLabel="Fall 2026"
+        cohortStatus="draft"
+        cohortEndDate={null}
       />
     );
     expect(screen.getByLabelText(/set registration status for cohort Fall 2026/i)).toBeDisabled();

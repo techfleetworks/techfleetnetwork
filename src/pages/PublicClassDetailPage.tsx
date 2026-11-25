@@ -28,7 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
 import { safeHref, sanitizeHtml } from "@/lib/security";
 import { stripHtml } from "@/lib/strip-html";
-import { usePublicClassDetail, isRegisterable, type PublicCohort } from "@/hooks/use-public-catalog";
+import { usePublicClassDetail, cohortPublicEnrollment, type PublicCohort } from "@/hooks/use-public-catalog";
 
 const TRACK_LABEL: Record<string, string> = {
   basic_training: "Basic Training",
@@ -121,13 +121,18 @@ function CohortCard({
   // undefined, so a malicious URL can never execute (defense in depth — the client
   // zod requires https:// on write, but there is no DB CHECK on the column).
   const safeRegistration = safeHref(cohort.registration_url);
-  const registerable = isRegisterable(cohort);
-  const comingSoon = cohort.registration_status === "coming_soon";
-  const badge = registerable
-    ? { label: "Registration open", className: "bg-success text-primary-foreground" }
-    : comingSoon
-      ? { label: "Opening soon", className: "bg-muted text-foreground" }
-      : { label: "Registration closed", className: "bg-muted text-foreground" };
+  // One source: the per-cohort public enrollment state (use-public-catalog). The
+  // badge, the registerable/comingSoon flags, and the CTA below all derive from it,
+  // so this page cannot disagree with the catalog listing.
+  const state = cohortPublicEnrollment(cohort);
+  const registerable = state === "open";
+  const comingSoon = state === "coming_soon";
+  const badge =
+    state === "open"
+      ? { label: "Registration open", className: "bg-success text-primary-foreground" }
+      : state === "coming_soon"
+        ? { label: "Opening soon", className: "bg-muted text-foreground" }
+        : { label: "Registration closed", className: "bg-muted text-foreground" };
   return (
     <div className="rounded-lg border bg-card p-6 space-y-4">
       <Badge className={`${badge.className} border-transparent px-3 py-1 text-sm font-semibold uppercase tracking-wide`}>

@@ -10,6 +10,8 @@ import {
 import {
   COHORT_REGISTRATION_STATUSES,
   cohortRegistrationStatusLabel,
+  canOpenRegistration,
+  isRegistrationOpenStatus,
   type CohortRegistrationStatus,
 } from "@/lib/validators/cohort";
 import { useSetCohortRegistrationStatus } from "@/hooks/use-cohorts";
@@ -28,13 +30,21 @@ export function CohortRegistrationStatusControl({
   classId,
   value,
   cohortLabel,
+  cohortStatus,
+  cohortEndDate,
 }: {
   cohortId: string;
   classId: string | undefined;
   value: CohortRegistrationStatus;
   cohortLabel: string;
+  /** The cohort's PUBLISH status + end date — gate the register-open options (mirrors the DB guard). */
+  cohortStatus: string;
+  cohortEndDate: string | null | undefined;
 }) {
   const mutation = useSetCohortRegistrationStatus(classId);
+  // Open states (Register Now / Live) are only valid on a published, not-ended cohort — the same
+  // rule the DB enforces. Disable them up front so an admin isn't bounced by the RPC error.
+  const canOpen = canOpenRegistration(cohortStatus, cohortEndDate);
 
   return (
     <Select
@@ -71,11 +81,20 @@ export function CohortRegistrationStatusControl({
         )}
       </SelectTrigger>
       <SelectContent>
-        {COHORT_REGISTRATION_STATUSES.map((s) => (
-          <SelectItem key={s.value} value={s.value}>
-            {s.label}
-          </SelectItem>
-        ))}
+        {COHORT_REGISTRATION_STATUSES.map((s) => {
+          const blockedOpen = isRegistrationOpenStatus(s.value) && !canOpen && s.value !== value;
+          return (
+            <SelectItem
+              key={s.value}
+              value={s.value}
+              disabled={blockedOpen}
+              title={blockedOpen ? "Publish the cohort (with a future end date) before opening registration" : undefined}
+            >
+              {s.label}
+              {blockedOpen ? " — publish first" : ""}
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );

@@ -5,7 +5,7 @@
 -- the RPC as each role: owner-teacher, other-teacher, admin, outsider. Runs in a rolled-back txn.
 
 BEGIN;
-SELECT plan(12);
+SELECT plan(16);
 
 -- ── Column shape ───────────────────────────────────────────────────────────────
 SELECT has_column('public', 'cohorts', 'registration_status', 'cohorts.registration_status exists');
@@ -55,6 +55,17 @@ INSERT INTO public.cohorts (id, class_id, label, start_date, end_date, timezone,
 VALUES ('55555555-0000-0000-0000-000000000000', '11111111-0000-0000-0000-000000000000',
         'Cohort 1', CURRENT_DATE, CURRENT_DATE + 30, 'UTC', 'https://example.com/register',
         'published', 'coming_soon');
+
+-- For the registration-open invariant: a DRAFT cohort and a PUBLISHED-but-ENDED cohort. Opening
+-- registration on either must be rejected (both would be filtered out of the public gateways).
+INSERT INTO public.cohorts (id, class_id, label, start_date, end_date, timezone, registration_url, status, registration_status)
+VALUES
+  ('66666666-0000-0000-0000-000000000000', '11111111-0000-0000-0000-000000000000',
+   'Draft Cohort', CURRENT_DATE, CURRENT_DATE + 30, 'UTC', 'https://example.com/register',
+   'draft', 'coming_soon'),
+  ('77777777-0000-0000-0000-000000000000', '11111111-0000-0000-0000-000000000000',
+   'Ended Cohort', CURRENT_DATE - 60, CURRENT_DATE - 1, 'UTC', 'https://example.com/register',
+   'published', 'coming_soon');
 
 SET session_replication_role = default;
 
@@ -111,6 +122,40 @@ SELECT is(
       AND entity_id = '55555555-0000-0000-0000-000000000000'
       AND action = 'set_registration_status'),
   2, 'each registration-status change is recorded in class_audit');
+
+-- ── Registration-open invariant (ADR 20261125): register_now/live only on published + future ──
+-- 13. register_now on a DRAFT cohort is rejected — the exact false-negative the invariant closes
+--     (an admin "opens enrollment" but the cohort is filtered out of the public gateways).
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated"}';
+SELECT throws_ok(
+  $$ SELECT public.set_cohort_registration_status('66666666-0000-0000-0000-000000000000', 'register_now') $$,
+  '23514', NULL, 'cannot open registration on a DRAFT cohort (it would show "not open" publicly)');
+RESET ROLE;
+
+-- 14. …but a NOT-yet-open status (coming_soon) is still settable on a draft cohort.
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated"}';
+SELECT lives_ok(
+  $$ SELECT public.set_cohort_registration_status('66666666-0000-0000-0000-000000000000', 'coming_soon') $$,
+  'coming_soon is still settable on a draft cohort (it is not an open state)');
+RESET ROLE;
+
+-- 15. register_now on a PUBLISHED-but-ENDED cohort is rejected (past end_date fails the invariant).
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated"}';
+SELECT throws_ok(
+  $$ SELECT public.set_cohort_registration_status('77777777-0000-0000-0000-000000000000', 'register_now') $$,
+  '23514', NULL, 'cannot open registration on a published cohort whose end_date has passed');
+RESET ROLE;
+
+-- 16. register_now on a published + future cohort SUCCEEDS — the valid open case the invariant allows.
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claims" = '{"sub":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","role":"authenticated"}';
+SELECT lives_ok(
+  $$ SELECT public.set_cohort_registration_status('55555555-0000-0000-0000-000000000000', 'register_now') $$,
+  'register_now IS allowed on a published, future-dated cohort (the valid open case)');
+RESET ROLE;
 
 SELECT * FROM finish();
 ROLLBACK;

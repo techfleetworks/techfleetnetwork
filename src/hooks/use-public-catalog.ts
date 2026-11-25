@@ -33,24 +33,64 @@ export interface PublicCohort {
   timezone?: string;
 }
 
+/** A single cohort's public enrollment state. */
+export type CohortPublicState = "open" | "coming_soon" | "closed";
+
 /** A class's enrollment state, derived from its (already published, future) cohorts. */
 export type EnrollmentState = "open" | "coming_soon" | "none";
 
-/** True when a cohort can be registered for right now. `live` = running but still joinable. */
-export function isRegisterable(c: Pick<PublicCohort, "registration_status">): boolean {
-  return c.registration_status === "register_now" || c.registration_status === "live";
+/* istanbul ignore next -- the default arm is unreachable while the switch is exhaustive;
+   it exists only to turn a FUTURE enum value into a loud failure, not a silent mislabel. */
+function assertNever(x: never): never {
+  throw new Error(`Unhandled cohort registration_status: ${String(x)}`);
 }
 
 /**
- * Classify a class by its cohorts: `open` (at least one registerable cohort),
- * else `coming_soon` (a published upcoming cohort not yet open), else `none`.
- * The gateway has already filtered to published, not-yet-ended cohorts, so a
- * `coming_soon` here is a real upcoming offering, not a draft.
+ * THE single mapping from a cohort's `registration_status` to what the public sees.
+ * Every public surface (the catalog listing AND the class-detail badge/CTA) derives
+ * its "open / opening soon / closed" from HERE — they cannot diverge, so a false
+ * "open" or false "closed" cannot arise from two copies drifting apart.
+ *
+ * The `switch` is EXHAUSTIVE over `CohortRegistrationStatus`: add a fifth status and
+ * this stops compiling (`assertNever`), forcing a deliberate decision rather than a
+ * silent default. Register-open (`register_now`/`live`) is reachable ONLY on a cohort
+ * that is published + not-ended — enforced at the write boundary by
+ * `set_cohort_registration_status` (ADR 20261125-cohort-registration-open-invariant),
+ * and the gateways only ever return published, not-ended cohorts — so "open" here
+ * always means "publicly open to register", with no third gate to get wrong.
+ */
+export function cohortPublicEnrollment(
+  c: Pick<PublicCohort, "registration_status">,
+): CohortPublicState {
+  switch (c.registration_status) {
+    case "register_now":
+    case "live":
+      return "open";
+    case "coming_soon":
+      return "coming_soon";
+    case "finished":
+      return "closed";
+    default:
+      return assertNever(c.registration_status);
+  }
+}
+
+/** True when a cohort can be registered for right now. Derived from the one mapping. */
+export function isRegisterable(c: Pick<PublicCohort, "registration_status">): boolean {
+  return cohortPublicEnrollment(c) === "open";
+}
+
+/**
+ * Classify a class by its cohorts: `open` (at least one open cohort), else
+ * `coming_soon` (a published upcoming cohort not yet open), else `none`. Reduces the
+ * per-cohort `cohortPublicEnrollment` over the class's cohorts — the SAME source the
+ * detail page uses, so listing and detail can never disagree. The gateway has already
+ * filtered to published, not-yet-ended cohorts.
  */
 export function enrollmentStateOf(cohorts: readonly PublicCohort[] | null | undefined): EnrollmentState {
   const list = cohorts ?? [];
-  if (list.some(isRegisterable)) return "open";
-  if (list.some((c) => c.registration_status === "coming_soon")) return "coming_soon";
+  if (list.some((c) => cohortPublicEnrollment(c) === "open")) return "open";
+  if (list.some((c) => cohortPublicEnrollment(c) === "coming_soon")) return "coming_soon";
   return "none";
 }
 

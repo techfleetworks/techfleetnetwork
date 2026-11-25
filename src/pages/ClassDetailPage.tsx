@@ -328,6 +328,8 @@ export default function ClassDetailPage() {
                               classId={cls.id}
                               value={c.registration_status}
                               cohortLabel={c.label}
+                              cohortStatus={c.status}
+                              cohortEndDate={c.end_date}
                             />
                           ) : (
                             <Badge

@@ -3,6 +3,8 @@ import {
   cohortFormSchema,
   COHORT_REGISTRATION_STATUSES,
   cohortRegistrationStatusLabel,
+  canOpenRegistration,
+  isRegistrationOpenStatus,
   type CohortRegistrationStatus,
 } from "@/lib/validators/cohort";
 
@@ -82,5 +84,36 @@ describe("COHORT_REGISTRATION_STATUSES", () => {
 
   it("cohortRegistrationStatusLabel falls back to the raw value for an unknown status", () => {
     expect(cohortRegistrationStatusLabel("bogus" as CohortRegistrationStatus)).toBe("bogus");
+  });
+});
+
+describe("canOpenRegistration — mirrors the DB write guard (20261125150000)", () => {
+  const FUTURE = "2099-01-01";
+  const PAST = "2000-01-01";
+
+  it("allows opening only a published cohort with a future (or today) end date", () => {
+    expect(canOpenRegistration("published", FUTURE)).toBe(true);
+    // today itself still counts as open (>= current_date)
+    expect(canOpenRegistration("published", new Date().toISOString().slice(0, 10))).toBe(true);
+  });
+
+  it("rejects opening a non-published cohort (the false-negative the invariant closes)", () => {
+    for (const s of ["draft", "pending_review", "archived", "cancelled"]) {
+      expect(canOpenRegistration(s, FUTURE)).toBe(false);
+    }
+  });
+
+  it("rejects opening a published cohort whose end date has passed, or is missing", () => {
+    expect(canOpenRegistration("published", PAST)).toBe(false);
+    expect(canOpenRegistration("published", null)).toBe(false);
+    expect(canOpenRegistration("published", undefined)).toBe(false);
+    expect(canOpenRegistration(null, FUTURE)).toBe(false);
+  });
+
+  it("isRegistrationOpenStatus flags exactly the open states", () => {
+    expect(isRegistrationOpenStatus("register_now")).toBe(true);
+    expect(isRegistrationOpenStatus("live")).toBe(true);
+    expect(isRegistrationOpenStatus("coming_soon")).toBe(false);
+    expect(isRegistrationOpenStatus("finished")).toBe(false);
   });
 });
