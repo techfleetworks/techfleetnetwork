@@ -50,8 +50,8 @@ Status legend: ☐ Not started · ◐ In progress · ☑ Done · ⚠ Blocked
 
 | PR | Title | Delivers | Depends on | Decision / gate | Status |
 |----|-------|----------|------------|-----------------|--------|
-| C14 | Prerender + sitemap + versioned feed | Build-time prerender of public routes (meta/OG/JSON-LD), sitemap extension, `public-feed?v=1` aggregating classes + projects (AC2). | B10, B11, B12 | §4.2/4.3, AC2; prerendered-HTML + feed-contract tests | ☐ |
-| C15 | SRE readiness + flag flip | SLOs/alerts, cache-purge-on-unpublish, runbooks; verify behind the flag in prod, flip on, delete obsoleted band-aids. | all | §9, §10; exposure canary green before flip | ☐ |
+| C14 | Prerender + sitemap + versioned feed | Build-time prerender of public routes (meta/OG/JSON-LD), sitemap extension, `public-feed?v=1` aggregating classes + projects (AC2). | B10, B11, B12 | §4.2/4.3, AC2; prerendered-HTML + feed-contract tests | ◐ **C14a** SEO meta foundation SHIPPED (#525); **C14b** prerender (static + dynamic) SHIPPED (#527). **C14c** `public-feed?v=1` + dynamic sitemap DEFERRED (no live feed consumer; sitemap needs gateway migration). |
+| C15 | SRE readiness (no flag flip — already live) | SLIs/SLOs, symptom alerting coverage, cache-purge-on-unpublish assessment, runbook, go/no-go. **No flag to flip:** public access is already live (route branches on `user`, no flag). | all | §9, §10; exposure canary (`smoke-public-catalog`) green | ◐ Production Readiness Review + runbook written (`docs/public-access/PRODUCTION-READINESS-REVIEW.md`, `docs/runbooks/public-access.md`, ADR 20261125). GO recommended with 2 named residuals (SLO burn-rate alert Held platform-wide; prerender meta freshness ≤1 deploy cycle). **Owner go/no-go pending.** |
 
 ---
 
