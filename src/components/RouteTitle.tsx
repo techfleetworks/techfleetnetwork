@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useParams, matchPath } from "react-router-dom";
+import { formatTitle } from "@/lib/seo/public-route-meta";
 
 /**
  * Global per-route document.title manager. Every page in the app gets a
@@ -14,8 +15,6 @@ import { useLocation, useParams, matchPath } from "react-router-dom";
  * on every navigation so AnalyticsTracker (which reads document.title)
  * always reports the correct page.
  */
-
-const SUFFIX = " | Tech Fleet Network Platform | Agile Practice and Teamwork For All";
 
 // Order matters: more specific patterns first.
 const ROUTE_TITLES: Array<{ pattern: string; title: string }> = [
@@ -122,7 +121,9 @@ export function RouteTitle() {
 
   useEffect(() => {
     const name = resolvePageName(location.pathname);
-    const fullTitle = `${name}${SUFFIX}`;
+    // Shared suffix owner (src/lib/seo/public-route-meta) so the title RouteTitle
+    // sets synchronously and the one <SEO> sets post-hydration cannot drift.
+    const fullTitle = formatTitle(name);
     if (document.title !== fullTitle) {
       document.title = fullTitle;
     }

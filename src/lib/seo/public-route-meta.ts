@@ -9,10 +9,14 @@
 //
 // This module decides a page's meta; the component and the prerender script only
 // FORMAT it (ADR-20261116: presentation reflects, it does not decide). Keep it
-// framework-free so the Node prerender can import it unchanged.
+// framework-free so the Node prerender can import it unchanged. The one import
+// (canonical-origin) is window-free at load, so it stays prerender-safe.
+import { PRIMARY_PRODUCTION_ORIGIN } from "@/lib/canonical-origin";
 
 export const SITE_NAME = "Tech Fleet Network";
-export const BASE_URL = "https://techfleet.network";
+// Single-sourced from canonical-origin (the one owner of the production origin),
+// not a second literal — the SEO canonical IS that canonical origin.
+export const BASE_URL = PRIMARY_PRODUCTION_ORIGIN;
 const TITLE_SUFFIX =
   " | Tech Fleet Network Platform | Agile Practice and Teamwork For All";
 
