@@ -23,7 +23,7 @@ Feature: Public project openings list (B11)
     Given a logged-out visitor on /project-openings
     When the page renders
     Then each open project is shown with its title, status, and team-hat roles
-    And each tile offers "View opening" and "Join Platform"
+    And each tile offers a single "View opening" action
 
   @audience:anonymous @usecase:openings-view-detail @category:happy @quality:functional @severity:medium @status:proven
   Scenario: View opening links to the public project detail page

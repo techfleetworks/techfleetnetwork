@@ -7,11 +7,11 @@
 // serves anon (ProjectOpeningDetailPage via the public-project-detail gateway),
 // so B11 is the listing that was still member-only + its nav surfacing.
 //
-// Every tile is a ContentCard (B9). Auth-aware CTAs live HERE (the caller), not in
-// the card: "View opening" is a crawlable link to the public detail page; "Join
-// Platform" carries an open-redirect-safe return path (B8 loginRedirectHref) —
-// "apply" is an auth-gated action (public-nav-policy), so anon joins first, then
-// applies. Loading / error / empty states (FR-8) share CatalogState with B10.
+// Every tile is a ContentCard (B9) with a single "View opening" CTA (a crawlable
+// link to the public detail page). The per-card "Join Platform" CTA was removed
+// (owner, 2026-11-25); applying is still auth-gated (public-nav-policy), reached from
+// the detail page. Loading / error / empty states (FR-8) share CatalogState with B10
+// and keep their own join CTA (open-redirect-safe via B8 loginRedirectHref).
 import { useMemo } from "react";
 import { SEO } from "@/components/SEO";
 import { projectOpeningsListMeta } from "@/lib/seo/public-route-meta";
@@ -52,7 +52,7 @@ function blurbFrom(description: string | null): string | undefined {
   return text ? text : undefined;
 }
 
-/** A project-opening tile: View opening (public detail page) + Join Platform. */
+/** A project-opening tile: a single "View opening" CTA to the public detail page. */
 function OpeningCardTile({ opening }: { opening: PublicProjectOpening }) {
   const detailPath = `/project-openings/${opening.id}`;
   const title = opening.friendly_name?.trim() || opening.client?.name || "Project Opening";
@@ -75,17 +75,12 @@ function OpeningCardTile({ opening }: { opening: PublicProjectOpening }) {
       meta={typeLabel(opening.project_type)}
       chips={hats.length ? hats : undefined}
       blurb={blurbFrom(opening.description)}
-      secondaryAction={{
+      primaryAction={{
         label: "View opening",
         // A real href (not SPA navigate) so the detail page is a crawlable link
         // for SEO, consistent with the title link.
         href: detailPath,
         ariaLabel: `View the ${title} opening`,
-      }}
-      primaryAction={{
-        label: "Join Platform",
-        href: loginRedirectHref(detailPath),
-        ariaLabel: `Join the platform to apply to ${title}`,
       }}
     />
   );

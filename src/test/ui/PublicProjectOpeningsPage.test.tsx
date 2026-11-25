@@ -54,22 +54,23 @@ describe("PublicProjectOpeningsPage (B11)", () => {
     expect(screen.getByText("Accepting Applications")).toBeInTheDocument();
   });
 
-  it("links View opening to the public detail page and Join Platform back to that opening", () => {
+  it("links View opening to the public detail page (single CTA, no per-card Join Platform)", () => {
     renderWithRouter(<PublicProjectOpeningsPage />);
     const view = screen.getByRole("link", { name: /View the Trailhead Redesign opening/i });
     expect(view).toHaveAttribute("href", "/project-openings/p1");
+    // The per-card Join Platform CTA was removed (owner, 2026-11-25).
     const links = screen.getAllByRole("link");
     expect(
-      links.some((a) => a.getAttribute("href") === "/login?redirect=%2Fproject-openings%2Fp1"),
+      links.every((a) => a.getAttribute("href") !== "/login?redirect=%2Fproject-openings%2Fp1"),
     ).toBe(true);
   });
 
-  it("DISCRIMINATING: the Join target is the specific opening, not the generic list", () => {
+  it("DISCRIMINATING: View opening targets the specific opening, not the generic list", () => {
     // Guards against a copy-paste that sends every tile to /project-openings.
     renderWithRouter(<PublicProjectOpeningsPage />);
-    const links = screen.getAllByRole("link");
-    expect(links.some((a) => a.getAttribute("href") === "/login?redirect=%2Fproject-openings%2Fp1")).toBe(true);
-    expect(links.every((a) => a.getAttribute("href") !== "/login?redirect=%2Fproject-openings")).toBe(true);
+    const view = screen.getByRole("link", { name: /View the Trailhead Redesign opening/i });
+    expect(view).toHaveAttribute("href", "/project-openings/p1");
+    expect(view.getAttribute("href")).not.toBe("/project-openings");
   });
 
   it("falls back to the client name when a project has no friendly_name", () => {

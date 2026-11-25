@@ -13,9 +13,10 @@
 Feature: Public classes pages (B10)
 
   A logged-out visitor can browse the catalog at /courses (free Onboarding Courses +
-  Basic/Advanced Training classes) and open a class detail at /classes/:slug, with
-  Join Platform CTAs that carry them back after sign-in. A signed-in member keeps
-  their progress hub at /courses and, on a class detail, registers on Gumroad.
+  Basic/Advanced Training classes) and open a class detail at /classes/:slug. Each
+  catalog tile has a single "View details" CTA (the per-card Join Platform CTA was
+  removed, owner 2026-11-25); empty and error states keep a Join Platform CTA. A
+  signed-in member keeps their progress hub at /courses and registers on Gumroad.
 
   # ---- Catalog (@functional) ------------------------------------------------
 
@@ -26,17 +27,17 @@ Feature: Public classes pages (B10)
     Then they see the Onboarding Courses, Basic Training and Advanced Training tabs
 
   @audience:anonymous @usecase:catalog-class-tile @category:happy @quality:functional @severity:high @status:proven
-  Scenario: A class tile offers View details and Join Platform
+  Scenario: A class tile offers a single View details action
     Given a logged-out visitor viewing a training tab with a published class
     When the tile renders
-    Then it shows View details (to the class page) and Join Platform
-    And Join Platform carries an open-redirect-safe return path to the class
+    Then it shows a single "View details" action linking to the class page
+    And no per-card Join Platform CTA is shown
 
   @audience:anonymous @usecase:catalog-course-tile @category:happy @quality:functional @severity:medium @status:proven
-  Scenario: A free course tile offers Join Platform
+  Scenario: A free course tile offers a single View details action
     Given a logged-out visitor on the Onboarding Courses tab
     When a Core course tile renders
-    Then it shows the course and a Join Platform action
+    Then it shows the course and a single "View details" action to the course page
 
   @audience:anonymous @usecase:catalog-class-no-cohort @category:boundary @quality:functional @severity:high @status:proven
   Scenario: A published class with no open cohort is still listed, honestly
