@@ -1,7 +1,9 @@
+// Module under test: src/pages/LandingPage.tsx
 import { describe, it, expect } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { renderWithRouter } from "./test-utils";
 import LandingPage from "@/pages/LandingPage";
+import { PUBLIC_NAV_ITEMS } from "@/components/PublicNavItems";
 
 // Mock NetworkActivity (requires Supabase)
 vi.mock("@/components/NetworkActivity", () => ({
@@ -51,6 +53,33 @@ describe("LandingPage UI (BDD 16.1–16.4)", () => {
       screen.getByText("Get ready for the future of work with Tech Fleet")
     ).toBeInTheDocument();
     expect(screen.queryByText("Ready to start your journey?")).not.toBeInTheDocument();
+  });
+
+  it("B13: renders the discovery section heading", () => {
+    expect(
+      screen.getByRole("heading", { name: /explore before you join/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("B13: discovery section links EXACTLY the non-Home public nav surfaces (policy binding)", () => {
+    // The discovery cards are a projection of PUBLIC_NAV_ITEMS (the one nav/policy
+    // source) minus Home — so they can never drift from, or lag behind, the
+    // routes the A5 policy exposes. If a new public surface joins the nav without
+    // discovery copy, this fails.
+    const region = screen.getByRole("region", { name: /explore before you join/i });
+    const hrefs = within(region)
+      .getAllByRole("link")
+      .map((l) => l.getAttribute("href"))
+      .sort();
+    const expected = PUBLIC_NAV_ITEMS.filter((i) => i.href !== "/")
+      .map((i) => i.href)
+      .sort();
+    expect(hrefs).toEqual(expected);
+  });
+
+  it("B13: each discovery card shows its heading and a blurb", () => {
+    expect(screen.getByText("Browse free courses")).toBeInTheDocument();
+    expect(screen.getByText("See project openings")).toBeInTheDocument();
   });
 
   it("16.4: hero image has descriptive alt text", () => {

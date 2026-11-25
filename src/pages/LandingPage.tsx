@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { Display, PageTitle, SectionTitle, SubsectionTitle, Lede, Body } from "@/components/ui/typography";
 import { useTheme } from "@/components/ThemeProvider";
+import { PUBLIC_NAV_ITEMS } from "@/components/PublicNavItems";
 import heroBg from "@/assets/bg_techfleet_network.svg";
 // Stable public URLs (not Vite-hashed) so index.html <link rel="preload">
 // can warm the browser cache before React mounts — eliminates hero pop-in.
@@ -20,6 +21,27 @@ const HERO_H = 500;
 const NetworkActivity = lazy(() =>
   import("@/components/NetworkActivity").then((m) => ({ default: m.NetworkActivity }))
 );
+
+// B13 — public-home discovery. The logged-out landing page gives a visitor a
+// concrete path INTO the two public surfaces (Courses, Project Openings) rather
+// than only "Get Started". The hrefs + icons are OWNED by PUBLIC_NAV_ITEMS (the
+// single nav/policy source, A5/B8); this map adds only the richer landing-page
+// copy, keyed by that href. A test holds this section to exactly the non-Home
+// public nav hrefs, so a newly-public surface can't silently miss discovery.
+const DISCOVERY_COPY: Record<string, { heading: string; blurb: string }> = {
+  "/courses": {
+    heading: "Browse free courses",
+    blurb:
+      "Start with the mindset and skills of empowered teams. Open any course and read what it covers — no account needed.",
+  },
+  "/project-openings": {
+    heading: "See project openings",
+    blurb:
+      "Find a real cross-functional team working with a nonprofit client, and see which roles are open to join.",
+  },
+};
+
+const DISCOVERY_ITEMS = PUBLIC_NAV_ITEMS.filter((item) => DISCOVERY_COPY[item.href]);
 
 function NetworkActivityFallback() {
   return (
@@ -111,6 +133,40 @@ export default function LandingPage() {
                 decoding="sync"
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Discovery Section (B13) — concrete entry points into the public surfaces */}
+      <section className="border-t" aria-labelledby="discover-heading">
+        <div className="container-app py-16 sm:py-20">
+          <div className="w-full max-w-[700px] mb-9">
+            <PageTitle id="discover-heading">
+              Explore before you join, no account needed
+            </PageTitle>
+            <Body className="text-muted-foreground">
+              See what's inside. Browse the free courses and the project teams looking for members, all without signing in.
+            </Body>
+          </div>
+
+          <div className="grid min-[560px]:grid-cols-2 gap-6">
+            {DISCOVERY_ITEMS.map((item) => {
+              const copy = DISCOVERY_COPY[item.href];
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className="tf-card p-6 block group transition-shadow duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Icon className="h-6 w-6 text-primary shrink-0" aria-hidden="true" />
+                    <SubsectionTitle className="group-hover:text-primary">{copy.heading}</SubsectionTitle>
+                  </div>
+                  <Body className="text-muted-foreground">{copy.blurb}</Body>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
