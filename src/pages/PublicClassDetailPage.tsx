@@ -21,6 +21,7 @@
 import { useParams, Link } from "react-router-dom";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { SEO } from "@/components/SEO";
+import { classDetailMeta } from "@/lib/seo/public-route-meta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -227,10 +228,12 @@ export default function PublicClassDetailPage() {
   return (
     <div className="container-app py-8 sm:py-12">
       <SEO
-        title={cls.title}
-        description={summaryMeta || `A Tech Fleet ${TRACK_LABEL[cls.track] ?? "training"} class.`}
-        canonicalPath={`/classes/${cls.slug}`}
-        ogType="article"
+        {...classDetailMeta({
+          slug: cls.slug,
+          title: cls.title,
+          summaryText: summaryMeta,
+          trackLabel: TRACK_LABEL[cls.track],
+        })}
       />
 
       <Button asChild variant="link" className="mb-4 px-0">

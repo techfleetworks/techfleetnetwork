@@ -3,6 +3,9 @@ import {
   landingMeta,
   coursesCatalogMeta,
   projectOpeningsListMeta,
+  classDetailMeta,
+  courseDetailMeta,
+  projectOpeningMeta,
   formatTitle,
   absoluteUrl,
   jsonLdToString,
@@ -58,5 +61,51 @@ describe("jsonLdToString — script-breakout guard", () => {
     expect(s).toContain("\\u003c");
     // ...and it is still valid JSON that round-trips to the original value.
     expect(JSON.parse(s).name).toBe("</script><script>alert(1)");
+  });
+});
+
+describe("public-route-meta — dynamic (entity) builders", () => {
+  it("courseDetailMeta uses the summary and marks the Course free", () => {
+    const meta = courseDetailMeta({
+      courseKey: "agile-mindset",
+      displayLabel: "Agile Mindset",
+      summary: "how to build a mindset of agility.",
+      lessonCount: 25,
+      moduleCount: 5,
+    });
+    expect(meta.canonicalPath).toBe("/course/agile-mindset");
+    expect(meta.ogType).toBe("article");
+    expect(meta.description).toContain("This free Tech Fleet course teaches you how to build a mindset of agility.");
+    expect(meta.description).toContain("25 lessons across 5 modules");
+    const ld = meta.jsonLd as Record<string, unknown>;
+    expect(ld["@type"]).toBe("Course");
+    expect(ld.isAccessibleForFree).toBe(true);
+  });
+
+  it("courseDetailMeta falls back cleanly when there is no summary", () => {
+    const meta = courseDetailMeta({
+      courseKey: "observer-course",
+      displayLabel: "Observer Course",
+      summary: null,
+      lessonCount: 8,
+      moduleCount: 2,
+    });
+    expect(meta.description).toContain("A free Tech Fleet course: 8 lessons across 2 modules");
+  });
+
+  it("classDetailMeta uses the summary, else a track-aware fallback", () => {
+    const withSummary = classDetailMeta({ slug: "x", title: "X", summaryText: "Real summary.", trackLabel: "basic" });
+    expect(withSummary.description).toBe("Real summary.");
+    expect(withSummary.canonicalPath).toBe("/classes/x");
+    const fallback = classDetailMeta({ slug: "y", title: "Y", summaryText: "   ", trackLabel: "advanced" });
+    expect(fallback.description).toContain("A Tech Fleet advanced class");
+  });
+
+  it("projectOpeningMeta uses the description, else a roles-based fallback", () => {
+    const withDesc = projectOpeningMeta({ id: "1", title: "Build X", descriptionText: "Ship a thing." });
+    expect(withDesc.description).toBe("Ship a thing.");
+    expect(withDesc.canonicalPath).toBe("/project-openings/1");
+    const fallback = projectOpeningMeta({ id: "2", title: "Y", descriptionText: "", teamHats: ["Designer", "PM", "", "Dev", "QA"] });
+    expect(fallback.description).toContain("looking for Designer, PM, Dev");
   });
 });

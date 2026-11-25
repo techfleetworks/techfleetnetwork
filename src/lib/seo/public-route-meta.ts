@@ -137,3 +137,92 @@ export function withContext(data: JsonLd): Record<string, unknown> {
   const nodes = Array.isArray(data) ? data : [data];
   return { "@context": "https://schema.org", "@graph": nodes };
 }
+
+// ---------------------------------------------------------------------------
+// Dynamic (entity-driven) routes — the detail pages (C14b). Each takes the
+// minimal fields the public gateways already expose, as PLAIN TEXT (the caller
+// strips any HTML), so the runtime detail page AND the build-time prerender
+// build identical meta from this one owner. These builders own the description
+// template + JSON-LD shape; the caller owns only the HTML-stripping of source
+// prose. Course JSON-LD is schema.org Course (free); a project is a CreativeWork.
+// ---------------------------------------------------------------------------
+
+export function classDetailMeta(input: {
+  slug: string;
+  title: string;
+  /** Pre-stripped plain-text summary; empty falls back to a track-aware line. */
+  summaryText: string;
+  trackLabel?: string;
+}): PageMeta {
+  const description =
+    input.summaryText.trim() ||
+    `A Tech Fleet ${input.trackLabel ?? "training"} class. Join the platform to register.`;
+  return {
+    title: input.title,
+    description,
+    canonicalPath: `/classes/${input.slug}`,
+    ogType: "article",
+    jsonLd: {
+      "@type": "Course",
+      name: input.title,
+      description,
+      url: absoluteUrl(`/classes/${input.slug}`),
+      provider: { "@id": `${BASE_URL}/#organization` },
+    },
+  };
+}
+
+export function courseDetailMeta(input: {
+  courseKey: string;
+  displayLabel: string;
+  /** The "This course teaches you ___" completion (plain text), or null. */
+  summary: string | null;
+  lessonCount: number;
+  moduleCount: number;
+}): PageMeta {
+  const description = input.summary
+    ? `This free Tech Fleet course teaches you ${input.summary} ${input.lessonCount} lessons across ${input.moduleCount} modules. Join the platform to start.`
+    : `A free Tech Fleet course: ${input.lessonCount} lessons across ${input.moduleCount} modules. Join the platform to start.`;
+  return {
+    title: input.displayLabel,
+    description,
+    canonicalPath: `/course/${input.courseKey}`,
+    ogType: "article",
+    jsonLd: {
+      "@type": "Course",
+      name: input.displayLabel,
+      description,
+      url: absoluteUrl(`/course/${input.courseKey}`),
+      provider: { "@id": `${BASE_URL}/#organization` },
+      isAccessibleForFree: true,
+    },
+  };
+}
+
+export function projectOpeningMeta(input: {
+  id: string;
+  title: string;
+  /** Pre-stripped plain-text description; empty falls back to a roles line. */
+  descriptionText: string;
+  teamHats?: string[] | null;
+}): PageMeta {
+  const roles = (input.teamHats ?? []).filter((h): h is string => !!h && h.trim().length > 0);
+  const description =
+    input.descriptionText.trim() ||
+    (roles.length > 0
+      ? `An open Tech Fleet project team looking for ${roles.slice(0, 3).join(", ")}. Join the platform to apply.`
+      : "An open Tech Fleet project team. Join the platform to apply.");
+  return {
+    title: input.title,
+    description,
+    canonicalPath: `/project-openings/${input.id}`,
+    ogType: "article",
+    jsonLd: {
+      "@type": "CreativeWork",
+      name: input.title,
+      description,
+      url: absoluteUrl(`/project-openings/${input.id}`),
+      publisher: { "@id": `${BASE_URL}/#organization` },
+    },
+  };
+}
