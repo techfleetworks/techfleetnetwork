@@ -14,6 +14,7 @@
 // applies. Loading / error / empty states (FR-8) share CatalogState with B10.
 import { useMemo } from "react";
 import { SEO } from "@/components/SEO";
+import { projectOpeningsListMeta } from "@/lib/seo/public-route-meta";
 import { ContentCard, type ContentCardImage, type ContentCardTone } from "@/components/ContentCard";
 import { CatalogState } from "@/components/CatalogState";
 import { loginRedirectHref } from "@/lib/visibility/auth-gated-redirect";
@@ -109,11 +110,7 @@ export default function PublicProjectOpeningsPage() {
 
   return (
     <div className="container-app py-8 sm:py-12">
-      <SEO
-        title="Project Openings"
-        description="Browse Tech Fleet's open projects and the roles each team is looking for. Join the platform to apply and get real product experience."
-        canonicalPath="/project-openings"
-      />
+      <SEO {...projectOpeningsListMeta()} />
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Project Openings</h1>
         <p className="text-muted-foreground mt-1">
