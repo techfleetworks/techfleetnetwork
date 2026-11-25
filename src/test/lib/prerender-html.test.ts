@@ -1,3 +1,5 @@
+// Executable coverage for the Gherkin spec src/pages/public-prerender.feature
+// (the prerender-head scenarios: own head, no-duplicate OG, dynamic meta).
 import { describe, it, expect } from "vitest";
 import { injectRouteHead, distPathForRoute } from "@/lib/seo/prerender-html";
 import { coursesCatalogMeta, type PageMeta } from "@/lib/seo/public-route-meta";
