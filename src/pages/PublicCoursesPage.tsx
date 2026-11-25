@@ -7,10 +7,10 @@
 //   - Basic Training     : published classes, track = basic_training
 //   - Advanced Training  : published classes, track = advanced_training
 //
-// Every tile is a ContentCard (B9). Auth-aware CTAs live HERE (the caller), not
-// in the card: "View details" is in-app SPA navigation (onClick), "Join Platform"
-// carries an open-redirect-safe return path (B8 loginRedirectHref). Empty and
-// error states (FR-8) each offer a join CTA so a visitor is never dead-ended.
+// Every tile is a ContentCard (B9). Each card now has a single "View details" CTA
+// (a crawlable href to the public detail page) — the per-card "Join Platform" CTA
+// was removed (owner, 2026-11-25). Empty and error states (FR-8) still offer a join
+// CTA (open-redirect-safe via B8 loginRedirectHref) so a visitor is never dead-ended.
 import { useMemo, useState } from "react";
 import { GraduationCap, Rocket, Lightbulb } from "lucide-react";
 import { SEO } from "@/components/SEO";
@@ -50,7 +50,7 @@ function blurbFromSummary(summary: string | null): string | undefined {
   return text ? text : undefined;
 }
 
-/** A class tile: View details (public class page) + Join Platform (sign-in redirect-back). */
+/** A class tile: a single "View details" CTA to the public class page. */
 function ClassCardTile({ cls }: { cls: PublicClassListItem }) {
   const detailPath = `/classes/${cls.slug}`;
   const firstCohort = cls.cohorts[0];
@@ -82,23 +82,18 @@ function ClassCardTile({ cls }: { cls: PublicClassListItem }) {
       meta={start ? `Starts ${start}` : undefined}
       chips={[TRACK_LABEL[cls.track] ?? cls.track]}
       blurb={blurbFromSummary(cls.summary)}
-      secondaryAction={{
+      primaryAction={{
         label: "View details",
         // A real href (not SPA navigate) so the class page is a crawlable link
         // for SEO and is consistent with the title link (both <a>).
         href: detailPath,
         ariaLabel: `View details for ${cls.title}`,
       }}
-      primaryAction={{
-        label: "Join Platform",
-        href: loginRedirectHref(detailPath),
-        ariaLabel: `Join the platform to register for ${cls.title}`,
-      }}
     />
   );
 }
 
-/** A free Core-course tile: View details (public course page, B12) + Join Platform. */
+/** A free Core-course tile: a single "View details" CTA to the public course page (B12). */
 function CourseCardTile({ course }: { course: PublicCourse }) {
   const count = course.lessons.length;
   const detailPath = `/course/${course.course_key}`;
@@ -109,15 +104,10 @@ function CourseCardTile({ course }: { course: PublicCourse }) {
       titleHref={detailPath}
       status={{ label: "Free course", tone: "primary" }}
       meta={count > 0 ? `${count} ${count === 1 ? "lesson" : "lessons"}` : undefined}
-      secondaryAction={{
+      primaryAction={{
         label: "View details",
         href: detailPath,
         ariaLabel: `View details for ${course.display_label}`,
-      }}
-      primaryAction={{
-        label: "Join Platform",
-        href: loginRedirectHref("/courses"),
-        ariaLabel: `Join the platform to take ${course.display_label}`,
       }}
     />
   );

@@ -66,14 +66,17 @@ describe("PublicCoursesPage (B10)", () => {
     expect(screen.getByRole("tab", { name: /Advanced Training/i })).toBeInTheDocument();
   });
 
-  it("shows a free course tile with a Join Platform redirect-back to /courses", () => {
+  it("shows a free course tile with a single View details CTA (no per-card Join Platform)", () => {
     renderWithRouter(<PublicCoursesPage />);
     expect(screen.getByText("Build an Agile Mindset")).toBeInTheDocument();
+    const view = screen.getByRole("link", { name: /View details for Build an Agile Mindset/i });
+    expect(view.getAttribute("href")).toMatch(/^\/course\//);
+    // The per-card Join Platform CTA was removed (owner, 2026-11-25).
     const links = screen.getAllByRole("link");
-    expect(links.some((a) => a.getAttribute("href") === "/login?redirect=%2Fcourses")).toBe(true);
+    expect(links.every((a) => a.getAttribute("href") !== "/login?redirect=%2Fcourses")).toBe(true);
   });
 
-  it("shows a class tile with View details and a Join Platform redirect-back to the class", () => {
+  it("shows a class tile with a single View details CTA (no per-card Join Platform)", () => {
     renderWithRouter(<PublicCoursesPage />);
     fireEvent.click(screen.getByRole("tab", { name: /Basic Training/i }));
     expect(screen.getByText("Design Foundations")).toBeInTheDocument();
@@ -81,7 +84,7 @@ describe("PublicCoursesPage (B10)", () => {
     expect(viewDetails).toHaveAttribute("href", "/classes/design-foundations");
     const links = screen.getAllByRole("link");
     expect(
-      links.some((a) => a.getAttribute("href") === "/login?redirect=%2Fclasses%2Fdesign-foundations"),
+      links.every((a) => a.getAttribute("href") !== "/login?redirect=%2Fclasses%2Fdesign-foundations"),
     ).toBe(true);
   });
 
@@ -140,13 +143,13 @@ describe("PublicCoursesPage (B10)", () => {
     expect(screen.queryByText(/Enrollment not open/i)).not.toBeInTheDocument();
   });
 
-  it("DISCRIMINATING: a class tile's Join target is the class, not the generic /courses", () => {
-    // Guards that the redirect-back is the specific class, not a copy-paste of the
-    // course tile's /courses target.
+  it("DISCRIMINATING: a class tile's View details targets the specific class, not a generic path", () => {
+    // Guards that the detail link is the specific class, not a copy-paste of a
+    // generic /courses target.
     renderWithRouter(<PublicCoursesPage />);
     fireEvent.click(screen.getByRole("tab", { name: /Basic Training/i }));
-    const links = screen.getAllByRole("link");
-    expect(links.some((a) => a.getAttribute("href") === "/login?redirect=%2Fclasses%2Fdesign-foundations")).toBe(true);
-    expect(links.every((a) => a.getAttribute("href") !== "/login?redirect=%2Fcourses%2Fdesign-foundations")).toBe(true);
+    const view = screen.getByRole("link", { name: /View details for Design Foundations/i });
+    expect(view).toHaveAttribute("href", "/classes/design-foundations");
+    expect(view.getAttribute("href")).not.toBe("/courses");
   });
 });
