@@ -34,6 +34,34 @@ export function cohortRegistrationStatusLabel(status: CohortRegistrationStatus):
   return COHORT_REGISTRATION_STATUSES.find((s) => s.value === status)?.label ?? status;
 }
 
+/** The register-OPEN registration states — the ones that mean "publicly open to register". */
+export const REGISTRATION_OPEN_STATUSES = ["register_now", "live"] as const;
+
+export function isRegistrationOpenStatus(status: CohortRegistrationStatus): boolean {
+  return (REGISTRATION_OPEN_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * Can a cohort's registration be OPENED (set to register_now/live)? Only when the cohort would
+ * actually show as open publicly: published AND its end date has not passed. This mirrors the DB
+ * write guard in set_cohort_registration_status (migration 20261125150000) one-for-one — the DB is
+ * the real enforcement (ADR 20261125-cohort-registration-open-invariant); the admin UI uses this to
+ * disable the open options up front so the error never has to fire. Kept here so the UI rule and the
+ * DB rule have one authored definition (the pgTAP suite proves the DB; a unit test proves this).
+ */
+export function canOpenRegistration(
+  publishStatus: string | null | undefined,
+  endDate: string | null | undefined,
+): boolean {
+  if (publishStatus !== "published") return false;
+  if (!endDate) return false;
+  // ISO YYYY-MM-DD compares lexically; "today or later" is still open (matches `end_date >= current_date`).
+  // "Today" is UTC here, whereas the DB guard uses `current_date` (DB session tz); at a day boundary
+  // the two can disagree by one day, briefly over/under-disabling the UI option. Harmless: the DB is
+  // the sole enforcement — if the UI wrongly permits, the RPC still rejects with a toast.
+  return endDate.slice(0, 10) >= new Date().toISOString().slice(0, 10);
+}
+
 const dateSchema = z
   .string()
   .min(1, "Date is required")

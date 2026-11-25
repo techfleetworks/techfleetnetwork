@@ -1,8 +1,9 @@
 // PUB-ENROLLMENT-001: the enrollment-state logic that drives the public pill + CTA.
 // register_now/live = registerable (open + "Register"); a published upcoming cohort
 // not yet open = coming_soon ("Opening soon"); nothing = none ("Enrollment not open").
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
+  cohortPublicEnrollment,
   isRegisterable,
   enrollmentStateOf,
   type PublicCohort,
@@ -15,6 +16,50 @@ const cohort = (registration_status: PublicCohort["registration_status"]): Publi
   end_date: "2027-02-09",
   registration_url: "https://gum.co/x",
   registration_status,
+});
+
+describe("cohortPublicEnrollment — the single source of the public state", () => {
+  it("maps every registration_status to exactly one public state (exhaustive)", () => {
+    expect(cohortPublicEnrollment(cohort("register_now"))).toBe("open");
+    expect(cohortPublicEnrollment(cohort("live"))).toBe("open");
+    expect(cohortPublicEnrollment(cohort("coming_soon"))).toBe("coming_soon");
+    expect(cohortPublicEnrollment(cohort("finished"))).toBe("closed");
+  });
+
+  it("covers all four CohortRegistrationStatus values — none falls through", () => {
+    // A fifth enum value would fail to compile in cohortPublicEnrollment (assertNever),
+    // so this can never silently mislabel an unmapped status.
+    const all: PublicCohort["registration_status"][] = [
+      "coming_soon",
+      "register_now",
+      "live",
+      "finished",
+    ];
+    for (const s of all) {
+      expect(["open", "coming_soon", "closed"]).toContain(cohortPublicEnrollment(cohort(s)));
+    }
+  });
+
+  it("fails SAFE to 'closed' on an unknown runtime status (deploy skew), never throws", () => {
+    // A DB enum value newer than this bundle would reach the switch default. It must
+    // NOT throw in the public render path — fail closed ("not open", never a false
+    // "open") and warn. Cast past the type to simulate the skew.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const unknown = { registration_status: "waitlist" as PublicCohort["registration_status"] };
+    expect(() => cohortPublicEnrollment(unknown)).not.toThrow();
+    expect(cohortPublicEnrollment(unknown)).toBe("closed");
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("isRegisterable and the listing both derive from it (cannot diverge)", () => {
+    for (const s of ["coming_soon", "register_now", "live", "finished"] as const) {
+      // isRegisterable == "open"; enrollmentStateOf([one]) mirrors the per-cohort state.
+      const state = cohortPublicEnrollment(cohort(s));
+      expect(isRegisterable(cohort(s))).toBe(state === "open");
+      expect(enrollmentStateOf([cohort(s)])).toBe(state === "closed" ? "none" : state);
+    }
+  });
 });
 
 describe("isRegisterable (PUB-ENROLLMENT-001)", () => {
