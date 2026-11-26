@@ -113,15 +113,6 @@ export const CohortService = {
     });
   },
 
-  async submitForReview(classId: string, cohortIds: string[] = []): Promise<void> {
-    // Cohorts are co-submitted alongside the class via submit_class_for_review.
-    const { error } = await (supabase as any).rpc("submit_class_for_review", {
-      p_class_id: classId,
-      p_cohort_ids: cohortIds,
-    });
-    if (error) throw error;
-  },
-
   async cancel(id: string, reason?: string): Promise<void> {
     const { error } = await (supabase as any).rpc("cancel_cohort", {
       p_cohort_id: id,
@@ -132,10 +123,12 @@ export const CohortService = {
 
   /**
    * Set the cohort's registration status (Coming Soon / Register Now / Live / Finished).
-   * Goes through the SECURITY DEFINER RPC (owner-or-admin), not a table update, because the
-   * table UPDATE policy only lets owners write draft|pending_review cohorts — registration_status
-   * must be settable after publication (that is when a cohort goes Live/Finished). See migration
-   * 20260926120000_cohort_registration_status.sql.
+   * Goes through the SECURITY DEFINER RPC (owner-or-admin) — the app's single front door for this
+   * column. The RPC gives a friendly authorization/validation error; the real guards live at the DB:
+   * the cohorts_validate trigger enforces the register-open invariant for every writer (20261126090000),
+   * and trg_cohort_registration_audit writes the class_audit row on every change, from any path
+   * (20261126094000, ADR 20261126-cohorts-born-published). So even a direct owner table-edit of this
+   * column stays invariant-safe and audited — the RPC is the UX front door, not the sole guard.
    */
   async setRegistrationStatus(cohortId: string, status: CohortRegistrationStatus): Promise<void> {
     const { error } = await (supabase as any).rpc("set_cohort_registration_status", {
