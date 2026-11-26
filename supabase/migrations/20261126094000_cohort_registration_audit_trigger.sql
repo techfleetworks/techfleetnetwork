@@ -27,6 +27,12 @@ BEGIN
   RETURN NULL;
 END$$;
 
+-- Trigger functions are never called by EXECUTE (the trigger fires them), and Supabase's default
+-- privileges GRANT EXECUTE on a new function to anon via PUBLIC. Revoke it so a logged-out visitor cannot
+-- invoke this SECURITY DEFINER function — required by the DB-1 anon-exposure completeness guard
+-- (security_definer_anon_completeness_test.sql); caller-safe, same pattern as the other trigger functions.
+REVOKE ALL ON FUNCTION public.cohort_registration_audit() FROM PUBLIC, anon;
+
 DROP TRIGGER IF EXISTS trg_cohort_registration_audit ON public.cohorts;
 CREATE TRIGGER trg_cohort_registration_audit
 AFTER UPDATE ON public.cohorts
