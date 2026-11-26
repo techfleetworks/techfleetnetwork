@@ -1,0 +1,175 @@
+name: Apply migrations to prod
+
+# Applies supabase/migrations/* to the owned Supabase prod project as a
+# REVIEWER-GATED, human-dispatched pipeline step (ADR 20261126, which supersedes
+# ADR-0045's unattended on-merge apply). This is the APPLIER; ADR-0036's
+# db-schema-gate in ci.yml stays the pre-merge DETECTOR.
+#
+# WHY A HUMAN-DISPATCHED, ENVIRONMENT-GATED STEP (not auto-apply on merge):
+#   - db-schema-gate is a PRE-merge gate: a migration PR is red until prod
+#     already has the declared objects. An on-merge applier runs too late to
+#     turn that gate green, so it can never unblock a new migration PR.
+#   - So the apply must run PRE-merge, on the PR branch: dispatch this workflow
+#     with the PR's branch as the ref, mode=push. Prod gets the objects,
+#     db-schema-gate goes green (re-run it), and the PR merges normally.
+#   - To see the exact set before approving an apply, dispatch mode=dry-run first
+#     and read its log — the in-job dry-run below runs AFTER approval, so it logs
+#     but does not gate. A branch-freshness guard also fails closed if the ref is
+#     diverged from origin/main, so a stale/rewritten branch can't push migrations
+#     that aren't on main (reverse ledger drift).
+#   - Every prod DDL apply keeps a human in the loop: the apply job runs in the
+#     protected `production` Environment, so a required reviewer must APPROVE
+#     before SUPABASE_DB_PASSWORD is exposed and `supabase db push` runs.
+#   - There is deliberately NO push/pull_request trigger: prod DDL can never run
+#     unattended from a merge or an untrusted PR.
+#
+# WHY APPLYING PRE-MERGE (before the code ships) IS SAFE:
+#   - expand/contract (ADR-0026, supabase/migrations/CLAUDE.md) REQUIRES every
+#     migration to be safe to apply while the old app code still runs — a db push
+#     was never atomic with a frontend/edge deploy. "Schema live before its code"
+#     is the model migrations are already written for.
+#   - migration-smoke (BLOCKING, ci.yml) already proved the migration applies
+#     cleanly from scratch before anyone can dispatch this.
+#   - `supabase db push` is forward-only and ledger-based: it applies ONLY
+#     migrations the remote ledger has not seen, in version order — never a reset.
+#
+# OWNER SETUP (one-time — see docs/architecture/audit-2026-08/migration-auto-apply.md):
+#   1. Create a GitHub Environment named `production`
+#      (Settings -> Environments -> New environment).
+#   2. Add a REQUIRED REVIEWER to it — this is the human approval gate.
+#   3. Deployment branches policy: leave PERMISSIVE (all branches). Do NOT restrict
+#      to `main` — this workflow runs on PR branches by design (pre-merge apply),
+#      and a main-only policy would block that. The required reviewer is the control.
+#   4. Add `SUPABASE_DB_PASSWORD` as an ENVIRONMENT secret on `production`
+#      (Supabase -> Settings -> Database -> Database password). Environment-scoping
+#      means it is exposed only after the reviewer approves.
+#      `SUPABASE_ACCESS_TOKEN` already exists as a repo secret and is reused.
+#   5. One-time: after confirming prod == main (db-schema-gate green on main), run
+#      this workflow once with mode=bootstrap-ledger to seed the migration ledger.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run = preview pending only · push = apply pending to prod · bootstrap-ledger = ONE-TIME: mark all current migrations applied"
+        type: choice
+        options: [dry-run, push, bootstrap-ledger]
+        default: dry-run
+
+permissions:
+  contents: read
+
+# Serialize: never let two runs race the same database.
+concurrency:
+  group: apply-migrations-prod
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_REF: pzvqxdgoztbfikfuifix
+  SUPABASE_CLI_VERSION: 2.30.4
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    # The human approval gate. Running in the `production` Environment means a
+    # required reviewer must approve this job before it starts, and only then is
+    # the SUPABASE_DB_PASSWORD environment secret exposed. Removing this line, or
+    # the required reviewer, removes the human gate (ADR 20261126).
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+
+      - name: Guard — dispatched ref is NOT diverged from origin/main (prevents reverse drift)
+        if: ${{ inputs.mode == 'push' || inputs.mode == 'bootstrap-ledger' }}
+        run: |
+          set -euo pipefail
+          # A pre-merge apply writes the branch's migrations into prod's ledger. If that branch is
+          # stale (based on an old main) or was rewritten/rebased, prod would hold a migration that
+          # isn't on main — reverse drift that db-schema-gate (missing-only) can't see, and the next
+          # `db push` then fails on ledger mismatch. Require origin/main to be an ANCESTOR of the
+          # dispatched ref: a normal feature branch (ahead of current main) passes; a diverged/stale
+          # branch fails closed and must be rebased. For main itself (recovery) it is a no-op.
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            echo "::error::Dispatched ref is diverged from origin/main — rebase onto current main before applying (prevents reverse ledger drift). See docs/architecture/audit-2026-08/migration-auto-apply.md."
+            exit 1
+          fi
+          echo "OK — origin/main is an ancestor of $(git rev-parse --short HEAD); no divergence."
+
+      - name: Preflight — required secrets present
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -u
+          missing=0
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN is not set (Supabase -> Account -> Access Tokens)."
+            missing=1
+          fi
+          if [ -z "${SUPABASE_DB_PASSWORD:-}" ]; then
+            echo "::error::SUPABASE_DB_PASSWORD is not set as a 'production' environment secret (Supabase -> Settings -> Database). See docs/architecture/audit-2026-08/migration-auto-apply.md."
+            missing=1
+          fi
+          [ "$missing" -eq 0 ]
+
+      - name: Install Supabase CLI (retrying download — setup-cli's npm fetch flakes on GitHub 503s)
+        run: |
+          ver="${SUPABASE_CLI_VERSION}"
+          url="https://github.com/supabase/cli/releases/download/v${ver}/supabase_linux_amd64.tar.gz"
+          n=0; max=5; delay=6
+          until curl -fSL --retry 6 --retry-all-errors --retry-delay 4 -o /tmp/supabase.tgz "$url"; do
+            n=$((n + 1))
+            [ "$n" -ge "$max" ] && { echo "::error::supabase CLI ${ver} download failed after ${max} attempts"; exit 1; }
+            echo "::warning::supabase CLI download failed (attempt ${n}/${max}); retrying in ${delay}s"
+            sleep "$delay"; delay=$((delay * 2))
+          done
+          tar -xzf /tmp/supabase.tgz -C /tmp supabase
+          sudo install -m 0755 /tmp/supabase /usr/local/bin/supabase
+          supabase --version
+
+      - name: Link the prod project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Bootstrap the migration ledger (ONE-TIME)
+        if: ${{ inputs.mode == 'bootstrap-ledger' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Mark every migration in the repo as already-applied. The repo predates a
+          # supabase_migrations.schema_migrations ledger (Lovable cutover), so db push has no
+          # baseline. Run this ONCE, and ONLY after prod == main (ADR-0036 db-schema-gate green) —
+          # otherwise you would mark unapplied migrations "applied" and freeze the drift in.
+          versions=$(ls supabase/migrations/*.sql | xargs -n1 basename | sed 's/_.*//')
+          echo "Marking $(echo "$versions" | wc -w) migration(s) as applied…"
+          supabase migration repair --status applied $versions
+          echo "Ledger bootstrapped. Verifying (expect: no pending migrations)…"
+          supabase db push --dry-run
+
+      # NOTE: this logs the pending set; it is NOT a gate — a non-zero diff does not stop the apply,
+      # and the reviewer approves the job BEFORE this output exists (the secret is needed to run it).
+      # To review the exact set before approving an apply, dispatch mode=dry-run first and read ITS log.
+      - name: Show pending migrations (dry-run — logged preview, not a gate)
+        if: ${{ inputs.mode == 'dry-run' || inputs.mode == 'push' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --dry-run
+
+      - name: Apply migrations to prod
+        if: ${{ inputs.mode == 'push' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push

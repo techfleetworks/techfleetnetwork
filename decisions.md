@@ -487,9 +487,11 @@ Auth features (`@auth`) are excluded — the auth refactor owns them. Pinned + d
 
 ## 7 · Schema changes are expand/contract
 
-Migrations are hand-applied (`supabase db push`) and forward-only, and one can be live on prod **while
-the old code still runs** (a `db push` is not atomic with a deploy). So a migration must be safe to apply
-before the code that needs it ships, and safe to leave applied if that code rolls back.
+Migrations are forward-only, and one can be live on prod **while the old code still runs** (a `db push`
+is not atomic with a deploy). So a migration must be safe to apply before the code that needs it ships,
+and safe to leave applied if that code rolls back. Applying to prod is a **reviewer-gated, pre-merge**
+pipeline step (`apply-migrations-prod.yml`, run on the PR branch behind the protected `production`
+Environment), **not** a local `supabase db push` with the prod password — see ADR 20261126.
 
 ```sql
 -- ❌ never — breaks still-running old code the instant it applies
@@ -504,8 +506,9 @@ Rename/drop/type-change/`NOT NULL`/function-signature changes are all **contract
 in the expand migration. Single-writer ownership moves (Phase 3) use expand→contract so readers never see a
 half-applied state. Full rules + examples: `supabase/migrations/CLAUDE.md`. Rationale: **ADR-0026**
 
-This was convention + reviewer only — nothing mechanical caught a slip, and migrations auto-apply on merge
-in parallel with the code deploy (enterprise-readiness audit 2026-10, C3). Now enforced: a destructive,
+This was convention + reviewer only — nothing mechanical caught a slip, and a migration goes live on prod
+(applied pre-merge via the reviewer-gated step, ADR 20261126) in parallel with the code deploy
+(enterprise-readiness audit 2026-10, C3). Now enforced: a destructive,
 in-place column change needs an explicit, reviewed contract marker, or CI is red.
 
 ```sql
