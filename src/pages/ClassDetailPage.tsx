@@ -8,7 +8,6 @@ import {
   History,
   AlertTriangle,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useState } from "react";
 import { format } from "date-fns";
 import { Badge, Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/design-system";
@@ -18,7 +17,7 @@ import { useCohortsByClass } from "@/hooks/use-cohorts";
 import { CohortService } from "@/services/cohort.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdmin } from "@/hooks/use-admin";
-import { useQueryClient, useQuery } from "@/lib/react-query";
+import { useQuery } from "@/lib/react-query";
 import { ApprovalActions } from "@/components/classes/ApprovalActions";
 import { CohortRegistrationStatusControl } from "@/components/classes/CohortRegistrationStatusControl";
 import { ClassAuditHistory } from "@/components/classes/ClassAuditHistory";
@@ -48,7 +47,6 @@ export default function ClassDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
-  const queryClient = useQueryClient();
   const { data: cls, isLoading } = useClassById(id);
   const { data: cohorts = [] } = useCohortsByClass(id);
   const [showHistory, setShowHistory] = useState(false);
@@ -92,19 +90,8 @@ export default function ClassDetailPage() {
 
   const isOwner = user?.id === cls.owner_user_id;
   const canEdit = isOwner || isAdmin;
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["classes"] });
 
   const canSeeCurriculum = canEdit || isEnrolled;
-
-  const submitCohort = async (cohortId: string) => {
-    try {
-      await CohortService.submitForReview(cls.id, [cohortId]);
-      toast.success("Cohort submitted for review");
-      refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Action failed");
-    }
-  };
 
   return (
     <div className="container-app py-8 sm:py-12 space-y-6 max-w-4xl">
@@ -314,12 +301,11 @@ export default function ClassDetailPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-muted-foreground">Publish</span>
+                        {(c.status === "archived" || c.status === "cancelled") && (
                           <Badge variant="outline" className={STATUS_CLASS[c.status] ?? ""}>
-                            {c.status.replace("_", " ")}
+                            {c.status}
                           </Badge>
-                        </div>
+                        )}
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-muted-foreground">Registration</span>
                           {canEdit ? (
@@ -353,21 +339,15 @@ export default function ClassDetailPage() {
                             </a>
                           </Button>
                         )}
-                        {canEdit &&
-                          (isAdmin || c.status === "draft" || c.status === "pending_review") && (
-                            <Button asChild size="sm" variant="outline">
-                              <Link
-                                to={`/class-admin/classes/${cls.id}/cohorts/${c.id}/edit`}
-                                aria-label={`Edit cohort ${c.label}`}
-                              >
-                                <Pencil className="h-4 w-4 mr-1" aria-hidden="true" />
-                                Edit
-                              </Link>
-                            </Button>
-                          )}
-                        {canEdit && c.status === "draft" && (
-                          <Button size="sm" variant="outline" onClick={() => submitCohort(c.id)}>
-                            Submit
+                        {canEdit && c.status !== "archived" && c.status !== "cancelled" && (
+                          <Button asChild size="sm" variant="outline">
+                            <Link
+                              to={`/class-admin/classes/${cls.id}/cohorts/${c.id}/edit`}
+                              aria-label={`Edit cohort ${c.label}`}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" aria-hidden="true" />
+                              Edit
+                            </Link>
                           </Button>
                         )}
                       </div>
