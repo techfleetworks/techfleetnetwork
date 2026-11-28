@@ -42,7 +42,7 @@ const DEFAULT_CRITICAL = [
   "CI",
   "Deploy edge functions",
   "Deploy frontend (Cloudflare)",
-  "Deploy migrations",
+  "Apply migrations to prod",
   "Config preflight",
   "Verify deploy",
 ];
