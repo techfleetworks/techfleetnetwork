@@ -1,10 +1,17 @@
 # Rules for DB migrations (scoped — loads when working here)
 
-Migrations here are **hand-applied** (`supabase db push`) and **forward-only**, and a migration can be
-live on prod **while the old app code is still running** (a `db push` is not atomic with a frontend/edge
-deploy — see ADR-0036, the schema-reconciliation gate that supersedes ADR-0035/ADR-0020). So every migration must be safe to apply _before_
-the code that uses it ships, and safe to leave applied if that code later rolls back. That forces
+Migrations here are **forward-only**, and a migration can be live on prod **while the old app code is
+still running** (a `db push` is not atomic with a frontend/edge deploy — see ADR-0036, the
+schema-reconciliation gate that supersedes ADR-0035/ADR-0020). So every migration must be safe to apply
+_before_ the code that uses it ships, and safe to leave applied if that code later rolls back. That forces
 **expand/contract** (ADR-0026). One concern per migration; each migration independently applicable.
+
+**Applying to prod (ADR 20261126):** do **not** hand-run `supabase db push` with the prod password on a
+laptop. A migration PR's `db-schema-gate` is red until prod has the declared objects, so apply **before
+merge** via the reviewer-gated pipeline step: **Actions → Apply migrations to prod → Run workflow**, pick
+the PR's branch, `mode=push`. It runs in the protected `production` Environment, so a required reviewer
+approves each prod DDL apply; the password is a GitHub environment secret, never typed locally. Then re-run
+`db-schema-gate` (it goes green) and merge. Full flow: `docs/architecture/audit-2026-08/migration-auto-apply.md`.
 
 - **Expand first, contract later — never in the same migration.** _Expand_ = additive only (add a
   nullable column, a new table/index/function, a new enum value). _Contract_ = destructive (drop/rename

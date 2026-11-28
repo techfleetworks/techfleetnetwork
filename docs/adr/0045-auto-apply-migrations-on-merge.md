@@ -1,6 +1,16 @@
 # ADR 0045 — Migrations auto-apply to prod on merge; prod can't silently fall behind main
 
-- Status: Accepted
+> **Superseded by [ADR 20261126](20261126-gated-prod-migration-apply.md).** The unattended on-merge
+> applier decided here was never activated and, more fundamentally, could not resolve the chicken-and-egg
+> with ADR-0036's `db-schema-gate`: that gate blocks a migration PR from merging **until prod already has
+> the objects**, so an apply that runs **on merge** is always too late to turn the gate green. ADR 20261126
+> replaces it with a **reviewer-gated, pre-merge** apply (`apply-migrations-prod.yml`, run on the PR branch
+> behind a protected `production` Environment), and **deletes `deploy-migrations.yml`** — because adding the
+> `SUPABASE_DB_PASSWORD` secret any applier needs would otherwise silently activate this unattended on-merge
+> path, applying prod DDL with no human in the loop. The "prod can't silently fall behind main" property is
+> preserved by the pre-merge gate itself (prod is in sync *before* merge), not by an on-merge applier.
+
+- Status: Superseded by ADR 20261126
 - Date: 2026-09-18
 - Deciders: TechFleet (owner)
 - Related: `.github/workflows/deploy-migrations.yml` (the applier), `.github/workflows/deploy-edge-functions.yml` (the pattern this mirrors), ADR-0036 / `scripts/ci/check-db-schema-present.mjs` (the detector this closes the loop on), ADR-0026 (expand/contract — why auto-apply is safe), `ci.yml` `migration-smoke` (the pre-merge proof), `docs/architecture/audit-2026-08/migration-auto-apply.md` (the one-time activation runbook). Skills: `release-deployment-safety`, `compliance-data-lifecycle`, `sre-operational-readiness`.
